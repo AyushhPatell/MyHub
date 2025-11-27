@@ -1,0 +1,128 @@
+// User Types
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: Date;
+  preferences: UserPreferences;
+}
+
+export interface UserPreferences {
+  defaultDueTime: string; // "23:59"
+  theme: "light" | "dark" | "system";
+  notificationsEnabled: boolean;
+  emailDigestEnabled: boolean;
+  emailDigestFrequency: "daily" | "weekly" | "none";
+  timezone: string; // "America/Halifax"
+  dateFormat: "MM/DD/YYYY" | "DD/MM/YYYY";
+  firstDayOfWeek: "Sunday" | "Monday";
+}
+
+// Semester Types
+export interface Semester {
+  id: string;
+  userId: string;
+  name: string; // "Winter 2026"
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;
+  createdAt: Date;
+}
+
+// Course Types
+export interface Course {
+  id: string;
+  semesterId: string;
+  courseCode: string; // "CSCI 3172"
+  courseName: string; // "Web-Centric Computing"
+  professor?: string;
+  color: string; // Hex code, e.g., "#2563EB"
+  schedule: ClassSchedule[];
+  createdAt: Date;
+}
+
+export interface ClassSchedule {
+  day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
+  startTime: string; // "10:00"
+  endTime: string; // "11:30"
+  location?: string;
+}
+
+// Assignment Types
+export type AssignmentType = 
+  | "Essay" 
+  | "Lab" 
+  | "Quiz" 
+  | "Exam" 
+  | "Discussion Post" 
+  | "Project" 
+  | "Presentation"
+  | "Reading"
+  | "Other";
+
+export type AssignmentPriority = "low" | "medium" | "high" | "urgent";
+
+export interface Assignment {
+  id: string;
+  courseId: string;
+  name: string;
+  dueDate: Date;
+  type: AssignmentType;
+  gradeWeight?: number; // Optional: percentage of course grade (e.g., 3, 10)
+  priority: AssignmentPriority; // Auto-calculated
+  links?: string[]; // Optional URLs
+  isRecurring: boolean;
+  recurringTemplateId?: string;
+  createdAt: Date;
+  completedAt?: Date; // When marked complete
+}
+
+// Recurring Template Types
+export type RecurrencePattern = 
+  | "weekly" 
+  | "biweekly" 
+  | "monthly" 
+  | "custom";
+
+export interface RecurringTemplate {
+  id: string;
+  courseId: string;
+  name: string;
+  assignmentNamePattern: string;
+  pattern: RecurrencePattern;
+  dayOfWeek: string;
+  time: string; // "23:59"
+  type: AssignmentType;
+  startDate: Date;
+  endDate: Date;
+  createdAt: Date;
+}
+
+// Quick Note Types
+export interface QuickNote {
+  id: string;
+  userId: string;
+  content: string;
+  tags?: string[];
+  createdAt: Date;
+}
+
+// Notification Types
+export type NotificationType = 
+  | "deadline-soon" 
+  | "deadline-today" 
+  | "overdue" 
+  | "course-update"
+  | "system";
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  message: string;
+  relatedItemId?: string;
+  relatedItemType?: "assignment" | "course";
+  isRead: boolean;
+  createdAt: Date;
+}
+
