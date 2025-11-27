@@ -12,7 +12,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Semester, Course, Assignment } from '../types';
+import { Semester, Course, Assignment, RecurringTemplate, Notification } from '../types';
 
 // Helper to convert Firestore timestamps to Date objects
 const convertTimestamp = (data: any) => {
@@ -277,6 +277,343 @@ export const assignmentService = {
       );
     } catch (error) {
       console.error('Error marking assignment complete:', error);
+      throw error;
+    }
+  },
+};
+
+// Recurring Template operations
+export const recurringTemplateService = {
+  async getTemplates(userId: string, semesterId: string, courseId: string): Promise<RecurringTemplate[]> {
+    try {
+      const q = query(
+        collection(db, 'users', userId, 'semesters', semesterId, 'courses', courseId, 'recurringTemplates')
+      );
+      const snapshot = await getDocs(q);
+      const templates = snapshot.docs.map((doc) => 
+        convertTimestamp({ id: doc.id, ...doc.data() }) as RecurringTemplate
+      );
+      return templates.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+    } catch (error) {
+      console.error('Error getting recurring templates:', error);
+      throw error;
+    }
+  },
+
+  async createTemplate(
+    userId: string,
+    semesterId: string,
+    courseId: string,
+    template: Omit<RecurringTemplate, 'id' | 'courseId' | 'createdAt'>
+  ): Promise<string> {
+    const updateData: any = {
+      ...template,
+      courseId,
+      createdAt: Timestamp.now(),
+    };
+    if (template.startDate) {
+      updateData.startDate = Timestamp.fromDate(template.startDate);
+    }
+    if (template.endDate) {
+      updateData.endDate = Timestamp.fromDate(template.endDate);
+    }
+    const docRef = await addDoc(
+      collection(db, 'users', userId, 'semesters', semesterId, 'courses', courseId, 'recurringTemplates'),
+      updateData
+    );
+    return docRef.id;
+  },
+
+  async updateTemplate(
+    userId: string,
+    semesterId: string,
+    courseId: string,
+    templateId: string,
+    updates: Partial<RecurringTemplate>
+  ): Promise<void> {
+    const updateData: any = { ...updates };
+    if (updates.startDate) {
+      updateData.startDate = Timestamp.fromDate(updates.startDate);
+    }
+    if (updates.endDate) {
+      updateData.endDate = Timestamp.fromDate(updates.endDate);
+    }
+    await updateDoc(
+      doc(db, 'users', userId, 'semesters', semesterId, 'courses', courseId, 'recurringTemplates', templateId),
+      updateData
+    );
+  },
+
+  async deleteTemplate(
+    userId: string,
+    semesterId: string,
+    courseId: string,
+    templateId: string
+  ): Promise<void> {
+    await deleteDoc(
+      doc(db, 'users', userId, 'semesters', semesterId, 'courses', courseId, 'recurringTemplates', templateId)
+    );
+  },
+
+  async generateAssignmentsFromTemplate(
+    userId: string,
+    semesterId: string,
+    courseId: string,
+    templateId: string
+  ): Promise<void> {
+    // Get the template
+    const templateDoc = await getDoc(
+      doc(db, 'users', userId, 'semesters', semesterId, 'courses', courseId, 'recurringTemplates', templateId)
+    );
+    if (!templateDoc.exists()) throw new Error('Template not found');
+    
+    const template = convertTimestamp({ id: templateDoc.id, ...templateDoc.data() }) as RecurringTemplate;
+    
+    // Get existing assignments from this template
+    const existingAssignments = await assignmentService.getAssignments(userId, semesterId, courseId);
+    const templateAssignments = existingAssignments.filter(
+      (a) => a.recurringTemplateId === templateId
+    );
+    
+    // Generate assignments based on pattern
+    const assignments: Omit<Assignment, 'id' | 'courseId' | 'createdAt' | 'priority'>[] = [];
+    const now = new Date();
+    const endDate = template.endDate > now ? template.endDate : now;
+    let currentDate = new Date(template.startDate);
+    
+    // Set the day of week and time
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const targetDay = dayNames.indexOf(template.dayOfWeek);
+    
+    while (currentDate <= endDate) {
+      // Find the next occurrence of the target day
+      while (currentDate.getDay() !== targetDay) {
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      if (currentDate > endDate) break;
+      
+      // Check if assignment already exists for this date
+      const [timeHours, timeMinutes] = template.time.split(':').map(Number);
+      const dueDate = new Date(currentDate);
+      dueDate.setHours(timeHours, timeMinutes, 0, 0);
+      
+      const exists = templateAssignments.some((a) => {
+        const aDate = new Date(a.dueDate);
+        return (
+          aDate.getDate() === dueDate.getDate() &&
+          aDate.getMonth() === dueDate.getMonth() &&
+          aDate.getFullYear() === dueDate.getFullYear()
+        );
+      });
+      
+      if (!exists && dueDate >= now) {
+        // Generate assignment name with pattern
+        let assignmentName = template.assignmentNamePattern;
+        if (assignmentName.includes('{n}')) {
+          const weekNumber = Math.floor((currentDate.getTime() - template.startDate.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+          assignmentName = assignmentName.replace('{n}', weekNumber.toString());
+        }
+        
+        assignments.push({
+          name: assignmentName,
+          dueDate,
+          type: template.type,
+          isRecurring: true,
+          recurringTemplateId: templateId,
+        });
+      }
+      
+      // Move to next occurrence based on pattern
+      if (template.pattern === 'weekly') {
+        currentDate.setDate(currentDate.getDate() + 7);
+      } else if (template.pattern === 'biweekly') {
+        currentDate.setDate(currentDate.getDate() + 14);
+      } else if (template.pattern === 'monthly') {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+      } else {
+        break; // custom - not implemented yet
+      }
+    }
+    
+    // Create all assignments
+    for (const assignment of assignments) {
+      await assignmentService.createAssignment(userId, semesterId, courseId, assignment);
+    }
+  },
+};
+
+// Notification operations
+export const notificationService = {
+  async getNotifications(userId: string, unreadOnly: boolean = false): Promise<Notification[]> {
+    try {
+      let q = query(collection(db, 'users', userId, 'notifications'));
+      if (unreadOnly) {
+        q = query(q, where('isRead', '==', false));
+      }
+      const snapshot = await getDocs(q);
+      const notifications = snapshot.docs.map((doc) => 
+        convertTimestamp({ id: doc.id, ...doc.data() }) as Notification
+      );
+      return notifications.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (error) {
+      console.error('Error getting notifications:', error);
+      throw error;
+    }
+  },
+
+  async createNotification(
+    userId: string,
+    notification: Omit<Notification, 'id' | 'userId' | 'createdAt' | 'isRead'>
+  ): Promise<string> {
+    // Check if similar notification already exists today (avoid duplicates)
+    const existing = await this.getNotifications(userId);
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    const duplicate = existing.find(
+      (n) => {
+        // Check if it's the same type and related item
+        if (n.type !== notification.type || n.relatedItemId !== notification.relatedItemId) {
+          return false;
+        }
+        
+        // Check if it was created today (same day, regardless of read status)
+        const notificationDate = new Date(n.createdAt);
+        const notificationDayStart = new Date(
+          notificationDate.getFullYear(),
+          notificationDate.getMonth(),
+          notificationDate.getDate()
+        );
+        
+        return notificationDayStart.getTime() === todayStart.getTime();
+      }
+    );
+    
+    if (duplicate) {
+      return duplicate.id; // Return existing notification ID
+    }
+    
+    const docRef = await addDoc(collection(db, 'users', userId, 'notifications'), {
+      ...notification,
+      userId,
+      isRead: false,
+      createdAt: Timestamp.now(),
+    });
+    return docRef.id;
+  },
+
+  async markAsRead(userId: string, notificationId: string): Promise<void> {
+    await updateDoc(doc(db, 'users', userId, 'notifications', notificationId), {
+      isRead: true,
+    });
+    // Clean up old notifications after marking as read
+    await this.cleanupOldNotifications(userId);
+  },
+
+  async markAllAsRead(userId: string): Promise<void> {
+    const notifications = await this.getNotifications(userId, true);
+    const batch = notifications.map((n) =>
+      updateDoc(doc(db, 'users', userId, 'notifications', n.id), { isRead: true })
+    );
+    await Promise.all(batch);
+    // Clean up old notifications after marking all as read
+    await this.cleanupOldNotifications(userId);
+  },
+
+  async deleteNotification(userId: string, notificationId: string): Promise<void> {
+    await deleteDoc(doc(db, 'users', userId, 'notifications', notificationId));
+  },
+
+  async checkAndCreateNotifications(userId: string, semesterId: string): Promise<void> {
+    try {
+      const assignments = await assignmentService.getAllAssignments(userId, semesterId);
+      const now = new Date();
+      
+      for (const assignment of assignments) {
+        if (assignment.completedAt) continue; // Skip completed assignments
+        
+        const dueDate = new Date(assignment.dueDate);
+        // Reset time to midnight for accurate day calculation
+        dueDate.setHours(0, 0, 0, 0);
+        const nowMidnight = new Date(now);
+        nowMidnight.setHours(0, 0, 0, 0);
+        
+        const daysUntilDue = Math.ceil((dueDate.getTime() - nowMidnight.getTime()) / (1000 * 60 * 60 * 24));
+        
+        // Create notifications based on timing - only for specific days
+        if (daysUntilDue < 0) {
+          // Overdue - create once per day
+          await this.createNotification(userId, {
+            type: 'overdue',
+            message: `${assignment.name} is overdue`,
+            relatedItemId: assignment.id,
+            relatedItemType: 'assignment',
+          });
+        } else if (daysUntilDue === 0) {
+          // Due today - create once per day
+          await this.createNotification(userId, {
+            type: 'deadline-today',
+            message: `${assignment.name} is due today`,
+            relatedItemId: assignment.id,
+            relatedItemType: 'assignment',
+          });
+        } else if (daysUntilDue === 1) {
+          // Due in 1 day - create once per day
+          await this.createNotification(userId, {
+            type: 'deadline-soon',
+            message: `${assignment.name} is due in 1 day`,
+            relatedItemId: assignment.id,
+            relatedItemType: 'assignment',
+          });
+        } else if (daysUntilDue === 3) {
+          // Due in 3 days - create once per day
+          await this.createNotification(userId, {
+            type: 'deadline-soon',
+            message: `${assignment.name} is due in 3 days`,
+            relatedItemId: assignment.id,
+            relatedItemType: 'assignment',
+          });
+        }
+        // Note: We skip day 2 to avoid too many notifications
+        // Only notify at 3 days and 1 day before due date
+      }
+    } catch (error) {
+      console.error('Error in checkAndCreateNotifications:', error);
+      throw error;
+    }
+  },
+
+  async cleanupOldNotifications(userId: string, keepUnreadCount: number = 10, keepRecentReadCount: number = 5): Promise<void> {
+    try {
+      const allNotifications = await this.getNotifications(userId);
+      
+      // Separate read and unread
+      const unread = allNotifications.filter((n) => !n.isRead);
+      const read = allNotifications.filter((n) => n.isRead);
+      
+      // Keep all unread (up to keepUnreadCount)
+      const unreadToKeep = unread.slice(0, keepUnreadCount);
+      
+      // Keep only the most recent read notifications
+      const readToKeep = read.slice(0, keepRecentReadCount);
+      
+      // Find notifications to delete
+      const toDelete = allNotifications.filter(
+        (n) =>
+          !unreadToKeep.find((u) => u.id === n.id) &&
+          !readToKeep.find((r) => r.id === n.id)
+      );
+      
+      // Delete old notifications
+      if (toDelete.length > 0) {
+        const deletePromises = toDelete.map((n) =>
+          deleteDoc(doc(db, 'users', userId, 'notifications', n.id))
+        );
+        await Promise.all(deletePromises);
+      }
+    } catch (error) {
+      console.error('Error cleaning up old notifications:', error);
       throw error;
     }
   },

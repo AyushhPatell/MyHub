@@ -10,6 +10,7 @@ import AddCourseModal from '../components/AddCourseModal';
 import EditCourseModal from '../components/EditCourseModal';
 import SearchBar from '../components/SearchBar';
 import QuickAddModal from '../components/QuickAddModal';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function CoursesPage() {
   const { user } = useAuth();
@@ -178,8 +179,9 @@ export default function CoursesPage() {
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline text-sm">Quick Add</span>
           </button>
-          <div className="hidden lg:block h-10">
+          <div className="hidden lg:flex items-center gap-3 h-10">
             <SearchBar />
+            {user && <NotificationDropdown userId={user.uid} />}
           </div>
         </div>
       </div>

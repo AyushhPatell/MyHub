@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { semesterService, courseService, assignmentService } from '../services/firestore';
-import { Course, Assignment } from '../types';
+import { semesterService, courseService, assignmentService, recurringTemplateService, notificationService } from '../services/firestore';
+import { Course, Assignment, RecurringTemplate } from '../types';
 import { formatDate, formatTime, isOverdue, getDaysUntilDue } from '../utils/dateHelpers';
 import { calculatePriority, getPriorityColor } from '../utils/priority';
-import { ArrowLeft, Plus, Check, X, ExternalLink, Edit, Trash2, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, Check, X, ExternalLink, Edit, Trash2, Calendar, Repeat, Play } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
+import RecurringTemplateModal from '../components/RecurringTemplateModal';
 import SearchBar from '../components/SearchBar';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -20,6 +22,9 @@ export default function CourseDetailPage() {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [editingAssignment, setEditingAssignment] = useState<Assignment | null>(null);
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed'>('upcoming');
+  const [templates, setTemplates] = useState<RecurringTemplate[]>([]);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<RecurringTemplate | null>(null);
 
   useEffect(() => {
     if (user && courseId) {
@@ -43,11 +48,46 @@ export default function CourseDetailPage() {
           priority: calculatePriority(assignment),
         }));
         setAssignments(assignmentsWithPriority);
+
+        // Load recurring templates
+        const templateList = await recurringTemplateService.getTemplates(user.uid, semester.id, courseId);
+        setTemplates(templateList);
+
+        // Check and create notifications for upcoming deadlines
+        try {
+          await notificationService.checkAndCreateNotifications(user.uid, semester.id);
+        } catch (error) {
+          console.error('Error checking notifications:', error);
+        }
       }
     } catch (error) {
       console.error('Error loading course:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateFromTemplate = async (templateId: string) => {
+    if (!user || !courseId || !semesterId) return;
+    try {
+      await recurringTemplateService.generateAssignmentsFromTemplate(user.uid, semesterId, courseId, templateId);
+      loadData();
+      alert('Assignments generated successfully!');
+    } catch (error) {
+      console.error('Error generating assignments:', error);
+      alert('Failed to generate assignments. Please try again.');
+    }
+  };
+
+  const handleDeleteTemplate = async (templateId: string) => {
+    if (!user || !courseId || !semesterId) return;
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    try {
+      await recurringTemplateService.deleteTemplate(user.uid, semesterId, courseId, templateId);
+      loadData();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+      alert('Failed to delete template. Please try again.');
     }
   };
 
@@ -123,22 +163,23 @@ export default function CourseDetailPage() {
             <Plus className="w-5 h-5" />
             <span className="hidden sm:inline">Add Assignment</span>
           </button>
-          <div className="hidden lg:block">
+          <div className="hidden lg:flex items-center gap-3">
             <SearchBar />
+            {user && <NotificationDropdown userId={user.uid} />}
           </div>
         </div>
       </div>
 
       {/* Course Info Card */}
       <div
-        className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700"
+        className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700"
         style={{ borderLeftColor: course.color, borderLeftWidth: '4px' }}
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {course.professor && (
             <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Professor</p>
-              <p className="font-medium text-gray-900 dark:text-white">{course.professor}</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Professor</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{course.professor}</p>
             </div>
           )}
           {course.schedule.length > 0 && (
@@ -157,6 +198,77 @@ export default function CourseDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Recurring Templates Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <Repeat className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+            Recurring Templates
+          </h2>
+          <button
+            type="button"
+            onClick={() => {
+              setEditingTemplate(null);
+              setShowTemplateModal(true);
+            }}
+            className="flex items-center space-x-2 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Template</span>
+          </button>
+        </div>
+        {templates.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 text-xs text-center py-3">
+            No recurring templates. Create one to automatically generate assignments.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {templates.map((template) => (
+              <div
+                key={template.id}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
+              >
+                <div className="flex-1">
+                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">{template.name}</h3>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
+                    {template.assignmentNamePattern} • {template.pattern} • {template.dayOfWeek} at {template.time}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+                    {formatDate(template.startDate)} - {formatDate(template.endDate)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleGenerateFromTemplate(template.id)}
+                    className="p-2 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
+                    title="Generate assignments"
+                  >
+                    <Play className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingTemplate(template);
+                      setShowTemplateModal(true);
+                    }}
+                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    title="Edit template"
+                  >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteTemplate(template.id)}
+                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                    title="Delete template"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Separator */}
@@ -347,6 +459,24 @@ export default function CourseDetailPage() {
           onClose={() => setShowQuickAdd(false)}
           onSuccess={() => {
             setShowQuickAdd(false);
+            loadData();
+          }}
+        />
+      )}
+
+      {showTemplateModal && user && semesterId && courseId && (
+        <RecurringTemplateModal
+          userId={user.uid}
+          semesterId={semesterId}
+          courseId={courseId}
+          template={editingTemplate || undefined}
+          onClose={() => {
+            setShowTemplateModal(false);
+            setEditingTemplate(null);
+          }}
+          onSuccess={() => {
+            setShowTemplateModal(false);
+            setEditingTemplate(null);
             loadData();
           }}
         />

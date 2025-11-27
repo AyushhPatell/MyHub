@@ -5,6 +5,7 @@ import { auth } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { Home, BookOpen, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 import SearchBar from './SearchBar';
+import NotificationDropdown from './NotificationDropdown';
 import { useState } from 'react';
 
 interface LayoutProps {
@@ -181,6 +182,7 @@ export default function Layout({ children }: LayoutProps) {
           </Link>
           <div className="flex items-center space-x-2">
             <SearchBar />
+            {user && <NotificationDropdown userId={user.uid} />}
             <button
               onClick={() => setMobileMenuOpen(true)}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"

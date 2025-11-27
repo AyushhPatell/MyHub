@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { semesterService, assignmentService } from '../services/firestore';
+import { semesterService, assignmentService, notificationService } from '../services/firestore';
 import { Semester, Assignment } from '../types';
 import { formatDate, formatTime, isDueToday, getDaysUntilDue, getTodayRange, getWeekRange } from '../utils/dateHelpers';
 import { calculatePriority, getPriorityColor } from '../utils/priority';
@@ -11,6 +11,7 @@ import AssignmentFilterModal from '../components/AssignmentFilterModal';
 import { courseService } from '../services/firestore';
 import { Course } from '../types';
 import SearchBar from '../components/SearchBar';
+import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -43,6 +44,13 @@ export default function DashboardPage() {
         }));
         setAssignments(assignmentsWithPriority);
         setCourses(courseList);
+
+        // Check and create notifications for upcoming deadlines
+        try {
+          await notificationService.checkAndCreateNotifications(user.uid, activeSemester.id);
+        } catch (error) {
+          console.error('Error checking notifications:', error);
+        }
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -201,8 +209,9 @@ export default function DashboardPage() {
             {formatDate(today)} • {semester.name}
           </p>
         </div>
-        <div className="hidden lg:block">
+        <div className="hidden lg:flex items-center gap-3">
           <SearchBar />
+          {user && <NotificationDropdown userId={user.uid} />}
         </div>
       </div>
 
