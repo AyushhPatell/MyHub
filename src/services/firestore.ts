@@ -6,13 +6,14 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
   query,
   where,
   orderBy,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Semester, Course, Assignment, RecurringTemplate, Notification } from '../types';
+import { Semester, Course, Assignment, RecurringTemplate, Notification, DashboardLayout, WidgetConfig, QuickNote } from '../types';
 
 // Helper to convert Firestore timestamps to Date objects
 const convertTimestamp = (data: any) => {
@@ -614,6 +615,150 @@ export const notificationService = {
       }
     } catch (error) {
       console.error('Error cleaning up old notifications:', error);
+      throw error;
+    }
+  },
+};
+
+// Dashboard Layout & Widget Service
+export const widgetService = {
+  async getDashboardLayout(userId: string): Promise<DashboardLayout | null> {
+    try {
+      const docRef = doc(db, 'users', userId, 'dashboard', 'layout');
+      const docSnap = await getDoc(docRef);
+      if (!docSnap.exists()) return null;
+      const data = docSnap.data();
+      return {
+        userId,
+        widgets: (data.widgets || []).map((w: any) => ({
+          ...w,
+          settings: w.settings || {},
+        })),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      } as DashboardLayout;
+    } catch (error) {
+      console.error('Error getting dashboard layout:', error);
+      throw error;
+    }
+  },
+
+  async saveDashboardLayout(userId: string, layout: DashboardLayout): Promise<void> {
+    try {
+      const docRef = doc(db, 'users', userId, 'dashboard', 'layout');
+      await updateDoc(docRef, {
+        widgets: layout.widgets.map((w) => ({
+          ...w,
+          settings: w.settings || {},
+        })),
+        updatedAt: Timestamp.now(),
+      });
+    } catch (error: any) {
+      // If document doesn't exist, create it
+      if (error.code === 'not-found' || error.code === 'permission-denied') {
+        try {
+          await addDoc(collection(db, 'users', userId, 'dashboard'), {
+            widgets: layout.widgets.map((w) => ({
+              ...w,
+              settings: w.settings || {},
+            })),
+            updatedAt: Timestamp.now(),
+          });
+        } catch (createError) {
+          // Try with setDoc instead
+          const setDocRef = doc(db, 'users', userId, 'dashboard', 'layout');
+          await setDoc(setDocRef, {
+            widgets: layout.widgets.map((w) => ({
+              ...w,
+              settings: w.settings || {},
+            })),
+            updatedAt: Timestamp.now(),
+          });
+        }
+      } else {
+        console.error('Error saving dashboard layout:', error);
+        throw error;
+      }
+    }
+  },
+
+  async updateWidgetConfig(userId: string, widgetId: string, updates: Partial<WidgetConfig>): Promise<void> {
+    try {
+      const layout = await this.getDashboardLayout(userId);
+      if (!layout) {
+        // Create default layout
+        const defaultLayout: DashboardLayout = {
+          userId,
+          widgets: [],
+          updatedAt: new Date(),
+        };
+        await this.saveDashboardLayout(userId, defaultLayout);
+        return;
+      }
+
+      const updatedWidgets = layout.widgets.map((w) =>
+        w.id === widgetId ? { ...w, ...updates } : w
+      );
+      await this.saveDashboardLayout(userId, { ...layout, widgets: updatedWidgets });
+    } catch (error) {
+      console.error('Error updating widget config:', error);
+      throw error;
+    }
+  },
+};
+
+// Quick Notes Service
+export const quickNotesService = {
+  async getNotes(userId: string): Promise<QuickNote[]> {
+    try {
+      const q = query(
+        collection(db, 'users', userId, 'quickNotes'),
+        orderBy('updatedAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((doc) =>
+        convertTimestamp({ id: doc.id, ...doc.data() })
+      ) as QuickNote[];
+    } catch (error) {
+      console.error('Error getting quick notes:', error);
+      throw error;
+    }
+  },
+
+  async createNote(userId: string, note: Omit<QuickNote, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> {
+    try {
+      const now = Timestamp.now();
+      const docRef = await addDoc(collection(db, 'users', userId, 'quickNotes'), {
+        ...note,
+        userId,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating quick note:', error);
+      throw error;
+    }
+  },
+
+  async updateNote(userId: string, noteId: string, updates: Partial<QuickNote>): Promise<void> {
+    try {
+      const docRef = doc(db, 'users', userId, 'quickNotes', noteId);
+      await updateDoc(docRef, {
+        ...updates,
+        updatedAt: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error('Error updating quick note:', error);
+      throw error;
+    }
+  },
+
+  async deleteNote(userId: string, noteId: string): Promise<void> {
+    try {
+      const docRef = doc(db, 'users', userId, 'quickNotes', noteId);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error('Error deleting quick note:', error);
       throw error;
     }
   },

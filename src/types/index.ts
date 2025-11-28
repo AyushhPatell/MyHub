@@ -104,7 +104,9 @@ export interface QuickNote {
   userId: string;
   content: string;
   tags?: string[];
+  color?: string; // For color-coded notes
   createdAt: Date;
+  updatedAt: Date;
 }
 
 // Notification Types
@@ -125,4 +127,42 @@ export interface Notification {
   isRead: boolean;
   createdAt: Date;
 }
+
+// Widget Types
+export type WidgetType = "weather" | "notes" | "calendar" | "stats";
+
+export type WidgetSize = "small" | "medium" | "large";
+
+export interface WidgetConfig {
+  id: string;
+  type: WidgetType;
+  size: WidgetSize;
+  position: number; // Order in grid
+  visible: boolean;
+  settings?: Record<string, any>; // Widget-specific settings
+}
+
+export interface DashboardLayout {
+  userId: string;
+  widgets: WidgetConfig[];
+  updatedAt: Date;
+}
+
+// Weather Widget Types
+export interface WeatherData {
+  location: string;
+  temperature: number;
+  condition: string;
+  icon: string;
+  humidity: number;
+  windSpeed: number;
+  forecast: {
+    date: string;
+    high: number;
+    low: number;
+    condition: string;
+    icon: string;
+  }[];
+}
+
 

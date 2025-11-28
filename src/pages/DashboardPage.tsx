@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { semesterService, assignmentService, notificationService } from '../services/firestore';
 import { Semester, Assignment } from '../types';
-import { formatDate, formatTime, isDueToday, getDaysUntilDue, getTodayRange, getWeekRange } from '../utils/dateHelpers';
-import { calculatePriority, getPriorityColor } from '../utils/priority';
-import { Calendar, Plus, AlertCircle, Sparkles, LayoutGrid, Clock } from 'lucide-react';
+import { formatDate, getTodayRange, getWeekRange } from '../utils/dateHelpers';
+import { calculatePriority } from '../utils/priority';
+import { Plus, LayoutGrid } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import QuickAddModal from '../components/QuickAddModal';
 import AssignmentFilterModal from '../components/AssignmentFilterModal';
 import { courseService } from '../services/firestore';
 import { Course } from '../types';
 import SearchBar from '../components/SearchBar';
 import NotificationDropdown from '../components/NotificationDropdown';
+import WidgetGrid from '../components/WidgetGrid';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -98,37 +98,6 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Coming Soon Section */}
-        <div className="bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-xl p-8 border border-primary-200 dark:border-primary-800">
-          <div className="flex items-start space-x-4">
-            <div className="flex-shrink-0">
-              <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">More Features Coming Soon</h3>
-              <p className="text-gray-700 dark:text-gray-300 mb-4">
-                We're continuously working on expanding MyHub with new features and integrations. 
-                Stay tuned for API feeds, widgets, and more personalization options.
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                  API Feeds
-                </span>
-                <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                  Weather Widget
-                </span>
-                <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                  News Feeds
-                </span>
-                <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                  And More...
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     );
   }
@@ -218,85 +187,15 @@ export default function DashboardPage() {
       {/* Separator */}
       <div className="border-b border-gray-200 dark:border-gray-700"></div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          onClick={() => setShowFilterModal('today')}
-          className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600 hover:shadow-lg transition-all cursor-pointer text-left group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Due Today</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{todayAssignments.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm">
-              <Calendar className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-          </div>
-        </button>
-
-        <button
-          onClick={() => setShowFilterModal('week')}
-          className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-600 hover:shadow-lg transition-all cursor-pointer text-left group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">This Week</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{weekAssignments.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm">
-              <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
-            </div>
-          </div>
-        </button>
-
-        <button
-          onClick={() => setShowFilterModal('overdue')}
-          className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 hover:border-red-300 dark:hover:border-red-600 hover:shadow-lg transition-all cursor-pointer text-left group"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Overdue</p>
-              <p className="text-3xl font-bold text-gray-900 dark:text-white">{overdueAssignments.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm">
-              <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Coming Soon Section */}
-      <div className="bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-xl p-8 border border-primary-200 dark:border-primary-800">
-        <div className="flex items-start space-x-4">
-          <div className="flex-shrink-0">
-            <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-primary-600 dark:text-primary-400" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">More Features Coming Soon</h3>
-            <p className="text-gray-700 dark:text-gray-300 mb-4">
-              We're continuously working on expanding MyHub with new features and integrations. 
-              Stay tuned for API feeds, widgets, and more personalization options.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                API Feeds
-              </span>
-              <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                Weather Widget
-              </span>
-              <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                News Feeds
-              </span>
-              <span className="px-3 py-1 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-300 rounded-lg border border-gray-200 dark:border-gray-700">
-                And More...
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Widget Grid */}
+      {user && (
+        <WidgetGrid
+          userId={user.uid}
+          assignments={assignments}
+          courses={courses}
+          onStatClick={(type) => setShowFilterModal(type)}
+        />
+      )}
 
       {showFilterModal && (
         <AssignmentFilterModal
