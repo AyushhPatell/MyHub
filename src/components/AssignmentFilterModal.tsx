@@ -8,9 +8,10 @@ interface AssignmentFilterModalProps {
   filterType: 'today' | 'week' | 'overdue';
   onClose: () => void;
   onToggleComplete: (assignmentId: string, completed: boolean) => void;
+  title?: string;
 }
 
-export default function AssignmentFilterModal({ assignments, filterType, onClose, onToggleComplete }: AssignmentFilterModalProps) {
+export default function AssignmentFilterModal({ assignments, filterType, onClose, onToggleComplete, title }: AssignmentFilterModalProps) {
   const navigate = useNavigate();
 
   const handleAssignmentClick = (courseId: string) => {
@@ -18,6 +19,7 @@ export default function AssignmentFilterModal({ assignments, filterType, onClose
     onClose();
   };
   const getTitle = () => {
+    if (title) return title;
     switch (filterType) {
       case 'today':
         return 'Due Today';

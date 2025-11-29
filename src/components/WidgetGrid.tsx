@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Settings, Plus, LayoutGrid } from 'lucide-react';
 import { WidgetConfig, DashboardLayout, WidgetType } from '../types';
 import { widgetService } from '../services/firestore';
@@ -15,6 +15,8 @@ interface WidgetGridProps {
   assignments: Assignment[];
   courses: Course[];
   onStatClick?: (type: 'today' | 'week' | 'overdue') => void;
+  onCalendarDateClick?: (date: Date, assignments: Assignment[]) => void;
+  initialEditMode?: boolean;
 }
 
 const defaultWidgets: WidgetConfig[] = [
@@ -24,10 +26,10 @@ const defaultWidgets: WidgetConfig[] = [
   { id: 'notes', type: 'notes', size: 'medium', position: 3, visible: true },
 ];
 
-export default function WidgetGrid({ userId, assignments, courses, onStatClick }: WidgetGridProps) {
+export default function WidgetGrid({ userId, assignments, courses, onStatClick, onCalendarDateClick, initialEditMode = false }: WidgetGridProps) {
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isEditMode, setIsEditMode] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(initialEditMode);
   const [showWidgetPicker, setShowWidgetPicker] = useState(false);
   const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -43,7 +45,6 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
       if (savedLayout) {
         setLayout(savedLayout);
       } else {
-        // Create default layout
         const defaultLayout: DashboardLayout = {
           userId,
           widgets: defaultWidgets,
@@ -54,7 +55,6 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
       }
     } catch (error) {
       console.error('Error loading widget layout:', error);
-      // Fallback to default layout
       const defaultLayout: DashboardLayout = {
         userId,
         widgets: defaultWidgets,
@@ -95,8 +95,6 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
     if (!layout) return;
     
     const updatedWidgets = layout.widgets.filter((w) => w.id !== widgetId);
-    
-    // Reorder positions
     const reorderedWidgets = updatedWidgets.map((w, index) => ({
       ...w,
       position: index,
@@ -134,6 +132,8 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
 
   const handleDragStart = (widgetId: string) => {
     setDraggedWidgetId(widgetId);
+    // Prevent scrolling while dragging
+    document.body.style.overflow = 'hidden';
   };
 
   const handleDragOver = (e: React.DragEvent, widgetId: string) => {
@@ -165,11 +165,9 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
       return;
     }
 
-    // Reorder widgets
     const [draggedWidget] = widgets.splice(draggedIndex, 1);
     widgets.splice(targetIndex, 0, draggedWidget);
 
-    // Update positions
     const reorderedWidgets = widgets.map((w, index) => ({
       ...w,
       position: index,
@@ -188,6 +186,8 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
   const handleDragEnd = () => {
     setDraggedWidgetId(null);
     setDragOverId(null);
+    // Re-enable scrolling after drag ends
+    document.body.style.overflow = '';
   };
 
   const renderWidget = (widget: WidgetConfig) => {
@@ -202,6 +202,11 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
             size={widget.size}
             assignments={assignments}
             courses={courses}
+            onDateClick={(date, dayAssignments) => {
+              if (onCalendarDateClick) {
+                onCalendarDateClick(date, dayAssignments);
+              }
+            }}
           />
         );
       case 'stats':
@@ -220,7 +225,7 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
       </div>
     );
   }
@@ -236,36 +241,30 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
   const unusedWidgetTypes = availableWidgetTypes.filter((type) => !usedWidgetTypes.has(type));
 
   return (
-    <div className="space-y-4">
-      {/* Header with Edit Mode Toggle and Add Widget */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {isEditMode && (
-            <button
-              onClick={() => setShowWidgetPicker(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors shadow-sm"
-            >
-              <Plus className="w-4 h-4" />
-              Add Widget
-            </button>
-          )}
+    <div className="space-y-6">
+      {/* Modern Controls - Only show in edit mode */}
+      {isEditMode && (
+        <div className="flex items-center justify-end gap-3">
+          <button
+            onClick={() => setShowWidgetPicker(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            Add Widget
+          </button>
+          <button
+            onClick={() => setIsEditMode(false)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg"
+          >
+            <Settings className="w-5 h-5" />
+            Done
+          </button>
         </div>
-        <button
-          onClick={() => setIsEditMode(!isEditMode)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            isEditMode
-              ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-sm'
-              : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          {isEditMode ? 'Done' : 'Edit Layout'}
-        </button>
-      </div>
+      )}
 
       {/* Widget Grid */}
       {visibleWidgets.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {visibleWidgets.map((widget) => (
             <WidgetContainer
               key={widget.id}
@@ -286,28 +285,27 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick }
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-16 bg-gray-50 dark:bg-gray-900/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700">
-          <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mb-4">
-            <LayoutGrid className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+        <div className="flex flex-col items-center justify-center py-24">
+          <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mb-8 shadow-xl">
+            <LayoutGrid className="w-12 h-12 text-white" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Widgets Yet</h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 text-center max-w-md">
-            Add widgets to customize your dashboard. Click "Edit Layout" to get started.
+          <h3 className="text-3xl font-bold text-white mb-4">No Widgets</h3>
+          <p className="text-lg text-gray-300 mb-10 text-center max-w-md font-medium">
+            Add widgets to customize your dashboard
           </p>
           <button
             onClick={() => {
               setIsEditMode(true);
               setShowWidgetPicker(true);
             }}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors shadow-sm"
+            className="flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-2xl hover:scale-105 transition-transform shadow-xl"
           >
-            <Plus className="w-5 h-5" />
-            Add Your First Widget
+            <Plus className="w-6 h-6" />
+            Add Widget
           </button>
         </div>
       )}
 
-      {/* Widget Picker Modal */}
       {showWidgetPicker && (
         <WidgetPickerModal
           availableWidgets={unusedWidgetTypes}

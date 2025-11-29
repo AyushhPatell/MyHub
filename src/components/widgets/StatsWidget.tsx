@@ -29,88 +29,52 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
     return new Date(a.dueDate) < todayRange.start;
   });
 
-  const colorClasses = {
-    red: {
-      bg: 'bg-red-100 dark:bg-red-900/30',
-      text: 'text-red-600 dark:text-red-400',
-    },
-    amber: {
-      bg: 'bg-amber-100 dark:bg-amber-900/30',
-      text: 'text-amber-600 dark:text-amber-400',
-    },
-  };
-
   const stats = [
     {
       label: 'Due Today',
       count: todayAssignments.length,
       icon: Calendar,
-      color: 'red' as const,
+      gradient: 'from-indigo-500 to-purple-500',
       type: 'today' as const,
     },
     {
       label: 'This Week',
       count: weekAssignments.length,
       icon: Clock,
-      color: 'amber' as const,
+      gradient: 'from-pink-500 to-rose-500',
       type: 'week' as const,
     },
     {
       label: 'Overdue',
       count: overdueAssignments.length,
       icon: AlertCircle,
-      color: 'red' as const,
+      gradient: 'from-red-500 to-orange-500',
       type: 'overdue' as const,
     },
   ];
 
   if (size === 'small') {
     return (
-      <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-3">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <button
               key={stat.type}
               onClick={() => onStatClick?.(stat.type)}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-lg p-3 border-2 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all text-left group"
-            >
-              <div className="flex flex-col items-center text-center">
-                <div className={`w-8 h-8 ${colorClasses[stat.color].bg} rounded-lg flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform`}>
-                  <Icon className={`w-4 h-4 ${colorClasses[stat.color].text}`} />
-                </div>
-                <div className="text-xl font-bold text-gray-900 dark:text-white">{stat.count}</div>
-                <div className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  {stat.label}
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  if (size === 'medium') {
-    return (
-      <div className="grid grid-cols-3 gap-3">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <button
-              key={stat.type}
-              onClick={() => onStatClick?.(stat.type)}
-              className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-lg transition-all text-left group"
+              className="w-full group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
             >
               <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">
-                    {stat.label}
-                  </p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white">{stat.count}</p>
-                </div>
-                <div className={`w-12 h-12 ${colorClasses[stat.color].bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm`}>
-                  <Icon className={`w-6 h-6 ${colorClasses[stat.color].text}`} />
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
+                    <Icon className="w-7 h-7 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-4xl font-bold text-gray-900 dark:text-white mb-1 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
+                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      {stat.label}
+                    </div>
+                  </div>
                 </div>
               </div>
             </button>
@@ -120,7 +84,7 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
     );
   }
 
-  // Large size - same as medium but with more spacing
+  // Medium and Large
   return (
     <div className="grid grid-cols-3 gap-4">
       {stats.map((stat) => {
@@ -129,17 +93,17 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
           <button
             key={stat.type}
             onClick={() => onStatClick?.(stat.type)}
-            className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 border-2 border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-lg transition-all text-left group"
+            className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-6 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                  {stat.label}
-                </p>
-                <p className="text-4xl font-bold text-gray-900 dark:text-white">{stat.count}</p>
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className={`w-16 h-16 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
+                <Icon className="w-8 h-8 text-white" />
               </div>
-              <div className={`w-14 h-14 ${colorClasses[stat.color].bg} rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform shadow-sm`}>
-                <Icon className={`w-7 h-7 ${colorClasses[stat.color].text}`} />
+              <div>
+                <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                  {stat.label}
+                </div>
               </div>
             </div>
           </button>
@@ -148,4 +112,3 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
     </div>
   );
 }
-

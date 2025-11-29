@@ -3,11 +3,13 @@ import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { UserPreferences } from '../types';
-import { Moon, Sun, Bell, Clock } from 'lucide-react';
+import { Moon, Sun, Bell, Clock, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import SearchBar from '../components/SearchBar';
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -70,6 +72,9 @@ export default function SettingsPage() {
 
   const applyTheme = (theme: string) => {
     const root = document.documentElement;
+    // Update localStorage immediately so login/register pages pick it up
+    localStorage.setItem('theme', theme);
+    
     if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       root.classList.add('dark');
     } else {
@@ -89,145 +94,166 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Settings</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your preferences</p>
-        </div>
-        <div className="hidden lg:block">
-          <SearchBar />
-        </div>
-      </div>
-
-      {/* Separator */}
-      <div className="border-b border-gray-200 dark:border-gray-700"></div>
-
-      {/* Theme Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3 mb-4">
-          {preferences.theme === 'dark' ? (
-            <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          ) : (
-            <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          )}
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Appearance</h2>
+    <div className="min-h-screen w-full">
+      <div className="w-full px-6 lg:px-12 py-8">
+        <div className="mb-8 text-center">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
+            Settings
+          </h1>
+          <p className="text-base text-gray-600 dark:text-gray-400 font-semibold">Manage your preferences</p>
         </div>
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-gray-700 dark:text-gray-300">Theme</span>
-            <button
-              onClick={() => {
-                const newTheme = preferences.theme === 'dark' ? 'light' : 'dark';
-                updatePreference({ theme: newTheme });
-              }}
-              className="flex items-center justify-center w-14 h-8 rounded-full bg-gray-200 dark:bg-gray-700 relative transition-colors"
-              title={`Switch to ${preferences.theme === 'dark' ? 'light' : 'dark'} mode`}
-            >
-              <div
-                className={`absolute left-1 top-1 w-6 h-6 rounded-full bg-white dark:bg-gray-800 shadow-md transform transition-transform flex items-center justify-center ${
-                  preferences.theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
-                }`}
-              >
-                {preferences.theme === 'dark' ? (
-                  <Moon size={14} className="text-gray-700" />
-                ) : (
-                  <Sun size={14} className="text-amber-500" />
-                )}
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Notification Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3 mb-4">
-          <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
-        </div>
-
-        <div className="space-y-4">
-          <label className="flex items-center justify-between cursor-pointer">
-            <div>
-              <span className="text-gray-700 dark:text-gray-300">Enable Notifications</span>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Get notified about upcoming deadlines</p>
+        <div className="max-w-3xl mx-auto space-y-6">
+          {/* Dashboard Widgets */}
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-gray-200 dark:border-white/10">
+            <div className="flex items-center space-x-3 mb-4">
+              <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard Widgets</h2>
             </div>
-            <input
-              type="checkbox"
-              checked={preferences.notificationsEnabled}
-              onChange={(e) => updatePreference({ notificationsEnabled: e.target.checked })}
-              className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-            />
-          </label>
-        </div>
-      </div>
-
-      {/* Time Settings */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3 mb-4">
-          <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Time & Date</h2>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Default Due Time
-            </label>
-            <input
-              type="time"
-              value={preferences.defaultDueTime}
-              onChange={(e) => updatePreference({ defaultDueTime: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-gray-700 dark:text-gray-300 font-semibold">Customize Widgets</span>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Arrange and configure your dashboard widgets</p>
+                </div>
+                <button
+                  onClick={() => navigate('/?edit=true')}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg"
+                >
+                  <Settings className="w-5 h-5" />
+                  Edit Widgets
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Date Format
-            </label>
-            <select
-              value={preferences.dateFormat}
-              onChange={(e) => updatePreference({ dateFormat: e.target.value as 'MM/DD/YYYY' | 'DD/MM/YYYY' })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-            </select>
+          {/* Theme Settings */}
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-gray-200 dark:border-white/10">
+            <div className="flex items-center space-x-3 mb-4">
+              {preferences.theme === 'dark' ? (
+                <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              ) : (
+                <Sun className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              )}
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Appearance</h2>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-700 dark:text-gray-300">Theme</span>
+                <button
+                  onClick={() => {
+                    const newTheme = preferences.theme === 'dark' ? 'light' : 'dark';
+                    updatePreference({ theme: newTheme });
+                  }}
+                  className="flex items-center justify-center w-14 h-8 rounded-full bg-gray-200 dark:bg-gray-700 relative transition-colors"
+                  title={`Switch to ${preferences.theme === 'dark' ? 'light' : 'dark'} mode`}
+                >
+                  <div
+                    className={`absolute left-1 top-1 w-6 h-6 rounded-full bg-white dark:bg-gray-800 shadow-md transform transition-transform flex items-center justify-center ${
+                      preferences.theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  >
+                    {preferences.theme === 'dark' ? (
+                      <Moon size={14} className="text-gray-700" />
+                    ) : (
+                      <Sun size={14} className="text-amber-500" />
+                    )}
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              First Day of Week
-            </label>
-            <select
-              value={preferences.firstDayOfWeek}
-              onChange={(e) => updatePreference({ firstDayOfWeek: e.target.value as 'Sunday' | 'Monday' })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="Monday">Monday</option>
-              <option value="Sunday">Sunday</option>
-            </select>
+          {/* Notification Settings */}
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-gray-200 dark:border-white/10">
+            <div className="flex items-center space-x-3 mb-4">
+              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div>
+                  <span className="text-gray-700 dark:text-gray-300">Enable Notifications</span>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Get notified about upcoming deadlines</p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={preferences.notificationsEnabled}
+                  onChange={(e) => updatePreference({ notificationsEnabled: e.target.checked })}
+                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                />
+              </label>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Timezone
-            </label>
-            <input
-              type="text"
-              value={preferences.timezone}
-              onChange={(e) => updatePreference({ timezone: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
+          {/* Time Settings */}
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-gray-200 dark:border-white/10">
+            <div className="flex items-center space-x-3 mb-4">
+              <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Time & Date</h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Default Due Time
+                </label>
+                <input
+                  type="time"
+                  value={preferences.defaultDueTime}
+                  onChange={(e) => updatePreference({ defaultDueTime: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Date Format
+                </label>
+                <select
+                  value={preferences.dateFormat}
+                  onChange={(e) => updatePreference({ dateFormat: e.target.value as 'MM/DD/YYYY' | 'DD/MM/YYYY' })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                  <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  First Day of Week
+                </label>
+                <select
+                  value={preferences.firstDayOfWeek}
+                  onChange={(e) => updatePreference({ firstDayOfWeek: e.target.value as 'Sunday' | 'Monday' })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="Monday">Monday</option>
+                  <option value="Sunday">Sunday</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Timezone
+                </label>
+                <input
+                  type="text"
+                  value={preferences.timezone}
+                  onChange={(e) => updatePreference({ timezone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {saving && (
-        <div className="fixed bottom-4 right-4 bg-primary-600 text-white px-4 py-2 rounded-lg shadow-lg">
+        <div className="fixed bottom-4 right-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-xl shadow-lg font-semibold">
           Saving...
         </div>
       )}

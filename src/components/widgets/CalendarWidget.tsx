@@ -7,7 +7,7 @@ interface CalendarWidgetProps {
   size: 'small' | 'medium' | 'large';
   assignments: Assignment[];
   courses: Course[];
-  onDateClick?: (date: Date) => void;
+  onDateClick?: (date: Date, assignments: Assignment[]) => void;
 }
 
 export default function CalendarWidget({ size, assignments, courses, onDateClick }: CalendarWidgetProps) {
@@ -17,7 +17,6 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Get first day of month (0 = Sunday, 1 = Monday, etc.)
   const firstDayOfMonth = monthStart.getDay();
   const daysBeforeMonth = Array.from({ length: firstDayOfMonth }, (_, i) => i);
 
@@ -39,33 +38,34 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
 
   const handleDateClick = (date: Date) => {
     if (onDateClick) {
-      onDateClick(date);
+      const dayAssignments = getAssignmentsForDate(date);
+      onDateClick(date, dayAssignments);
     }
   };
 
   if (size === 'small') {
     return (
-      <div className="space-y-2">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <button
             onClick={handlePrevMonth}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
-          <div className="text-sm font-semibold text-gray-900 dark:text-white">
+          <div className="text-sm font-bold text-gray-900 dark:text-white">
             {format(currentDate, 'MMM yyyy')}
           </div>
           <button
             onClick={handleNextMonth}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
-        <div className="grid grid-cols-7 gap-1 text-xs">
+        <div className="grid grid-cols-7 gap-2 text-xs">
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, idx) => (
-            <div key={idx} className="text-center text-gray-500 dark:text-gray-400 font-medium py-1">
+            <div key={idx} className="text-center text-gray-400 dark:text-gray-500 font-bold py-2">
               {day}
             </div>
           ))}
@@ -79,18 +79,18 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
               <button
                 key={day.toISOString()}
                 onClick={() => handleDateClick(day)}
-                className={`aspect-square text-xs rounded transition-colors ${
+                className={`aspect-square text-xs rounded-2xl transition-all font-bold ${
                   isToday
-                    ? 'bg-primary-600 text-white font-semibold'
+                    ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg'
                     : dayAssignments.length > 0
-                    ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 hover:bg-primary-200 dark:hover:bg-primary-900/50'
-                    : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-500/30'
+                    : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400'
                 }`}
                 title={dayAssignments.length > 0 ? `${dayAssignments.length} assignments` : ''}
               >
                 {format(day, 'd')}
                 {dayAssignments.length > 0 && (
-                  <div className="w-1 h-1 bg-current rounded-full mx-auto mt-0.5" />
+                  <div className="w-1.5 h-1.5 bg-current rounded-full mx-auto mt-1" />
                 )}
               </button>
             );
@@ -100,32 +100,32 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
     );
   }
 
-  // Medium and Large sizes
+  // Medium and Large
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <div className="flex items-center justify-between">
         <button
           onClick={handlePrevMonth}
-          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-6 h-6 text-gray-500 dark:text-gray-400" />
         </button>
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-          <div className="text-base font-semibold text-gray-900 dark:text-white">
+        <div className="flex items-center gap-3">
+          <CalendarIcon className="w-6 h-6 text-indigo-500 dark:text-indigo-400" />
+          <div className="text-lg font-bold text-gray-900 dark:text-white">
             {format(currentDate, 'MMMM yyyy')}
           </div>
         </div>
         <button
           onClick={handleNextMonth}
-          className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+          className="p-2.5 hover:bg-gray-100 dark:hover:bg-white/5 rounded-2xl transition-colors"
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-6 h-6 text-gray-500 dark:text-gray-400" />
         </button>
       </div>
-      <div className="grid grid-cols-7 gap-1.5 text-xs">
+      <div className="grid grid-cols-7 gap-2.5 text-xs">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, idx) => (
-          <div key={idx} className="text-center text-gray-500 dark:text-gray-400 font-medium py-1.5">
+          <div key={idx} className="text-center text-gray-400 dark:text-gray-500 font-bold py-3">
             {day}
           </div>
         ))}
@@ -139,12 +139,12 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
             <button
               key={day.toISOString()}
               onClick={() => handleDateClick(day)}
-              className={`aspect-square text-sm rounded-lg transition-all ${
+              className={`aspect-square text-sm rounded-2xl transition-all font-bold ${
                 isToday
-                  ? 'bg-primary-600 text-white font-semibold ring-2 ring-primary-300 dark:ring-primary-700'
+                  ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white ring-2 ring-indigo-300 dark:ring-indigo-700 shadow-lg'
                   : dayAssignments.length > 0
-                  ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900/30 border border-primary-200 dark:border-primary-800'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 border border-indigo-200 dark:border-indigo-500/30'
+                  : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400'
               }`}
               title={
                 dayAssignments.length > 0
@@ -154,18 +154,18 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
             >
               <div>{format(day, 'd')}</div>
               {dayAssignments.length > 0 && (
-                <div className="text-[10px] mt-0.5 font-medium">{dayAssignments.length}</div>
+                <div className="text-[10px] mt-1 font-bold">{dayAssignments.length}</div>
               )}
             </button>
           );
         })}
       </div>
       {size === 'large' && (
-        <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+        <div className="pt-5 border-t border-gray-200 dark:border-white/10">
+          <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4">
             Upcoming This Month
           </div>
-          <div className="space-y-1.5 max-h-32 overflow-y-auto">
+          <div className="space-y-2.5 max-h-32 overflow-y-auto">
             {assignments
               .filter((a) => {
                 if (a.completedAt) return false;
@@ -178,14 +178,14 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                 return (
                   <div
                     key={assignment.id}
-                    className="flex items-center gap-2 text-xs p-1.5 rounded bg-gray-50 dark:bg-gray-700/50"
+                    className="flex items-center gap-3 text-xs p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-500/10"
                   >
                     <div
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: course?.color || '#2563EB' }}
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: course?.color || '#6366F1' }}
                     />
-                    <span className="text-gray-700 dark:text-gray-300 flex-1 truncate">{assignment.name}</span>
-                    <span className="text-gray-500 dark:text-gray-400">{format(new Date(assignment.dueDate), 'MMM d')}</span>
+                    <span className="text-gray-900 dark:text-white font-bold flex-1 truncate">{assignment.name}</span>
+                    <span className="text-gray-500 dark:text-gray-400 font-semibold">{format(new Date(assignment.dueDate), 'MMM d')}</span>
                   </div>
                 );
               })}
@@ -195,4 +195,3 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
     </div>
   );
 }
-

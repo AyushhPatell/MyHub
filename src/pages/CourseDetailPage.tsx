@@ -9,8 +9,6 @@ import { ArrowLeft, Plus, Check, X, ExternalLink, Edit, Trash2, Calendar, Repeat
 import QuickAddModal from '../components/QuickAddModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
 import RecurringTemplateModal from '../components/RecurringTemplateModal';
-import SearchBar from '../components/SearchBar';
-import NotificationDropdown from '../components/NotificationDropdown';
 
 export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -49,11 +47,9 @@ export default function CourseDetailPage() {
         }));
         setAssignments(assignmentsWithPriority);
 
-        // Load recurring templates
         const templateList = await recurringTemplateService.getTemplates(user.uid, semester.id, courseId);
         setTemplates(templateList);
 
-        // Check and create notifications for upcoming deadlines
         try {
           await notificationService.checkAndCreateNotifications(user.uid, semester.id);
         } catch (error) {
@@ -106,19 +102,21 @@ export default function CourseDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
       </div>
     );
   }
 
   if (!course) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Course Not Found</h2>
-        <Link to="/courses" className="text-primary-600 dark:text-primary-400 hover:underline">
-          Back to Courses
-        </Link>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">Course Not Found</h2>
+          <Link to="/courses" className="text-indigo-400 hover:underline font-semibold">
+            Back to Courses
+          </Link>
+        </div>
       </div>
     );
   }
@@ -128,11 +126,9 @@ export default function CourseDetailPage() {
     if (filter === 'upcoming') return !a.completedAt;
     return true;
   }).sort((a, b) => {
-    // Sort completed assignments by completion date (most recent first)
     if (a.completedAt && b.completedAt) {
       return b.completedAt.getTime() - a.completedAt.getTime();
     }
-    // Sort upcoming by due date
     return a.dueDate.getTime() - b.dueDate.getTime();
   });
 
@@ -140,299 +136,290 @@ export default function CourseDetailPage() {
   const completedCount = assignments.filter((a) => !!a.completedAt).length;
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link
-            to="/courses"
-            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          >
-            <ArrowLeft size={24} />
-          </Link>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{course.courseCode}</h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-1">{course.courseName}</p>
+    <div className="min-h-screen w-full">
+      {/* Page Header - Full Width */}
+      <div className="w-full px-6 lg:px-12 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <Link
+              to="/courses"
+              className="p-2 hover:bg-white/5 rounded-xl transition-colors"
+            >
+              <ArrowLeft size={24} className="text-gray-600 dark:text-gray-300" />
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
+                {course.courseCode}
+              </h1>
+              <p className="text-gray-900 dark:text-gray-300 font-semibold">
+                {course.courseName}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg"
           >
             <Plus className="w-5 h-5" />
             <span className="hidden sm:inline">Add Assignment</span>
           </button>
-          <div className="hidden lg:flex items-center gap-3">
-            <SearchBar />
-            {user && <NotificationDropdown userId={user.uid} />}
+        </div>
+
+        {/* Course Info */}
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-5 mb-4 shadow-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {course.professor && (
+              <div>
+                <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                  Professor
+                </p>
+                <p className="text-base font-bold text-gray-900 dark:text-white">{course.professor}</p>
+              </div>
+            )}
+            {course.schedule.length > 0 && (
+              <div>
+                <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  Schedule
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {course.schedule.map((schedule, index) => (
+                    <span
+                      key={index}
+                      className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 rounded-lg font-semibold border border-indigo-200 dark:border-indigo-500/30"
+                    >
+                      {schedule.day.substring(0, 3)} {schedule.startTime}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Course Info Card */}
-      <div
-        className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700"
-        style={{ borderLeftColor: course.color, borderLeftWidth: '4px' }}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {course.professor && (
-            <div>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Professor</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-white mt-0.5">{course.professor}</p>
-            </div>
-          )}
-          {course.schedule.length > 0 && (
-            <div>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Schedule</p>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {course.schedule.map((schedule, index) => (
-                  <span
-                    key={index}
-                    className="text-sm px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded"
-                  >
-                    {schedule.day} {schedule.startTime} - {schedule.endTime}
-                  </span>
-                ))}
-              </div>
+        {/* Recurring Templates */}
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-4 mb-4 shadow-xl">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Repeat className="w-4 h-4 text-indigo-400" />
+              Recurring Templates
+            </h2>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingTemplate(null);
+                setShowTemplateModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform"
+            >
+              <Plus className="w-4 h-4" />
+              New Template
+            </button>
+          </div>
+          {templates.length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6 font-medium">
+              No recurring templates. Create one to automatically generate assignments.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {templates.map((template) => (
+                <div
+                  key={template.id}
+                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10"
+                >
+                  <div className="flex-1">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{template.name}</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+                      {template.assignmentNamePattern} • {template.pattern} • {template.dayOfWeek} at {template.time}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-medium">
+                      {formatDate(template.startDate)} - {formatDate(template.endDate)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleGenerateFromTemplate(template.id)}
+                      className="p-2.5 text-indigo-400 hover:bg-indigo-500/20 rounded-xl transition-colors"
+                      title="Generate assignments"
+                    >
+                      <Play className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingTemplate(template);
+                        setShowTemplateModal(true);
+                      }}
+                      className="p-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                      title="Edit template"
+                    >
+                      <Edit className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteTemplate(template.id)}
+                      className="p-2.5 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors"
+                      title="Delete template"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Recurring Templates Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Repeat className="w-4 h-4 text-primary-600 dark:text-primary-400" />
-            Recurring Templates
-          </h2>
+        {/* Filters */}
+        <div className="flex items-center gap-3 mb-6">
           <button
-            type="button"
-            onClick={() => {
-              setEditingTemplate(null);
-              setShowTemplateModal(true);
-            }}
-            className="flex items-center space-x-2 px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
+            onClick={() => setFilter('upcoming')}
+            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+              filter === 'upcoming'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'
+            }`}
           >
-            <Plus className="w-4 h-4" />
-            <span>New Template</span>
+            Upcoming ({upcomingCount})
+          </button>
+          <button
+            onClick={() => setFilter('completed')}
+            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+              filter === 'completed'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'
+            }`}
+          >
+            Completed ({completedCount})
+          </button>
+          <button
+            onClick={() => setFilter('all')}
+            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+              filter === 'all'
+                ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'
+            }`}
+          >
+            All ({assignments.length})
           </button>
         </div>
-        {templates.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400 text-xs text-center py-3">
-            No recurring templates. Create one to automatically generate assignments.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {templates.map((template) => (
-              <div
-                key={template.id}
-                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
-              >
-                <div className="flex-1">
-                  <h3 className="text-sm font-medium text-gray-900 dark:text-white">{template.name}</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                    {template.assignmentNamePattern} • {template.pattern} • {template.dayOfWeek} at {template.time}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
-                    {formatDate(template.startDate)} - {formatDate(template.endDate)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleGenerateFromTemplate(template.id)}
-                    className="p-2 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
-                    title="Generate assignments"
-                  >
-                    <Play className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingTemplate(template);
-                      setShowTemplateModal(true);
-                    }}
-                    className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                    title="Edit template"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTemplate(template.id)}
-                    className="p-2 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    title="Delete template"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
+
+        {/* Assignments List */}
+        {filteredAssignments.length === 0 ? (
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-12 text-center shadow-xl">
+            <p className="text-gray-600 dark:text-gray-300 font-medium">
+              {filter === 'completed' ? 'No completed assignments yet' : 'No assignments yet'}
+            </p>
           </div>
-        )}
-      </div>
+        ) : (
+          <div className="space-y-4">
+            {filteredAssignments.map((assignment) => {
+              const isOverdueAssignment = isOverdue(new Date(assignment.dueDate));
+              const daysUntil = getDaysUntilDue(new Date(assignment.dueDate));
 
-      {/* Separator */}
-      <div className="border-b border-gray-200 dark:border-gray-700"></div>
-
-      {/* Filters */}
-      <div className="flex items-center space-x-2">
-        <button
-          onClick={() => setFilter('upcoming')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            filter === 'upcoming'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-        >
-          Upcoming ({upcomingCount})
-        </button>
-        <button
-          onClick={() => setFilter('completed')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            filter === 'completed'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-        >
-          Completed ({completedCount})
-        </button>
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-            filter === 'all'
-              ? 'bg-primary-600 text-white'
-              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-          }`}
-        >
-          All ({assignments.length})
-        </button>
-      </div>
-
-      {/* Assignments List */}
-      {filteredAssignments.length === 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-12 border border-gray-200 dark:border-gray-700 text-center">
-          <p className="text-gray-600 dark:text-gray-400">
-            {filter === 'completed' ? 'No completed assignments yet' : 'No assignments yet'}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filteredAssignments.map((assignment) => {
-            const isOverdueAssignment = isOverdue(new Date(assignment.dueDate));
-            const daysUntil = getDaysUntilDue(new Date(assignment.dueDate));
-
-            return (
-              <div
-                key={assignment.id}
-                className={`bg-white dark:bg-gray-800 rounded-xl border ${
-                  assignment.completedAt
-                    ? 'border-gray-200 dark:border-gray-700 opacity-60'
-                    : isOverdueAssignment
-                    ? 'border-red-200 dark:border-red-800'
-                    : 'border-gray-200 dark:border-gray-700'
-                } hover:shadow-md transition-all`}
-              >
-                <div className="p-3">
-                  <div className="flex items-start gap-3">
-                    <button
-                      onClick={() => handleMarkComplete(assignment.id, !assignment.completedAt)}
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all cursor-pointer group flex-shrink-0 ${
-                        assignment.completedAt
-                          ? 'bg-success border-success text-white hover:bg-red-500 hover:border-red-500'
-                          : 'border-gray-300 dark:border-gray-600 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-                      }`}
-                      title={assignment.completedAt ? 'Click again to mark as incomplete (undo)' : 'Click to mark as complete'}
-                    >
-                      {assignment.completedAt && <Check size={12} className="group-hover:hidden" />}
-                      {assignment.completedAt && (
-                        <X size={10} className="hidden group-hover:block text-white" />
-                      )}
-                    </button>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between mb-1.5">
-                        <div className="flex-1 min-w-0">
+              return (
+                <div
+                  key={assignment.id}
+                  className={`bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border transition-all hover:scale-[1.01] hover:shadow-xl ${
+                    assignment.completedAt
+                      ? 'border-gray-200 dark:border-white/10 opacity-60'
+                      : isOverdueAssignment
+                      ? 'border-red-300 dark:border-red-500/30'
+                      : 'border-gray-200 dark:border-white/10'
+                  }`}
+                >
+                  <div className="p-4">
+                    <div className="flex items-start gap-3">
+                      <button
+                        onClick={() => handleMarkComplete(assignment.id, !assignment.completedAt)}
+                        className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all cursor-pointer flex-shrink-0 mt-0.5 ${
+                          assignment.completedAt
+                            ? 'bg-green-500 border-green-500 text-white hover:bg-red-500 hover:border-red-500'
+                            : 'border-gray-300 dark:border-gray-400 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/20'
+                        }`}
+                      >
+                        {assignment.completedAt && <Check size={12} />}
+                      </button>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between mb-2">
                           <h3
-                            className={`text-base font-semibold ${
+                            className={`text-base font-bold ${
                               assignment.completedAt
-                                ? 'text-gray-500 dark:text-gray-400 line-through'
+                                ? 'text-gray-400 dark:text-gray-500 line-through'
                                 : 'text-gray-900 dark:text-white'
                             }`}
                           >
                             {assignment.name}
                           </h3>
-                        </div>
-                        <button
-                          onClick={() => setEditingAssignment(assignment)}
-                          className="flex items-center space-x-1 px-2.5 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0 ml-2"
-                          title="Edit assignment"
-                        >
-                          <Edit size={14} />
-                          <span>Edit</span>
-                        </button>
-                      </div>
-
-                      <div className="border-t border-gray-100 dark:border-gray-700 pt-1.5">
-                        <div className="flex flex-wrap items-center gap-2 text-sm">
-                          <span className="flex items-center text-gray-600 dark:text-gray-400">
-                            <Calendar size={12} className="mr-1.5" />
-                            {formatDate(new Date(assignment.dueDate))} at {formatTime(new Date(assignment.dueDate))}
-                          </span>
-                          <span className="px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium text-xs">
-                            {assignment.type}
-                          </span>
-                          {assignment.gradeWeight && (
-                            <span className="text-gray-600 dark:text-gray-400 text-xs">
-                              {assignment.gradeWeight}% of course grade
-                            </span>
-                          )}
-                          {!assignment.completedAt && (
-                            <span
-                              className={`px-2 py-0.5 rounded-md text-xs font-medium border ${getPriorityColor(
-                                assignment.priority
-                              )}`}
-                            >
-                              {assignment.priority}
-                            </span>
-                          )}
-                          {isOverdueAssignment && !assignment.completedAt && (
-                            <span className="px-2 py-0.5 rounded-md bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400 font-medium text-xs">
-                              Overdue
-                            </span>
-                          )}
-                          {!isOverdueAssignment && !assignment.completedAt && daysUntil > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium text-xs">
-                              {daysUntil} days away
-                            </span>
-                          )}
+                          <button
+                            onClick={() => setEditingAssignment(assignment)}
+                            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors font-semibold flex-shrink-0 ml-3"
+                          >
+                            <Edit size={14} />
+                            Edit
+                          </button>
                         </div>
 
-                        {assignment.links && assignment.links.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-1.5">
-                            {assignment.links.map((link, index) => (
-                              <a
-                                key={index}
-                                href={link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center"
-                                onClick={(e) => e.stopPropagation()}
+                          <div className="border-t border-gray-200 dark:border-white/10 pt-2.5 space-y-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300">
+                              <Calendar size={14} />
+                              {formatDate(new Date(assignment.dueDate))} at {formatTime(new Date(assignment.dueDate))}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 font-semibold text-[10px] border border-indigo-200 dark:border-indigo-500/30">
+                              {assignment.type}
+                            </span>
+                            {assignment.gradeWeight && (
+                              <span className="text-xs text-gray-600 dark:text-gray-300 font-semibold">
+                                {assignment.gradeWeight}% of course grade
+                              </span>
+                            )}
+                            {!assignment.completedAt && (
+                              <span
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border-2 ${getPriorityColor(
+                                  assignment.priority
+                                )}`}
                               >
-                                <ExternalLink size={12} className="mr-1" />
-                                Link {index + 1}
-                              </a>
-                            ))}
+                                {assignment.priority}
+                              </span>
+                            )}
+                            {isOverdueAssignment && !assignment.completedAt && (
+                              <span className="px-2 py-0.5 rounded-lg bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-300 font-bold text-[10px] border border-red-200 dark:border-red-500/30">
+                                Overdue
+                              </span>
+                            )}
+                            {!isOverdueAssignment && !assignment.completedAt && daysUntil > 0 && (
+                              <span className="px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold text-[10px] border border-blue-200 dark:border-blue-500/30">
+                                {daysUntil} days away
+                              </span>
+                            )}
                           </div>
-                        )}
+
+                          {assignment.links && assignment.links.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {assignment.links.map((link, index) => (
+                                <a
+                                  key={index}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-semibold"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink size={12} />
+                                  Link {index + 1}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {editingAssignment && user && semesterId && (
         <EditAssignmentModal
@@ -484,4 +471,3 @@ export default function CourseDetailPage() {
     </div>
   );
 }
-

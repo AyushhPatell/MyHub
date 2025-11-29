@@ -1,12 +1,12 @@
-import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { ReactNode, useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
-import { auth } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
-import { Home, BookOpen, Settings, LogOut, Menu, X, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
-import { useState } from 'react';
 
 interface LayoutProps {
   children: ReactNode;
@@ -14,9 +14,46 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [userName, setUserName] = useState<string | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const loadUserName = async () => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserName(userData.name || null);
+          }
+        } catch (error) {
+          console.error('Error loading user name:', error);
+        }
+      }
+    };
+    loadUserName();
+  }, [user]);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [userMenuOpen]);
 
   const handleSignOut = async () => {
     try {
@@ -29,173 +66,179 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
     { path: '/courses', label: 'Courses', icon: BookOpen },
-    { path: '/settings', label: 'Settings', icon: Settings },
   ];
 
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    const parts = user.email.split('@')[0].split('.');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return user.email[0].toUpperCase();
+  };
+
+  const getUserDisplayName = () => {
+    if (userName) return userName;
+    if (!user?.email) return 'User';
+    return user.email.split('@')[0];
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Mobile menu overlay */}
-      {mobileMenuOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setMobileMenuOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed top-0 left-0 h-full bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 z-50 transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        } ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'} w-64`}
-      >
-        <div className="flex flex-col h-full">
-          {/* Logo/Header */}
-          <div className={`flex items-center justify-between border-b border-gray-200 dark:border-gray-700 transition-all ${
-            sidebarCollapsed ? 'lg:p-4' : 'p-6'
-          }`}>
-            {!sidebarCollapsed ? (
-              <>
-                <Link to="/" className="flex-1">
-                  <h1 className="text-2xl font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors cursor-pointer">
-                    MyHub
-                  </h1>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Personal Dashboard</p>
-                </Link>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                    className="hidden lg:flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                    title="Collapse sidebar"
-                  >
-                    <ChevronLeft size={18} />
-                  </button>
-                  <button
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    <X size={24} />
-                  </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
+      {/* Top Navigation Bar */}
+      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 shadow-sm">
+        <div className="w-full px-6 lg:px-8">
+          <div className="flex items-center justify-between h-20">
+            {/* Left: Logo + Navigation */}
+            <div className="flex items-center gap-8">
+              {/* Logo */}
+              <Link to="/" className="flex items-center gap-3 group">
+                <div className="w-11 h-11 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <LayoutGrid className="w-6 h-6 text-white" />
                 </div>
-              </>
-            ) : (
-              <div className="hidden lg:flex flex-col items-center w-full space-y-3">
-                <Link to="/" className="flex items-center justify-center w-10 h-10 bg-primary-100 dark:bg-primary-900/20 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-900/30 transition-colors cursor-pointer">
-                  <LayoutGrid className="w-5 h-5 text-primary-600 dark:text-primary-400" />
-                </Link>
-                <button
-                  onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                  className="flex items-center justify-center w-8 h-8 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                  title="Expand sidebar"
-                >
-                  <ChevronRight size={18} />
-                </button>
-              </div>
-            )}
-            <button
-              onClick={() => setMobileMenuOpen(false)}
-              className="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <X size={24} />
-            </button>
-          </div>
+                <span className="text-xl font-bold text-gray-900 dark:text-white">MyHub</span>
+              </Link>
 
-          {/* Navigation */}
-          <nav className={`flex-1 space-y-2 transition-all ${
-            sidebarCollapsed ? 'lg:p-2' : 'p-4'
-          }`}>
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <div key={item.path} className="relative group">
-                  <Link
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center transition-all ${
-                      sidebarCollapsed 
-                        ? 'lg:justify-center lg:px-0 lg:py-3 lg:w-full' 
-                        : 'space-x-3 px-4 py-3'
-                    } rounded-lg ${
-                      isActive
-                        ? sidebarCollapsed
-                          ? 'lg:bg-primary-100 dark:lg:bg-primary-900/30 text-primary-600 dark:text-primary-400'
-                          : 'bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 font-medium'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                    title={sidebarCollapsed ? item.label : ''}
-                  >
-                    <Icon size={sidebarCollapsed ? 22 : 20} className={sidebarCollapsed ? 'lg:mx-auto' : ''} />
-                    <span className={sidebarCollapsed ? 'lg:hidden' : ''}>{item.label}</span>
-                  </Link>
-                  {sidebarCollapsed && (
-                    <div className="hidden lg:block absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
+              {/* Desktop Navigation */}
+              <div className="hidden md:flex items-center gap-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <Icon size={18} />
                       {item.label}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </nav>
-
-          {/* User section */}
-          <div className={`border-t border-gray-200 dark:border-gray-700 transition-all ${
-            sidebarCollapsed ? 'lg:p-2' : 'p-4'
-          }`}>
-            {!sidebarCollapsed && (
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {user?.email}
-                  </p>
-                </div>
+                    </Link>
+                  );
+                })}
               </div>
-            )}
-            <div className="relative group">
-              <button
-                onClick={handleSignOut}
-                className={`flex items-center transition-all ${
-                  sidebarCollapsed 
-                    ? 'lg:justify-center lg:px-0 lg:py-3 lg:w-full' 
-                    : 'space-x-2 px-4 py-2'
-                } w-full text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg`}
-                title={sidebarCollapsed ? 'Sign Out' : ''}
-              >
-                <LogOut size={sidebarCollapsed ? 22 : 18} className={sidebarCollapsed ? 'lg:mx-auto' : ''} />
-                <span className={sidebarCollapsed ? 'lg:hidden' : ''}>Sign Out</span>
-              </button>
-              {sidebarCollapsed && (
-                <div className="hidden lg:block absolute left-full top-1/2 -translate-y-1/2 ml-2 px-2 py-1 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                  Sign Out
+            </div>
+
+            {/* Right: Search + Notifications + User */}
+            <div className="flex items-center gap-3">
+              {/* Search */}
+              <div className="hidden lg:block">
+                <SearchBar />
+              </div>
+
+              {/* Notifications */}
+              {user && (
+                <div className="hidden lg:block">
+                  <NotificationDropdown userId={user.uid} />
                 </div>
               )}
+
+              {/* User Profile Dropdown */}
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all group"
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                    {getUserInitials()}
+                  </div>
+                  <div className="hidden sm:flex flex-col items-start">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {getUserDisplayName()}
+                    </span>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-gray-500 dark:text-gray-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {/* User Dropdown Menu */}
+                {userMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200 dark:border-white/10 z-50 overflow-hidden">
+                      <div className="p-4 border-b border-gray-200 dark:border-white/10">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{userName || user?.email}</p>
+                      </div>
+                      <div className="p-2">
+                        <button
+                          onClick={() => {
+                            navigate('/settings');
+                            setUserMenuOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                          <Settings size={18} />
+                          Settings
+                        </button>
+                        <button
+                          onClick={handleSignOut}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                        >
+                          <LogOut size={18} />
+                          Sign Out
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+              >
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
           </div>
         </div>
-      </aside>
 
-      {/* Main content */}
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}>
-        {/* Mobile header */}
-        <header className="lg:hidden sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition-colors">
-            MyHub
-          </Link>
-          <div className="flex items-center space-x-2">
-            <SearchBar />
-            {user && <NotificationDropdown userId={user.uid} />}
-            <button
-              onClick={() => setMobileMenuOpen(true)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-            >
-              <Menu size={24} />
-            </button>
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
+            <div className="px-6 py-4 space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${
+                      isActive
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon size={20} />
+                    {item.label}
+                  </Link>
+                );
+              })}
+              <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-2">
+                <div className="px-4">
+                  <SearchBar />
+                </div>
+                {user && (
+                  <div className="px-4">
+                    <NotificationDropdown userId={user.uid} />
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-        </header>
+        )}
+      </nav>
 
-        {/* Page content */}
-        <main className="p-4 lg:p-8">{children}</main>
-      </div>
+      {/* Main Content - Full Width */}
+      <main className="w-full">{children}</main>
     </div>
   );
 }
-

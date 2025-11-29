@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -23,14 +24,6 @@ export default function SearchBar() {
   const searchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setQuery('');
-        setResults([]);
-      }
-    };
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
         event.preventDefault();
@@ -43,11 +36,9 @@ export default function SearchBar() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen]);
@@ -115,42 +106,72 @@ export default function SearchBar() {
     return () => clearTimeout(timeoutId);
   }, [query, user]);
 
-  const handleResultClick = (result: SearchResult) => {
+  const handleResultClick = (result: SearchResult, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Determine navigation path first
+    let path = '';
     if (result.type === 'course') {
-      navigate(`/courses/${result.id}`);
+      path = `/courses/${result.id}`;
     } else if (result.courseId) {
-      navigate(`/courses/${result.courseId}`);
+      path = `/courses/${result.courseId}`;
     }
+    
+    // Close modal
     setIsOpen(false);
     setQuery('');
     setResults([]);
+    
+    // Navigate after a tiny delay to ensure modal closes
+    if (path) {
+      setTimeout(() => {
+        navigate(path);
+      }, 100);
+    }
   };
 
   return (
     <div ref={searchRef} className="relative">
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center justify-center space-x-2 px-4 py-2 h-10 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 shadow-sm"
+        className="flex items-center justify-center gap-2 px-4 py-2 h-10 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-white dark:hover:bg-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all font-semibold text-sm shadow-sm"
         title="Search (Ctrl+K or Cmd+K)"
       >
         <Search size={18} />
-        <span className="hidden md:inline text-sm">Search...</span>
-        <span className="hidden lg:inline text-xs text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600">⌘K</span>
+        <span className="hidden md:inline">Search...</span>
+        <span className="hidden lg:inline text-xs text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800/50 rounded border border-gray-200 dark:border-white/10">⌘K</span>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <>
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-[100]" onClick={() => setIsOpen(false)} />
-          <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl mx-4 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[101] overflow-hidden">
-            <div className="flex items-center px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-              <Search size={18} className="text-gray-400 mr-3" />
+          <div 
+            className="fixed inset-0 bg-black/70 z-[9998]"
+            style={{ backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
+            onClick={(e) => {
+              // Only close if clicking directly on backdrop, not on child elements
+              if (e.target === e.currentTarget) {
+                setIsOpen(false);
+                setQuery('');
+                setResults([]);
+              }
+            }}
+          />
+          <div className="fixed inset-0 z-[9999] flex items-start justify-center pt-[20vh] pointer-events-none p-4">
+            <div 
+              className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-indigo-300 dark:border-indigo-500/50 overflow-hidden ring-4 ring-indigo-200/50 dark:ring-indigo-500/20 pointer-events-auto" 
+              onClick={(e) => e.stopPropagation()}
+            >
+            <div className="flex items-center px-4 py-4 border-b-2 border-indigo-200 dark:border-indigo-500/30 bg-gradient-to-r from-indigo-50/50 to-purple-50/50 dark:from-indigo-950/30 dark:to-purple-950/30">
+              <Search size={20} className="text-indigo-500 dark:text-indigo-400 mr-3" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search courses and assignments..."
-                className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400"
+                className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none text-lg font-medium"
                 autoFocus
+                onFocus={(e) => e.target.select()}
               />
               <button
                 onClick={() => {
@@ -158,7 +179,7 @@ export default function SearchBar() {
                   setQuery('');
                   setResults([]);
                 }}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <X size={18} />
               </button>
@@ -183,7 +204,7 @@ export default function SearchBar() {
                   {results.map((result) => (
                     <button
                       key={`${result.type}-${result.id}`}
-                      onClick={() => handleResultClick(result)}
+                      onClick={(e) => handleResultClick(result, e)}
                       className="w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
                       <div className="flex items-start space-x-3">
@@ -214,8 +235,10 @@ export default function SearchBar() {
                 </div>
               )}
             </div>
+            </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

@@ -156,6 +156,12 @@ export interface WeatherData {
   icon: string;
   humidity: number;
   windSpeed: number;
+  feelsLike?: number;
+  pressure?: number;
+  uvIndex?: number;
+  visibility?: number; // in km
+  sunrise?: Date;
+  sunset?: Date;
   forecast: {
     date: string;
     high: number;
