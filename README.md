@@ -1,4 +1,4 @@
-# MyHub - Personal Dashboard
+# MyHub - Personal Dashboard Project
 
 A smart, modern personal dashboard for managing your life - starting with academic courses and assignments, with room to grow.
 
