@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { courseService, assignmentService } from '../services/firestore';
-import { Course, Assignment, AssignmentType } from '../types';
+import { assignmentService } from '../services/firestore';
+import { AssignmentType } from '../types';
 
 interface EditAssignmentModalProps {
   userId: string;
@@ -51,7 +51,6 @@ export default function EditAssignmentModal({
     register,
     handleSubmit,
     formState: { errors },
-    setValue,
   } = useForm<FormData>({
     defaultValues: {
       name: assignment.name,

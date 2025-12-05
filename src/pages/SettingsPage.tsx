@@ -5,7 +5,6 @@ import { db } from '../config/firebase';
 import { UserPreferences } from '../types';
 import { Moon, Sun, Bell, Clock, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import SearchBar from '../components/SearchBar';
 
 export default function SettingsPage() {
   const { user } = useAuth();

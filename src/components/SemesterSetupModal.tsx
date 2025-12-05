@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { semesterService, courseService } from '../services/firestore';
-import { Course } from '../types';
 
 interface SemesterSetupModalProps {
   userId: string;

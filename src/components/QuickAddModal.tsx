@@ -3,7 +3,6 @@ import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { courseService, assignmentService } from '../services/firestore';
 import { Course, AssignmentType } from '../types';
-import { calculatePriority } from '../utils/priority';
 
 interface QuickAddModalProps {
   userId: string;

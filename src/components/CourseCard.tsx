@@ -9,7 +9,7 @@ interface CourseCardProps {
   onEdit: (course: Course) => void;
 }
 
-export default function CourseCard({ course, semesterId, onEdit }: CourseCardProps) {
+export default function CourseCard({ course, semesterId: _semesterId, onEdit }: CourseCardProps) {
   const [showMenu, setShowMenu] = useState(false);
 
   return (

@@ -4,7 +4,6 @@ import { Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { semesterService, courseService, assignmentService } from '../services/firestore';
-import { Course, Assignment } from '../types';
 
 interface SearchResult {
   type: 'course' | 'assignment';

@@ -5,7 +5,7 @@ import { semesterService, courseService, assignmentService, recurringTemplateSer
 import { Course, Assignment, RecurringTemplate } from '../types';
 import { formatDate, formatTime, isOverdue, getDaysUntilDue } from '../utils/dateHelpers';
 import { calculatePriority, getPriorityColor } from '../utils/priority';
-import { ArrowLeft, Plus, Check, X, ExternalLink, Edit, Trash2, Calendar, Repeat, Play } from 'lucide-react';
+import { ArrowLeft, Plus, Check, ExternalLink, Edit, Trash2, Calendar, Repeat, Play } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
 import RecurringTemplateModal from '../components/RecurringTemplateModal';
