@@ -30,6 +30,7 @@ dist-ssr
 
 # Firebase
 .firebase
-.firebaserc
-firebase.json
+# .firebaserc and firebase.json should be committed for GitHub Actions
+# .firebaserc
+# firebase.json
 
