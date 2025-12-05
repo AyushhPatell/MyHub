@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { assignmentService } from '../services/firestore';
-import { AssignmentType } from '../types';
+import { Assignment, AssignmentType } from '../types';
 
 interface EditAssignmentModalProps {
   userId: string;
