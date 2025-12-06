@@ -18,6 +18,18 @@
     display: none;
   }
   
+  /* Mobile touch improvements */
+  @media (max-width: 640px) {
+    * {
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    button, a {
+      touch-action: manipulation;
+      -webkit-touch-callout: none;
+    }
+  }
+  
   /* 3D Flip Card Utilities */
   .preserve-3d {
     transform-style: preserve-3d;

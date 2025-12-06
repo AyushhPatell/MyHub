@@ -1,0 +1,54 @@
+rules_version = '2';
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+    // Users can only access their own data
+    match /users/{userId} {
+      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      
+      // Semesters
+      match /semesters/{semesterId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        
+        // Courses
+        match /courses/{courseId} {
+          allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+
+          // Assignments
+          match /assignments/{assignmentId} {
+            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+          }
+
+          // Recurring Templates
+          match /recurringTemplates/{templateId} {
+            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+          }
+        }
+      }
+
+      // Notifications
+      match /notifications/{notificationId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Dashboard Layout
+      match /dashboard/{document=**} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Quick Notes
+      match /quickNotes/{noteId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // Wildcard rule for all nested subcollections - helps with account deletion
+      // This ensures all nested collections can be deleted
+      match /{allSubcollections=**} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}
+

@@ -4,7 +4,7 @@ import { semesterService, assignmentService, notificationService } from '../serv
 import { Semester, Assignment } from '../types';
 import { formatDate, getTodayRange, getWeekRange } from '../utils/dateHelpers';
 import { calculatePriority } from '../utils/priority';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, BookOpen, Calendar, TrendingUp } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import AssignmentFilterModal from '../components/AssignmentFilterModal';
 import { courseService } from '../services/firestore';
@@ -154,26 +154,62 @@ export default function DashboardPage() {
 
   if (!semester) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6">
-        <div className="max-w-2xl w-full text-center space-y-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl mb-4 shadow-2xl">
-            <LayoutGrid className="w-10 h-10 text-white" />
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 sm:px-6 lg:px-12 py-12">
+        <div className="max-w-4xl w-full">
+          <div className="space-y-10 text-center">
+            {/* Hero Section */}
+            <div className="space-y-6">
+              <div className="flex items-center justify-center gap-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
+                  <LayoutGrid className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white">
+                    Welcome to <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">MyHub</span>
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-2 text-lg">
+                    Your personal command center for academic success
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Feature Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <BookOpen className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Manage Courses</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Organize all your courses in one place</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Track Assignments</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Never miss a deadline</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow">
+                <div className="w-12 h-12 bg-pink-100 dark:bg-pink-900/30 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                  <TrendingUp className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+                </div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Stay Organized</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Boost your productivity</p>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div>
+              <Link
+                to="/courses"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              >
+                <Plus className="w-5 h-5" />
+                Get Started
+              </Link>
+            </div>
           </div>
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
-              Welcome to MyHub
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
-              Your personal command center for academic success
-            </p>
-          </div>
-          <Link
-            to="/courses"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-2xl hover:scale-105 transition-transform shadow-xl"
-          >
-            <Plus className="w-5 h-5" />
-            Get Started
-          </Link>
         </div>
       </div>
     );
@@ -182,12 +218,12 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen w-full">
       {/* Page Header - Full Width */}
-      <div className="w-full px-6 lg:px-12 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
+      <div className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 lg:py-8">
+        <div className="mb-4 sm:mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
             Dashboard
           </h1>
-          <p className="text-sm text-indigo-600 dark:text-indigo-300 font-semibold uppercase tracking-wide">
+          <p className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-300 font-semibold uppercase tracking-wide">
             {formatDate(today)} • {semester.name.toUpperCase()}
           </p>
         </div>

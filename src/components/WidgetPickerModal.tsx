@@ -40,7 +40,8 @@ export default function WidgetPickerModal({ availableWidgets, onSelect, onClose 
   if (availableWidgets.length === 0) {
     return (
       <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
         onClick={handleBackdropClick}
       >
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">

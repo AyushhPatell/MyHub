@@ -60,23 +60,23 @@ export default function WeatherWidget({ size, location = 'Halifax, NS' }: Weathe
   // Small size with flip card design
   if (size === 'small') {
     return (
-      <div className="relative h-full">
+      <div className="w-full">
         <div 
-          className={`relative w-full h-full transition-transform duration-500 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}
+          className={`relative w-full transition-transform duration-500 preserve-3d ${isFlipped ? 'rotate-y-180' : ''}`}
           style={{ transformStyle: 'preserve-3d' }}
         >
           {/* Front Side - Current Weather */}
           <div 
-            className="absolute inset-0 backface-hidden cursor-pointer"
+            className="backface-hidden cursor-pointer"
             onClick={() => setIsFlipped(!isFlipped)}
             style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
-            <div className="h-full flex flex-col p-3">
-              {/* Header Row */}
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
-                  <span className="text-xs font-bold text-gray-800 dark:text-gray-200">{weather.location}</span>
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{weather.location}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
@@ -84,67 +84,67 @@ export default function WeatherWidget({ size, location = 'Halifax, NS' }: Weathe
                       e.stopPropagation();
                       setIsFlipped(!isFlipped);
                     }}
-                    className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     title="View forecast"
                   >
-                    <FlipHorizontal className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <FlipHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       loadWeather();
                     }}
-                    className="p-1.5 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                    className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     title="Refresh"
                   >
-                    <RefreshCw className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                    <RefreshCw className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                   </button>
                 </div>
               </div>
               
-              {/* Main Temperature Row */}
-              <div className="flex items-center justify-between mb-3">
+              {/* Temperature and Condition */}
+              <div className="flex items-center justify-between">
                 <div className="flex items-baseline gap-2">
-                  <div className="text-5xl font-extrabold text-gray-900 dark:text-white leading-none bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 dark:from-indigo-400 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
+                  <span className="text-4xl font-bold text-gray-900 dark:text-white">
                     {weather.temperature}°
-                  </div>
-                  <div className="text-3xl">{weather.icon}</div>
+                  </span>
+                  <span className="text-2xl">{weather.icon}</span>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                  <div className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase">
                     {weather.condition}
                   </div>
                 </div>
               </div>
               
-              {/* Details Row - Horizontal compact layout */}
-              <div className="grid grid-cols-4 gap-1.5 flex-1">
+              {/* Details Grid */}
+              <div className="grid grid-cols-4 gap-2">
                 {weather.feelsLike !== undefined && (
-                  <div className="flex flex-col items-center justify-center bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-900/20 dark:to-orange-800/10 rounded-lg p-1.5 border border-orange-200/50 dark:border-orange-800/30">
-                    <Thermometer className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400 mb-1" />
-                    <div className="text-[8px] font-semibold text-orange-700 dark:text-orange-300 uppercase mb-0.5">Feels</div>
-                    <div className="text-xs font-bold text-orange-900 dark:text-orange-100">{weather.feelsLike}°</div>
+                  <div className="flex flex-col items-center bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 border border-orange-200 dark:border-orange-800/30">
+                    <Thermometer className="w-4 h-4 text-orange-600 dark:text-orange-400 mb-1" />
+                    <div className="text-[10px] font-semibold text-orange-700 dark:text-orange-300 uppercase mb-0.5">Feels</div>
+                    <div className="text-sm font-bold text-orange-900 dark:text-orange-100">{weather.feelsLike}°</div>
                   </div>
                 )}
-                <div className="flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 to-indigo-100/50 dark:from-indigo-900/20 dark:to-indigo-800/10 rounded-lg p-1.5 border border-indigo-200/50 dark:border-indigo-800/30">
-                  <Wind className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 mb-1" />
-                  <div className="text-[8px] font-semibold text-indigo-700 dark:text-indigo-300 uppercase mb-0.5">Wind</div>
-                  <div className="text-xs font-bold text-indigo-900 dark:text-indigo-100">{weather.windSpeed}</div>
+                <div className="flex flex-col items-center bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 border border-blue-200 dark:border-blue-800/30">
+                  <Wind className="w-4 h-4 text-blue-600 dark:text-blue-400 mb-1" />
+                  <div className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase mb-0.5">Wind</div>
+                  <div className="text-sm font-bold text-blue-900 dark:text-blue-100">{weather.windSpeed}</div>
                 </div>
                 {weather.sunrise && (
-                  <div className="flex flex-col items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-100/50 dark:from-yellow-900/20 dark:to-yellow-800/10 rounded-lg p-1.5 border border-yellow-200/50 dark:border-yellow-800/30">
-                    <Sunrise className="w-3.5 h-3.5 text-yellow-600 dark:text-yellow-400 mb-1" />
-                    <div className="text-[8px] font-semibold text-yellow-700 dark:text-yellow-300 uppercase mb-0.5">Rise</div>
-                    <div className="text-[9px] font-bold text-yellow-900 dark:text-yellow-100">
+                  <div className="flex flex-col items-center bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-2 border border-yellow-200 dark:border-yellow-800/30">
+                    <Sunrise className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mb-1" />
+                    <div className="text-[10px] font-semibold text-yellow-700 dark:text-yellow-300 uppercase mb-0.5">Rise</div>
+                    <div className="text-xs font-bold text-yellow-900 dark:text-yellow-100">
                       {weather.sunrise.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </div>
                   </div>
                 )}
                 {weather.sunset && (
-                  <div className="flex flex-col items-center justify-center bg-gradient-to-br from-pink-50 to-pink-100/50 dark:from-pink-900/20 dark:to-pink-800/10 rounded-lg p-1.5 border border-pink-200/50 dark:border-pink-800/30">
-                    <Sunset className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400 mb-1" />
-                    <div className="text-[8px] font-semibold text-pink-700 dark:text-pink-300 uppercase mb-0.5">Set</div>
-                    <div className="text-[9px] font-bold text-pink-900 dark:text-pink-100">
+                  <div className="flex flex-col items-center bg-pink-50 dark:bg-pink-900/20 rounded-lg p-2 border border-pink-200 dark:border-pink-800/30">
+                    <Sunset className="w-4 h-4 text-pink-600 dark:text-pink-400 mb-1" />
+                    <div className="text-[10px] font-semibold text-pink-700 dark:text-pink-300 uppercase mb-0.5">Set</div>
+                    <div className="text-xs font-bold text-pink-900 dark:text-pink-100">
                       {weather.sunset.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </div>
                   </div>
@@ -160,17 +160,17 @@ export default function WeatherWidget({ size, location = 'Halifax, NS' }: Weathe
             style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
           >
             <div className="space-y-3 h-full flex flex-col">
-              <div className="flex items-center justify-between pb-2 border-b border-gray-200/50 dark:border-white/10">
-                <span className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-wide">5-Day Forecast</span>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">5-Day Forecast</span>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsFlipped(false);
                   }}
-                  className="p-1 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 rounded transition-colors"
+                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                   title="Back"
                 >
-                  <FlipHorizontal className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />
+                  <FlipHorizontal className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 </button>
               </div>
               
@@ -182,17 +182,17 @@ export default function WeatherWidget({ size, location = 'Halifax, NS' }: Weathe
                     const isToday = date.toDateString() === new Date().toDateString();
                     
                     return (
-                      <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-white/5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+                      <div key={idx} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xs font-bold text-gray-900 dark:text-white w-10 flex-shrink-0">
+                          <span className="text-xs font-semibold text-gray-900 dark:text-white w-12 flex-shrink-0">
                             {isToday ? 'Today' : dayName}
                           </span>
-                          <span className="text-lg flex-shrink-0">{day.icon}</span>
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate flex-1">
+                          <span className="text-xl flex-shrink-0">{day.icon}</span>
+                          <span className="text-xs text-gray-600 dark:text-gray-400 truncate flex-1">
                             {day.condition}
                           </span>
                         </div>
-                        <div className="text-xs font-bold text-gray-900 dark:text-white flex-shrink-0 ml-2">
+                        <div className="text-sm font-bold text-gray-900 dark:text-white flex-shrink-0 ml-2">
                           {day.high}°/{day.low}°
                         </div>
                       </div>
@@ -200,7 +200,7 @@ export default function WeatherWidget({ size, location = 'Halifax, NS' }: Weathe
                   })}
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+                <div className="flex-1 flex items-center justify-center text-sm text-gray-500 dark:text-gray-400">
                   No forecast available
                 </div>
               )}

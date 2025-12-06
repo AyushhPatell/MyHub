@@ -11,6 +11,7 @@ import {
   where,
   orderBy,
   Timestamp,
+  writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Semester, Course, Assignment, RecurringTemplate, Notification, DashboardLayout, WidgetConfig, QuickNote } from '../types';
@@ -759,6 +760,126 @@ export const quickNotesService = {
       await deleteDoc(docRef);
     } catch (error) {
       console.error('Error deleting quick note:', error);
+      throw error;
+    }
+  },
+};
+
+// Account Deletion Service
+export const accountService = {
+  /**
+   * Deletes all user data from Firestore
+   * This includes: semesters, courses, assignments, notifications, dashboard layout, quick notes, and recurring templates
+   */
+  async deleteUserAccount(userId: string): Promise<void> {
+    try {
+      // Verify user is authenticated
+      if (!userId) {
+        throw new Error('User ID is required for account deletion');
+      }
+      
+      // Use batch operations for better permission handling and atomicity
+      const batchSize = 500; // Firestore batch limit
+      
+      // Delete all semesters and their subcollections
+      const semestersSnapshot = await getDocs(collection(db, 'users', userId, 'semesters'));
+      
+      for (const semesterDoc of semestersSnapshot.docs) {
+        const semesterId = semesterDoc.id;
+        
+        // Delete all courses in this semester
+        const coursesSnapshot = await getDocs(
+          collection(db, 'users', userId, 'semesters', semesterId, 'courses')
+        );
+        
+        for (const courseDoc of coursesSnapshot.docs) {
+          const courseId = courseDoc.id;
+          
+          // Delete all assignments in this course
+          const assignmentsSnapshot = await getDocs(
+            collection(db, 'users', userId, 'semesters', semesterId, 'courses', courseId, 'assignments')
+          );
+          
+          // Process assignments in batches
+          const assignmentDocs = assignmentsSnapshot.docs;
+          for (let i = 0; i < assignmentDocs.length; i += batchSize) {
+            const batch = writeBatch(db);
+            const batchDocs = assignmentDocs.slice(i, i + batchSize);
+            batchDocs.forEach((assignmentDoc) => {
+              batch.delete(doc(db, 'users', userId, 'semesters', semesterId, 'courses', courseId, 'assignments', assignmentDoc.id));
+            });
+            await batch.commit();
+          }
+          
+          // Delete the course
+          await deleteDoc(doc(db, 'users', userId, 'semesters', semesterId, 'courses', courseId));
+        }
+        
+        // Delete all recurring templates in this semester
+        const templatesSnapshot = await getDocs(
+          collection(db, 'users', userId, 'semesters', semesterId, 'recurringTemplates')
+        );
+        
+        const templateDocs = templatesSnapshot.docs;
+        for (let i = 0; i < templateDocs.length; i += batchSize) {
+          const batch = writeBatch(db);
+          const batchDocs = templateDocs.slice(i, i + batchSize);
+          batchDocs.forEach((templateDoc) => {
+            batch.delete(doc(db, 'users', userId, 'semesters', semesterId, 'recurringTemplates', templateDoc.id));
+          });
+          await batch.commit();
+        }
+        
+        // Delete the semester
+        await deleteDoc(doc(db, 'users', userId, 'semesters', semesterId));
+      }
+      
+      // Delete all notifications in batches
+      const notificationsSnapshot = await getDocs(collection(db, 'users', userId, 'notifications'));
+      const notificationDocs = notificationsSnapshot.docs;
+      for (let i = 0; i < notificationDocs.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const batchDocs = notificationDocs.slice(i, i + batchSize);
+        batchDocs.forEach((notificationDoc) => {
+          batch.delete(doc(db, 'users', userId, 'notifications', notificationDoc.id));
+        });
+        await batch.commit();
+      }
+      
+      // Delete dashboard layout in batches
+      const dashboardSnapshot = await getDocs(collection(db, 'users', userId, 'dashboard'));
+      const dashboardDocs = dashboardSnapshot.docs;
+      for (let i = 0; i < dashboardDocs.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const batchDocs = dashboardDocs.slice(i, i + batchSize);
+        batchDocs.forEach((dashboardDoc) => {
+          batch.delete(doc(db, 'users', userId, 'dashboard', dashboardDoc.id));
+        });
+        await batch.commit();
+      }
+      
+      // Delete all quick notes in batches
+      const notesSnapshot = await getDocs(collection(db, 'users', userId, 'quickNotes'));
+      const notesDocs = notesSnapshot.docs;
+      for (let i = 0; i < notesDocs.length; i += batchSize) {
+        const batch = writeBatch(db);
+        const batchDocs = notesDocs.slice(i, i + batchSize);
+        batchDocs.forEach((noteDoc) => {
+          batch.delete(doc(db, 'users', userId, 'quickNotes', noteDoc.id));
+        });
+        await batch.commit();
+      }
+      
+      // Delete user document (this should be last)
+      await deleteDoc(doc(db, 'users', userId));
+      
+      console.log('User account and all associated data deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting user account:', error);
+      // Provide more specific error message
+      if (error.code === 'permission-denied') {
+        throw new Error('Permission denied. Please ensure you are logged in and have proper permissions.');
+      }
       throw error;
     }
   },

@@ -40,7 +40,7 @@ export default function CourseCard({ course, semesterId: _semesterId, onEdit }: 
   return (
     <div className="group relative">
       <div 
-        className="relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-4 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
+        className="relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-gray-200 dark:border-white/10 p-3 sm:p-4 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
         onClick={handleCardClick}
       >
         {/* Color accent bar */}
@@ -106,19 +106,19 @@ export default function CourseCard({ course, semesterId: _semesterId, onEdit }: 
 
           {/* Course content */}
           <div className="mt-1">
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-2 sm:mb-3">
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-bold text-base sm:text-lg shadow-lg"
                 style={{ backgroundColor: course.color }}
               >
                 {course.courseCode.split(' ')[1]?.charAt(0) || 'C'}
               </div>
             </div>
 
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1.5">
+            <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-1 sm:mb-1.5">
               {course.courseCode}
             </h3>
-            <p className="text-sm text-gray-900 dark:text-gray-200 mb-3 line-clamp-2 font-semibold leading-tight">
+            <p className="text-xs sm:text-sm text-gray-900 dark:text-gray-200 mb-2 sm:mb-3 line-clamp-2 font-semibold leading-tight">
               {course.courseName}
             </p>
 
