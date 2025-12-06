@@ -9,50 +9,58 @@ Copy and paste these rules into your Firebase Console → Firestore Database →
 
 ```javascript
 rules_version = '2';
+
 service cloud.firestore {
-  match /databases/{database}/documents {
+    match /databases/{database}/documents {
+
     // Users can only access their own data
     match /users/{userId} {
-      // Allow read, write, and delete on user document
-      allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-      
-      // Semesters
-      match /semesters/{semesterId} {
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-        
-        // Courses
-        match /courses/{courseId} {
-          allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-          
-          // Assignments
-          match /assignments/{assignmentId} {
+
+        // Semesters
+        match /semesters/{semesterId} {
             allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-          }
-          
-          // Recurring Templates
-          match /recurringTemplates/{templateId} {
-            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-          }
+
+            // Courses
+            match /courses/{courseId} {
+                allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+
+                // Assignments
+                match /assignments/{assignmentId} {
+                    allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+                }
+
+                // Recurring Templates
+                match /recurringTemplates/{templateId} {
+                    allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+                }
+            }
         }
-      }
-      
-      // Notifications
-      match /notifications/{notificationId} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      // Dashboard Layout
-      match /dashboard/{document=**} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-      }
-      
-      // Quick Notes
-      match /quickNotes/{noteId} {
-        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-      }
+
+        // Notifications
+        match /notifications/{notificationId} {
+            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        }
+
+        // Dashboard Layout
+        match /dashboard/{document=**} {
+            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        }
+
+        // Quick Notes
+        match /quickNotes/{noteId} {
+            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        }
+
+        // Wildcard rule for all nested subcollections - helps with account deletion
+        // This ensures all nested collections can be deleted
+        match /{allSubcollections=**} {
+            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        }
     }
-  }
 }
+}
+
 ```
 
 ## Key Changes
