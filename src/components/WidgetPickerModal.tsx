@@ -1,5 +1,6 @@
 import { X, Calendar, Cloud, StickyNote, BarChart3 } from 'lucide-react';
 import { WidgetType } from '../types';
+import ModalContainer from './ModalContainer';
 
 interface WidgetPickerModalProps {
   availableWidgets: WidgetType[];
@@ -39,11 +40,7 @@ export default function WidgetPickerModal({ availableWidgets, onSelect, onClose 
 
   if (availableWidgets.length === 0) {
     return (
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        onClick={handleBackdropClick}
-      >
+      <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Widget</h2>
@@ -58,15 +55,12 @@ export default function WidgetPickerModal({ availableWidgets, onSelect, onClose 
             <p className="text-gray-600 dark:text-gray-400">All available widgets are already added to your dashboard.</p>
           </div>
         </div>
-      </div>
+      </ModalContainer>
     );
   }
 
   return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-      onClick={handleBackdropClick}
-    >
+    <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Widget</h2>
@@ -101,7 +95,7 @@ export default function WidgetPickerModal({ availableWidgets, onSelect, onClose 
           </div>
         </div>
       </div>
-    </div>
+    </ModalContainer>
   );
 }
 

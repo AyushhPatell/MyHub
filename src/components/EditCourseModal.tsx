@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { courseService } from '../services/firestore';
 import { Course } from '../types';
+import ModalContainer from './ModalContainer';
 
 interface EditCourseModalProps {
   userId: string;
@@ -95,14 +96,9 @@ export default function EditCourseModal({
   };
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-      onClick={onClose}
-    >
+    <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div 
         className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Course</h2>
@@ -235,7 +231,7 @@ export default function EditCourseModal({
           </form>
         )}
       </div>
-    </div>
+    </ModalContainer>
   );
 }
 

@@ -2,6 +2,7 @@ import { X, Check, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Assignment, Course } from '../types';
 import { formatDate, formatTime, isOverdue } from '../utils/dateHelpers';
+import ModalContainer from './ModalContainer';
 
 interface AssignmentFilterModalProps {
   assignments: Array<{ assignment: Assignment; course: Course }>;
@@ -46,11 +47,7 @@ export default function AssignmentFilterModal({ assignments, filterType, onClose
   };
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-      onClick={onClose}
-    >
+    <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div 
         className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -149,7 +146,7 @@ export default function AssignmentFilterModal({ assignments, filterType, onClose
           )}
         </div>
       </div>
-    </div>
+    </ModalContainer>
   );
 }
 

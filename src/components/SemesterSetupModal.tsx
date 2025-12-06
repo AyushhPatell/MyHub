@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { semesterService, courseService } from '../services/firestore';
+import ModalContainer from './ModalContainer';
 
 interface SemesterSetupModalProps {
   userId: string;
@@ -154,7 +155,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
 
   if (step === 'semester') {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Set Up Semester</h2>
@@ -225,19 +226,14 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
             </div>
           </form>
         </div>
-      </div>
+      </ModalContainer>
     );
   }
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto"
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-      onClick={onClose}
-    >
+    <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div 
         className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Courses</h2>
@@ -363,7 +359,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
           </div>
         </div>
       </div>
-    </div>
+    </ModalContainer>
   );
 }
 

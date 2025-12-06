@@ -1,0 +1,60 @@
+import { useEffect, useRef, ReactNode } from 'react';
+
+interface ModalContainerProps {
+  children: ReactNode;
+  onClose: () => void;
+  backdropClassName?: string;
+}
+
+export default function ModalContainer({ children, onClose, backdropClassName = 'bg-black/70 backdrop-blur-md' }: ModalContainerProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Prevent body scroll when modal is open
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    
+    // Scroll the modal content into view
+    if (contentRef.current) {
+      // Use requestAnimationFrame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        contentRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'center'
+        });
+      });
+    }
+
+    return () => {
+      // Restore body scroll
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  return (
+    <div 
+      ref={modalRef}
+      className={`fixed inset-0 ${backdropClassName} z-[100] flex items-center justify-center p-4`}
+      style={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0,
+        overflowY: 'auto'
+      }}
+      onClick={onClose}
+    >
+      <div 
+        ref={contentRef}
+        onClick={(e) => e.stopPropagation()}
+        className="my-auto"
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+

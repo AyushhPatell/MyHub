@@ -7,6 +7,7 @@ import { accountService } from '../services/firestore';
 import { UserPreferences } from '../types';
 import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import ModalContainer from '../components/ModalContainer';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -341,11 +342,8 @@ export default function SettingsPage() {
       )}
 
       {showDeleteConfirm && (
-        <div 
-          className="fixed inset-0 bg-black/70 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto"
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
-        >
-          <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-md w-full border-2 border-red-200 dark:border-red-900 shadow-2xl my-auto">
+        <ModalContainer onClose={() => setShowDeleteConfirm(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 max-w-md w-full border-2 border-red-200 dark:border-red-900 shadow-2xl">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-red-600" />
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">Confirm Account Deletion</h3>
@@ -370,7 +368,7 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-        </div>
+        </ModalContainer>
       )}
     </div>
   );
