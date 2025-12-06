@@ -7,7 +7,6 @@ interface ModalContainerProps {
 }
 
 export default function ModalContainer({ children, onClose, backdropClassName = 'bg-black/70 backdrop-blur-md' }: ModalContainerProps) {
-  const modalRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export default function ModalContainer({ children, onClose, backdropClassName = 
 
   return (
     <div 
-      ref={modalRef}
       className={`fixed inset-0 ${backdropClassName} z-[100] flex items-center justify-center p-4`}
       style={{ 
         position: 'fixed', 
