@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { semesterService, courseService } from '../services/firestore';
+import ModalContainer from './ModalContainer';
 
 interface AddCourseModalProps {
   userId: string;
