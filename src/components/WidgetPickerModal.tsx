@@ -1,3 +1,4 @@
+import React from 'react';
 import { X, Calendar, Cloud, StickyNote, BarChart3 } from 'lucide-react';
 import { WidgetType } from '../types';
 import ModalContainer from './ModalContainer';
@@ -32,12 +33,6 @@ const widgetInfo: Record<WidgetType, { name: string; description: string; icon: 
 };
 
 export default function WidgetPickerModal({ availableWidgets, onSelect, onClose }: WidgetPickerModalProps) {
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
-
   if (availableWidgets.length === 0) {
     return (
       <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
