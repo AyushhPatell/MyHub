@@ -208,37 +208,37 @@ export default function Layout({ children }: LayoutProps) {
             />
             <div className="fixed top-16 left-0 right-0 bottom-0 md:hidden border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl z-50 overflow-y-auto">
               <div className="px-4 sm:px-6 py-4 space-y-2">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${
-                      isActive
-                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
-                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
-                    }`}
-                  >
-                    <Icon size={20} />
-                    {item.label}
-                  </Link>
-                );
-              })}
-              <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-2">
-                <div className="px-4">
-                  <SearchBar />
-                </div>
-                {user && (
-                  <div className="px-4">
-                    <NotificationDropdown userId={user.uid} />
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                      }`}
+                    >
+                      <Icon size={20} />
+                      {item.label}
+                    </Link>
+                  );
+                })}
+                <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-2">
+                  <div className="px-0">
+                    <SearchBar />
                   </div>
-                )}
+                  {user && (
+                    <div className="px-0">
+                      <NotificationDropdown userId={user.uid} />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
           </>
         )}
       </nav>

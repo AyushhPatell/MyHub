@@ -19,8 +19,8 @@ interface WidgetContainerProps {
 
 const sizeClasses: Record<WidgetSize, string> = {
   small: 'col-span-1',
-  medium: 'col-span-2',
-  large: 'col-span-3',
+  medium: 'sm:col-span-2 col-span-1',
+  large: 'sm:col-span-2 lg:col-span-3 col-span-1',
 };
 
 const sizeLabels: Record<WidgetSize, string> = {
@@ -79,7 +79,7 @@ export default function WidgetContainer({
       onDragEnd={onDragEnd}
     >
       <div
-        className={`relative bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 transition-all duration-200 h-full flex flex-col overflow-hidden ${
+        className={`relative bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 transition-all duration-200 h-full flex flex-col overflow-hidden w-full ${
           isEditMode
             ? 'ring-2 ring-indigo-300 dark:ring-indigo-500/50'
             : 'hover:border-indigo-300 dark:hover:border-indigo-500/30'
@@ -138,7 +138,7 @@ export default function WidgetContainer({
         )}
 
         {/* Widget Content */}
-        <div className="flex-1 p-6 overflow-auto">{children}</div>
+        <div className="flex-1 p-4 sm:p-6 overflow-auto">{children}</div>
       </div>
     </div>
   );

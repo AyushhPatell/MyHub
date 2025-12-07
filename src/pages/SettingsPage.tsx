@@ -264,7 +264,8 @@ export default function SettingsPage() {
                   type="time"
                   value={preferences.defaultDueTime}
                   onChange={(e) => updatePreference({ defaultDueTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
