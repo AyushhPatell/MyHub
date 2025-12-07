@@ -86,7 +86,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
       {/* Top Navigation Bar */}
-      <nav className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 shadow-sm">
+      <nav className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 shadow-sm">
         <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
             {/* Left: Logo + Navigation */}
@@ -190,8 +190,13 @@ export default function Layout({ children }: LayoutProps) {
 
               {/* Mobile Menu Button */}
               <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMobileMenuOpen(!mobileMenuOpen);
+                }}
+                className="md:hidden p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors relative z-50 touch-manipulation"
+                style={{ minWidth: '44px', minHeight: '44px' }}
+                aria-label="Toggle menu"
               >
                 {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -203,10 +208,10 @@ export default function Layout({ children }: LayoutProps) {
         {mobileMenuOpen && (
           <>
             <div 
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              className="fixed inset-0 bg-black/50 z-[60] md:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <div className="fixed top-16 left-0 right-0 bottom-0 md:hidden border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl z-50 overflow-y-auto">
+            <div className="fixed top-16 left-0 right-0 bottom-0 md:hidden border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl z-[70] overflow-y-auto transform transition-transform">
               <div className="px-4 sm:px-6 py-4 space-y-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;

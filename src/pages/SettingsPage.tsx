@@ -264,8 +264,8 @@ export default function SettingsPage() {
                   type="time"
                   value={preferences.defaultDueTime}
                   onChange={(e) => updatePreference({ defaultDueTime: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  style={{ width: '100%', boxSizing: 'border-box' }}
+                  className="w-full max-w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -276,7 +276,8 @@ export default function SettingsPage() {
                 <select
                   value={preferences.dateFormat}
                   onChange={(e) => updatePreference({ dateFormat: e.target.value as 'MM/DD/YYYY' | 'DD/MM/YYYY' })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full max-w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                 >
                   <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                   <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -290,7 +291,8 @@ export default function SettingsPage() {
                 <select
                   value={preferences.firstDayOfWeek}
                   onChange={(e) => updatePreference({ firstDayOfWeek: e.target.value as 'Sunday' | 'Monday' })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full max-w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                 >
                   <option value="Monday">Monday</option>
                   <option value="Sunday">Sunday</option>
@@ -305,7 +307,8 @@ export default function SettingsPage() {
                   type="text"
                   value={preferences.timezone}
                   onChange={(e) => updatePreference({ timezone: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  className="w-full max-w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
