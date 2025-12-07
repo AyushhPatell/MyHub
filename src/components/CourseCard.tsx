@@ -54,8 +54,9 @@ export default function CourseCard({ course, semesterId: _semesterId, onEdit }: 
           ref={menuButtonRef}
           type="button"
           onClick={handleMenuClick}
-          className="absolute top-4 right-4 z-[100] p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white opacity-100 transition-all rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 pointer-events-auto"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-[100] p-2.5 sm:p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white opacity-100 transition-all rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 pointer-events-auto touch-manipulation"
           title="Course options"
+          style={{ minWidth: '44px', minHeight: '44px' }}
         >
           <MoreVertical size={20} />
         </button>

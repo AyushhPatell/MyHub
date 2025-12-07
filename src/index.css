@@ -59,5 +59,16 @@
   .animate-fade-in {
     animation: fadeIn 0.3s ease-in-out;
   }
+  
+  /* Safe area insets for mobile browsers */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  @supports (padding: max(0px)) {
+    .pb-safe {
+      padding-bottom: max(env(safe-area-inset-bottom), 20px);
+    }
+  }
 }
 

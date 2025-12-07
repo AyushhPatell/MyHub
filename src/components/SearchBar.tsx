@@ -168,9 +168,10 @@ export default function SearchBar() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search courses and assignments..."
-                className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none text-lg font-medium"
+                className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none text-base sm:text-lg font-medium"
                 autoFocus
                 onFocus={(e) => e.target.select()}
+                style={{ fontSize: 'inherit' }}
               />
               <button
                 onClick={() => {
@@ -196,7 +197,7 @@ export default function SearchBar() {
               ) : results.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                   <p className="text-sm">Start typing to search...</p>
-                  <p className="text-xs mt-2">Press Ctrl+K or Cmd+K to open search</p>
+                  <p className="text-xs mt-2 hidden sm:block">Press Ctrl+K or Cmd+K to open search</p>
                 </div>
               ) : (
                 <div className="py-2">

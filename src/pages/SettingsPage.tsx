@@ -153,8 +153,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen w-full">
-      <div className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 lg:py-8">
+    <div className="min-h-screen w-full pb-safe">
+      <div className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
         <div className="mb-6 sm:mb-8 text-center">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
             Settings
@@ -162,7 +162,7 @@ export default function SettingsPage() {
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-semibold">Manage your preferences</p>
         </div>
 
-        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 mb-8">
           {/* Dashboard Widgets */}
           <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
             <div className="flex items-center space-x-3 mb-4">

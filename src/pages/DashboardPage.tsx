@@ -216,9 +216,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full pb-safe">
       {/* Page Header - Full Width */}
-      <div className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 lg:py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
         <div className="mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
             Dashboard

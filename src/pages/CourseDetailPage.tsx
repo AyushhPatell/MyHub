@@ -136,32 +136,35 @@ export default function CourseDetailPage() {
   const completedCount = assignments.filter((a) => !!a.completedAt).length;
 
   return (
-    <div className="min-h-screen w-full">
+    <div className="min-h-screen w-full pb-safe">
       {/* Page Header - Full Width */}
-      <div className="w-full px-6 lg:px-12 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
+      <div className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+          <div className="flex items-center gap-3 sm:gap-4">
             <Link
               to="/courses"
-              className="p-2 hover:bg-white/5 rounded-xl transition-colors"
+              className="p-2 hover:bg-white/5 rounded-xl transition-colors touch-manipulation"
+              style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              <ArrowLeft size={24} className="text-gray-600 dark:text-gray-300" />
+              <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
                 {course.courseCode}
               </h1>
-              <p className="text-gray-900 dark:text-gray-300 font-semibold">
+              <p className="text-sm sm:text-base text-gray-900 dark:text-gray-300 font-semibold">
                 {course.courseName}
               </p>
             </div>
           </div>
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg"
+            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm sm:text-base touch-manipulation"
+            style={{ minHeight: '44px' }}
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="hidden sm:inline">Add Assignment</span>
+            <span className="sm:hidden">Add</span>
           </button>
         </div>
 
@@ -267,11 +270,11 @@ export default function CourseDetailPage() {
           )}
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-3 mb-6">
+        {/* Filters - Stack on mobile, horizontal on larger screens */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-6">
           <button
             onClick={() => setFilter('upcoming')}
-            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
               filter === 'upcoming'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'
@@ -281,7 +284,7 @@ export default function CourseDetailPage() {
           </button>
           <button
             onClick={() => setFilter('completed')}
-            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
               filter === 'completed'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'
@@ -291,7 +294,7 @@ export default function CourseDetailPage() {
           </button>
           <button
             onClick={() => setFilter('all')}
-            className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
               filter === 'all'
                 ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                 : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'

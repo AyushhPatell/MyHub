@@ -84,24 +84,24 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
     );
   }
 
-  // Medium and Large
+  // Medium and Large - Stack vertically on mobile, horizontal on larger screens
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
           <button
             key={stat.type}
             onClick={() => onStatClick?.(stat.type)}
-            className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-6 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
+            className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-4 sm:p-6 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
           >
-            <div className="flex flex-col items-center text-center space-y-4">
-              <div className={`w-16 h-16 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
-                <Icon className="w-8 h-8 text-white" />
+            <div className="flex flex-col items-center text-center space-y-3 sm:space-y-4">
+              <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
+                <Icon className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
               </div>
               <div>
-                <div className="text-5xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
-                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                <div className="text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
+                <div className="text-xs sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                   {stat.label}
                 </div>
               </div>

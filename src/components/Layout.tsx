@@ -199,10 +199,15 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Overlay on mobile */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl">
-            <div className="px-4 sm:px-6 py-4 space-y-2">
+          <>
+            <div 
+              className="fixed inset-0 bg-black/50 z-40 md:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <div className="fixed top-16 left-0 right-0 bottom-0 md:hidden border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl z-50 overflow-y-auto">
+              <div className="px-4 sm:px-6 py-4 space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -234,6 +239,7 @@ export default function Layout({ children }: LayoutProps) {
               </div>
             </div>
           </div>
+          </>
         )}
       </nav>
 
