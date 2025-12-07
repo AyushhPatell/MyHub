@@ -159,12 +159,12 @@ export default function CourseDetailPage() {
           </div>
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm sm:text-base touch-manipulation"
+            className="flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-xs sm:text-base touch-manipulation"
             style={{ minHeight: '44px' }}
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="hidden sm:inline">Add Assignment</span>
-            <span className="sm:hidden">Add</span>
+            <span className="sm:hidden">Add Assignment</span>
           </button>
         </div>
 
@@ -200,28 +200,50 @@ export default function CourseDetailPage() {
         </div>
 
         {/* Recurring Templates */}
-        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-4 mb-4 shadow-xl">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-              <Repeat className="w-4 h-4 text-indigo-400" />
-              Recurring Templates
-            </h2>
+        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-5 mb-4 shadow-xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Repeat className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                Recurring Templates
+              </h2>
+            </div>
             <button
               type="button"
               onClick={() => {
                 setEditingTemplate(null);
                 setShowTemplateModal(true);
               }}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform text-xs sm:text-sm"
             >
-              <Plus className="w-4 h-4" />
-              New Template
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">New Template</span>
+              <span className="sm:hidden">New</span>
             </button>
           </div>
           {templates.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6 font-medium">
-              No recurring templates. Create one to automatically generate assignments.
-            </p>
+            <div className="text-center py-8">
+              <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Repeat className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
+              </div>
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                No recurring templates
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                Create one to automatically generate assignments
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingTemplate(null);
+                  setShowTemplateModal(true);
+                }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Create Template
+              </button>
+            </div>
           ) : (
             <div className="space-y-3">
               {templates.map((template) => (

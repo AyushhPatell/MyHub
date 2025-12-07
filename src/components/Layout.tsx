@@ -1,10 +1,11 @@
 import { ReactNode, useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
-import { doc, getDoc } from 'firebase/firestore';
-import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown } from 'lucide-react';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Search, Bell } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
 
@@ -19,6 +20,7 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -36,6 +38,25 @@ export default function Layout({ children }: LayoutProps) {
       }
     };
     loadUserName();
+  }, [user]);
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      if (user) {
+        try {
+          const notificationsRef = collection(db, 'notifications');
+          const q = query(notificationsRef, where('userId', '==', user.uid), where('isRead', '==', false));
+          const snapshot = await getDocs(q);
+          setUnreadNotificationCount(snapshot.size);
+        } catch (error) {
+          console.error('Error loading notification count:', error);
+        }
+      }
+    };
+    loadUnreadCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadUnreadCount, 30000);
+    return () => clearInterval(interval);
   }, [user]);
 
   // Close user menu when clicking outside
@@ -203,17 +224,38 @@ export default function Layout({ children }: LayoutProps) {
             </div>
           </div>
         </div>
+      </nav>
 
-        {/* Mobile Menu - Overlay on mobile */}
-        {mobileMenuOpen && (
-          <>
-            <div 
-              className="fixed inset-0 bg-black/50 z-[60] md:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <div className="fixed top-0 left-0 right-0 bottom-0 md:hidden z-[70] pointer-events-none">
-              <div className="absolute top-16 left-0 right-0 bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-white/10 overflow-y-auto pointer-events-auto">
-                <div className="px-4 sm:px-6 py-4 space-y-2">
+      {/* Mobile Menu - Rendered via Portal outside nav */}
+      {mobileMenuOpen && createPortal(
+        <>
+          <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] md:hidden transition-opacity"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="fixed top-0 left-0 right-0 bottom-0 md:hidden z-[110] overflow-y-auto">
+            <div className="min-h-full bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
+              {/* Menu Header */}
+              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 px-6 py-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
+                      <LayoutGrid className="w-5 h-5" />
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">MyHub</span>
+                  </div>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                    aria-label="Close menu"
+                  >
+                    <X size={22} className="text-gray-700 dark:text-gray-300" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Navigation Items */}
+              <div className="px-4 py-6 space-y-3">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -222,33 +264,85 @@ export default function Layout({ children }: LayoutProps) {
                       key={item.path}
                       to={item.path}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all ${
+                      className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-base transition-all ${
                         isActive
-                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
-                          : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
+                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-xl'
+                          : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'
                       }`}
                     >
-                      <Icon size={20} />
-                      {item.label}
+                      <div className={`p-2.5 rounded-xl transition-all ${
+                        isActive 
+                          ? 'bg-white/20' 
+                          : 'bg-indigo-100 dark:bg-indigo-900/30'
+                      }`}>
+                        <Icon size={20} className={isActive ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'} />
+                      </div>
+                      <span className="flex-1">{item.label}</span>
+                      {isActive && (
+                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                      )}
                     </Link>
                   );
                 })}
-                <div className="pt-4 border-t border-gray-200 dark:border-white/10 space-y-2">
-                  <div className="px-0">
-                    <SearchBar />
-                  </div>
+              </div>
+
+              {/* Quick Actions Section */}
+              <div className="px-4 pb-6">
+                <div className="mb-3 px-1">
+                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Quick Actions
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      // Trigger search - SearchBar handles its own state
+                      const searchButton = document.querySelector('button[title*="Search"]') as HTMLElement;
+                      if (searchButton) {
+                        searchButton.click();
+                      }
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex flex-col items-center justify-center gap-2.5 px-3 py-4 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all shadow-sm"
+                  >
+                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+                      <Search size={18} className="text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Search</span>
+                  </button>
                   {user && (
-                    <div className="px-0">
-                      <NotificationDropdown userId={user.uid} />
+                    <div className="flex flex-col items-center justify-center gap-2.5 px-3 py-4 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
+                      <div className="relative">
+                        <button
+                          onClick={() => {
+                            const notificationButton = document.querySelector('button[title="Notifications"]') as HTMLElement;
+                            if (notificationButton) {
+                              notificationButton.click();
+                            }
+                            setMobileMenuOpen(false);
+                          }}
+                          className="p-2 text-pink-600 dark:text-pink-400"
+                        >
+                          <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-xl">
+                            <Bell size={18} />
+                          </div>
+                          {unreadNotificationCount > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Notifications</span>
                     </div>
                   )}
                 </div>
               </div>
             </div>
           </div>
-          </>
-        )}
-      </nav>
+        </>,
+        document.body
+      )}
 
       {/* Main Content - Full Width */}
       <main className="w-full">{children}</main>

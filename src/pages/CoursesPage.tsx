@@ -171,19 +171,19 @@ export default function CoursesPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setShowAddCourse(true)}
-              className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm sm:text-base"
+              className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-xs sm:text-base"
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Add Course</span>
-              <span className="sm:hidden">Add</span>
+              <span className="sm:hidden">Add Course</span>
             </button>
             <button
               onClick={() => setShowQuickAdd(true)}
-              className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm sm:text-base"
+              className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-xs sm:text-base"
             >
               <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">Quick Add</span>
-              <span className="sm:hidden">Quick</span>
+              <span className="sm:hidden">Quick Add</span>
             </button>
           </div>
         </div>

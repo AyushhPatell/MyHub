@@ -126,9 +126,11 @@ export default function NotificationDropdown({ userId }: NotificationDropdownPro
         className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         title="Notifications"
       >
-        <Bell className="w-5 h-5" />
+        <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-xl">
+          <Bell className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+        </div>
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
