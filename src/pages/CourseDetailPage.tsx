@@ -157,19 +157,67 @@ export default function CourseDetailPage() {
               </p>
             </div>
           </div>
+          {/* Desktop/Tablet: Add Assignment and Create Recurring Template side by side */}
+          <div className="hidden md:flex items-center gap-3">
+            <button
+              onClick={() => {
+                setEditingTemplate(null);
+                setShowTemplateModal(true);
+              }}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm"
+            >
+              <Repeat className="w-4 h-4" />
+              <span>Create Recurring Template</span>
+            </button>
+            <button
+              onClick={() => setShowQuickAdd(true)}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-base touch-manipulation"
+              style={{ minHeight: '44px' }}
+            >
+              <Plus className="w-5 h-5" />
+              <span>Add Assignment</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile: Professor box first, then Add Assignment, then Create Recurring Template */}
+        <div className="md:hidden space-y-4 mb-6">
+          {/* Professor Info - Mobile Only */}
+          {course.professor && (
+            <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-4 shadow-xl">
+              <p className="text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">
+                Professor
+              </p>
+              <p className="text-base font-bold text-gray-900 dark:text-white">{course.professor}</p>
+            </div>
+          )}
+          
+          {/* Add Assignment Button - Mobile */}
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="flex items-center justify-center gap-2 px-3 sm:px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-xs sm:text-base touch-manipulation"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm touch-manipulation"
             style={{ minHeight: '44px' }}
           >
-            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="hidden sm:inline">Add Assignment</span>
-            <span className="sm:hidden">Add Assignment</span>
+            <Plus className="w-4 h-4" />
+            <span>Add Assignment</span>
+          </button>
+          
+          {/* Create Recurring Template Button - Mobile */}
+          <button
+            type="button"
+            onClick={() => {
+              setEditingTemplate(null);
+              setShowTemplateModal(true);
+            }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm"
+          >
+            <Repeat className="w-4 h-4" />
+            <span>Create Recurring Template</span>
           </button>
         </div>
 
-        {/* Course Info */}
-        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-5 mb-4 shadow-xl">
+        {/* Course Info - Desktop/Tablet */}
+        <div className="hidden md:block bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-5 mb-4 shadow-xl">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {course.professor && (
               <div>
@@ -199,98 +247,61 @@ export default function CourseDetailPage() {
           </div>
         </div>
 
-        {/* Recurring Templates */}
-        <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-5 mb-4 shadow-xl">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Repeat className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-              <h2 className="text-lg font-bold text-gray-900 dark:text-white">
-                Recurring Templates
+        {/* Recurring Templates List - Only show if templates exist */}
+        {templates.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Repeat className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+              <h2 className="text-base font-bold text-gray-900 dark:text-white">
+                Recurring Templates ({templates.length})
               </h2>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingTemplate(null);
-                setShowTemplateModal(true);
-              }}
-              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform text-xs sm:text-sm"
-            >
-              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">New Template</span>
-              <span className="sm:hidden">New</span>
-            </button>
-          </div>
-          {templates.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Repeat className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
-              </div>
-              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                No recurring templates
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                Create one to automatically generate assignments
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingTemplate(null);
-                  setShowTemplateModal(true);
-                }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Create Template
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {templates.map((template) => (
                 <div
                   key={template.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10"
+                  className="flex items-center justify-between p-3 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all"
                 >
-                  <div className="flex-1">
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1">{template.name}</h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                      {template.assignmentNamePattern} • {template.pattern} • {template.dayOfWeek} at {template.time}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-medium">
-                      {formatDate(template.startDate)} - {formatDate(template.endDate)}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-1 truncate">{template.name}</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                      {template.pattern} • {template.dayOfWeek} at {template.time}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5 ml-2">
                     <button
                       onClick={() => handleGenerateFromTemplate(template.id)}
-                      className="p-2.5 text-indigo-400 hover:bg-indigo-500/20 rounded-xl transition-colors"
+                      className="p-2 text-indigo-400 hover:bg-indigo-500/20 rounded-lg transition-colors touch-manipulation"
+                      style={{ minWidth: '36px', minHeight: '36px' }}
                       title="Generate assignments"
                     >
-                      <Play className="w-5 h-5" />
+                      <Play className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => {
                         setEditingTemplate(template);
                         setShowTemplateModal(true);
                       }}
-                      className="p-2.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                      className="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors touch-manipulation"
+                      style={{ minWidth: '36px', minHeight: '36px' }}
                       title="Edit template"
                     >
-                      <Edit className="w-5 h-5" />
+                      <Edit className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleDeleteTemplate(template.id)}
-                      className="p-2.5 text-red-400 hover:bg-red-500/20 rounded-xl transition-colors"
+                      className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors touch-manipulation"
+                      style={{ minWidth: '36px', minHeight: '36px' }}
                       title="Delete template"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Filters - Stack on mobile, horizontal on larger screens */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-6">

@@ -4,7 +4,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { notificationService } from '../services/firestore';
 import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Search, Bell } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
@@ -44,12 +45,13 @@ export default function Layout({ children }: LayoutProps) {
     const loadUnreadCount = async () => {
       if (user) {
         try {
-          const notificationsRef = collection(db, 'notifications');
-          const q = query(notificationsRef, where('userId', '==', user.uid), where('isRead', '==', false));
-          const snapshot = await getDocs(q);
-          setUnreadNotificationCount(snapshot.size);
+          const notifications = await notificationService.getNotifications(user.uid);
+          const unread = notifications.filter((n) => !n.isRead).length;
+          setUnreadNotificationCount(unread);
         } catch (error) {
           console.error('Error loading notification count:', error);
+          // Silently fail - don't break the app if notifications can't load
+          setUnreadNotificationCount(0);
         }
       }
     };
@@ -313,25 +315,11 @@ export default function Layout({ children }: LayoutProps) {
                   {user && (
                     <div className="flex flex-col items-center justify-center gap-2.5 px-3 py-4 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
                       <div className="relative">
-                        <button
-                          onClick={() => {
-                            const notificationButton = document.querySelector('button[title="Notifications"]') as HTMLElement;
-                            if (notificationButton) {
-                              notificationButton.click();
-                            }
-                            setMobileMenuOpen(false);
-                          }}
-                          className="p-2 text-pink-600 dark:text-pink-400"
-                        >
-                          <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-xl">
-                            <Bell size={18} />
-                          </div>
-                          {unreadNotificationCount > 0 && (
-                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-                              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-                            </span>
-                          )}
-                        </button>
+                        <NotificationDropdown 
+                          userId={user.uid} 
+                          mobileMenuStyle={true}
+                          onOpen={() => setMobileMenuOpen(false)}
+                        />
                       </div>
                       <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Notifications</span>
                     </div>
