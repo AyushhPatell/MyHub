@@ -265,7 +265,14 @@ export default function SettingsPage() {
                   value={preferences.defaultDueTime}
                   onChange={(e) => updatePreference({ defaultDueTime: e.target.value })}
                   className="w-full max-w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
+                  style={{ 
+                    width: '100%', 
+                    maxWidth: '100%', 
+                    boxSizing: 'border-box',
+                    WebkitAppearance: 'none',
+                    appearance: 'none',
+                    MozAppearance: 'textfield'
+                  }}
                 />
               </div>
 

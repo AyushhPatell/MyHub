@@ -211,8 +211,9 @@ export default function Layout({ children }: LayoutProps) {
               className="fixed inset-0 bg-black/50 z-[60] md:hidden"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <div className="fixed top-16 left-0 right-0 bottom-0 md:hidden border-t border-gray-200 dark:border-white/10 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl z-[70] overflow-y-auto transform transition-transform">
-              <div className="px-4 sm:px-6 py-4 space-y-2">
+            <div className="fixed top-0 left-0 right-0 bottom-0 md:hidden z-[70] pointer-events-none">
+              <div className="absolute top-16 left-0 right-0 bottom-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-t border-gray-200 dark:border-white/10 overflow-y-auto pointer-events-auto">
+                <div className="px-4 sm:px-6 py-4 space-y-2">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -244,6 +245,7 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
               </div>
             </div>
+          </div>
           </>
         )}
       </nav>
