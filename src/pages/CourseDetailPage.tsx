@@ -304,7 +304,11 @@ export default function CourseDetailPage() {
         )}
 
         {/* Filters - Stack on mobile, horizontal on larger screens */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 mb-6">
+        <div className="md:mt-0 mt-8 mb-6">
+          <div className="md:hidden mb-3">
+            <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Filter Assignments</h3>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <button
             onClick={() => setFilter('upcoming')}
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
@@ -335,6 +339,7 @@ export default function CourseDetailPage() {
           >
             All ({assignments.length})
           </button>
+          </div>
         </div>
 
         {/* Assignments List */}

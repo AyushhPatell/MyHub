@@ -115,7 +115,7 @@ export default function EditAssignmentModal({
   return (
     <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div 
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto scrollbar-hide"
       >
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Assignment</h2>

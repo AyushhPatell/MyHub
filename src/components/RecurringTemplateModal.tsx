@@ -155,7 +155,7 @@ export default function RecurringTemplateModal({
   return (
     <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div 
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide"
       >
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
           <div className="flex items-center gap-3">
@@ -273,7 +273,7 @@ export default function RecurringTemplateModal({
           </div>
 
           {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Start Date <span className="text-red-500">*</span>
@@ -282,6 +282,13 @@ export default function RecurringTemplateModal({
                 type="date"
                 {...register('startDate', { required: 'Start date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                style={{ 
+                  width: '100%', 
+                  maxWidth: '100%', 
+                  boxSizing: 'border-box',
+                  WebkitAppearance: 'none',
+                  appearance: 'none'
+                }}
               />
               {errors.startDate && <p className="mt-1 text-sm text-red-500">{errors.startDate.message}</p>}
             </div>
@@ -293,6 +300,13 @@ export default function RecurringTemplateModal({
                 type="date"
                 {...register('endDate', { required: 'End date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                style={{ 
+                  width: '100%', 
+                  maxWidth: '100%', 
+                  boxSizing: 'border-box',
+                  WebkitAppearance: 'none',
+                  appearance: 'none'
+                }}
               />
               {errors.endDate && <p className="mt-1 text-sm text-red-500">{errors.endDate.message}</p>}
             </div>

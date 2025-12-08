@@ -178,6 +178,13 @@ export default function QuickAddModal({ userId, semesterId, onClose, onSuccess }
               type="date"
               {...register('dueDate', { required: 'Due date is required' })}
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              style={{ 
+                width: '100%', 
+                maxWidth: '100%', 
+                boxSizing: 'border-box',
+                WebkitAppearance: 'none',
+                appearance: 'none'
+              }}
             />
             {errors.dueDate && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dueDate.message}</p>
