@@ -5,8 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
-import { notificationService } from '../services/firestore';
-import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Search, Bell } from 'lucide-react';
+import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Search } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
 
@@ -21,7 +20,6 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -41,25 +39,6 @@ export default function Layout({ children }: LayoutProps) {
     loadUserName();
   }, [user]);
 
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      if (user) {
-        try {
-          const notifications = await notificationService.getNotifications(user.uid);
-          const unread = notifications.filter((n) => !n.isRead).length;
-          setUnreadNotificationCount(unread);
-        } catch (error) {
-          console.error('Error loading notification count:', error);
-          // Silently fail - don't break the app if notifications can't load
-          setUnreadNotificationCount(0);
-        }
-      }
-    };
-    loadUnreadCount();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
 
   // Close user menu when clicking outside
   useEffect(() => {
@@ -146,15 +125,15 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Right: Search + Notifications + User */}
-            <div className="flex items-center gap-3">
-              {/* Search */}
-              <div className="hidden lg:block">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+              {/* Search - Now visible on all screen sizes */}
+              <div className="flex items-center">
                 <SearchBar />
               </div>
 
-              {/* Notifications */}
+              {/* Notifications - Now visible on all screen sizes */}
               {user && (
-                <div className="hidden lg:block">
+                <div className="flex items-center">
                   <NotificationDropdown userId={user.uid} />
                 </div>
               )}
@@ -288,44 +267,6 @@ export default function Layout({ children }: LayoutProps) {
                 })}
               </div>
 
-              {/* Quick Actions Section */}
-              <div className="px-4 pb-6">
-                <div className="mb-3 px-1">
-                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                    Quick Actions
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => {
-                      // Trigger search - SearchBar handles its own state
-                      const searchButton = document.querySelector('button[title*="Search"]') as HTMLElement;
-                      if (searchButton) {
-                        searchButton.click();
-                      }
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex flex-col items-center justify-center gap-2.5 px-3 py-4 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all shadow-sm"
-                  >
-                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
-                      <Search size={18} className="text-indigo-600 dark:text-indigo-400" />
-                    </div>
-                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Search</span>
-                  </button>
-                  {user && (
-                    <div className="flex flex-col items-center justify-center gap-2.5 px-3 py-4 bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm">
-                      <div className="relative">
-                        <NotificationDropdown 
-                          userId={user.uid} 
-                          mobileMenuStyle={true}
-                          onOpen={() => setMobileMenuOpen(false)}
-                        />
-                      </div>
-                      <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Notifications</span>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </>,

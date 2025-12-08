@@ -52,21 +52,33 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
     }
   };
 
-  // Calculate dropdown position for mobile menu
+  // Calculate dropdown position
   useEffect(() => {
-    if (isOpen && mobileMenuStyle && buttonRef.current) {
+    if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
       const viewportWidth = window.innerWidth;
       const dropdownWidth = 320; // w-80 = 320px
       const padding = 16; // 1rem
       
-      // Calculate left position, ensuring it doesn't overflow
-      let left = rect.left;
-      if (left + dropdownWidth + padding > viewportWidth) {
-        left = viewportWidth - dropdownWidth - padding;
-      }
-      if (left < padding) {
-        left = padding;
+      let left: number;
+      if (mobileMenuStyle) {
+        // Mobile: align to left edge of button
+        left = rect.left;
+        if (left + dropdownWidth + padding > viewportWidth) {
+          left = viewportWidth - dropdownWidth - padding;
+        }
+        if (left < padding) {
+          left = padding;
+        }
+      } else {
+        // Desktop: align to right edge of button
+        left = rect.right - dropdownWidth;
+        if (left < padding) {
+          left = padding;
+        }
+        if (left + dropdownWidth + padding > viewportWidth) {
+          left = viewportWidth - dropdownWidth - padding;
+        }
       }
       
       setDropdownPosition({
@@ -152,11 +164,11 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
 
   const dropdownContent = isOpen ? (
     <div 
-      className={`${mobileMenuStyle ? 'fixed' : 'absolute'} ${mobileMenuStyle ? '' : 'right-0'} mt-2 ${mobileMenuStyle ? 'w-[calc(100vw-2rem)] max-w-80' : 'w-80'} bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-[200] max-h-96 overflow-hidden flex flex-col`}
-      style={mobileMenuStyle ? { 
+      className={`${mobileMenuStyle ? 'fixed' : 'absolute'} mt-2 ${mobileMenuStyle ? 'w-[calc(100vw-2rem)] max-w-80' : 'w-80'} bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 ${mobileMenuStyle ? 'z-[9999]' : 'z-[200]'} max-h-96 overflow-hidden flex flex-col`}
+      style={{ 
         top: `${dropdownPosition.top}px`, 
-        left: `${dropdownPosition.left}px` 
-      } : {}}
+        left: `${dropdownPosition.left}px`
+      }}
       ref={dropdownRef}
     >
       {/* Header */}
@@ -244,11 +256,12 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
             onOpen();
           }
         }}
-        className={`relative ${mobileMenuStyle ? 'p-2 text-pink-600 dark:text-pink-400' : 'p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors'}`}
+        className={`relative ${mobileMenuStyle ? 'p-2 text-pink-600 dark:text-pink-400' : 'p-1.5 sm:p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors touch-manipulation'}`}
+        style={!mobileMenuStyle ? { minWidth: '36px', minHeight: '36px' } : {}}
         title="Notifications"
       >
-        <div className="p-2 bg-pink-100 dark:bg-pink-900/30 rounded-xl">
-          <Bell className={mobileMenuStyle ? "w-[18px] h-[18px]" : "w-4 h-4 text-pink-600 dark:text-pink-400"} />
+        <div className={`${mobileMenuStyle ? 'p-2' : 'p-1.5 sm:p-2'} bg-pink-100 dark:bg-pink-900/30 rounded-xl`}>
+          <Bell className={mobileMenuStyle ? "w-[18px] h-[18px]" : "w-4 h-4 sm:w-4 sm:h-4 text-pink-600 dark:text-pink-400"} />
         </div>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
@@ -257,10 +270,12 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
         )}
       </button>
 
-      {mobileMenuStyle && isOpen ? (
-        createPortal(dropdownContent, document.body)
-      ) : (
-        dropdownContent
+      {isOpen && (
+        mobileMenuStyle ? (
+          createPortal(dropdownContent, document.body)
+        ) : (
+          dropdownContent
+        )
       )}
     </div>
   );
