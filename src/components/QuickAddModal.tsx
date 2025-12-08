@@ -119,9 +119,9 @@ export default function QuickAddModal({ userId, semesterId, onClose, onSuccess }
   return (
     <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div 
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full max-h-[90vh] flex flex-col"
       >
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
+        <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between rounded-t-xl">
           <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Quick Add Assignment</h2>
           <button
             onClick={onClose}
@@ -131,7 +131,7 @@ export default function QuickAddModal({ userId, semesterId, onClose, onSuccess }
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-hide">
           {/* Course Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

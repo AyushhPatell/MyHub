@@ -1,4 +1,5 @@
 import { useEffect, useRef, ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalContainerProps {
   children: ReactNode;
@@ -32,9 +33,9 @@ export default function ModalContainer({ children, onClose, backdropClassName = 
     };
   }, []);
 
-  return (
+  const modalContent = (
     <div 
-      className={`fixed inset-0 ${backdropClassName} z-[100] flex items-center justify-center p-4`}
+      className={`fixed inset-0 ${backdropClassName} z-[9999] flex items-center justify-center p-4`}
       style={{ 
         position: 'fixed', 
         top: 0, 
@@ -54,5 +55,7 @@ export default function ModalContainer({ children, onClose, backdropClassName = 
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }
 
