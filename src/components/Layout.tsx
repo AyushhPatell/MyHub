@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
-import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Search } from 'lucide-react';
+import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
 

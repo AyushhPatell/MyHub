@@ -62,23 +62,14 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
       
       let left: number;
       if (mobileMenuStyle) {
-        // Mobile: align to left edge of button
-        left = rect.left;
-        if (left + dropdownWidth + padding > viewportWidth) {
-          left = viewportWidth - dropdownWidth - padding;
-        }
-        if (left < padding) {
-          left = padding;
-        }
+        // Mobile: center it or align to button, but ensure it fits
+        left = Math.max(padding, Math.min(rect.left, viewportWidth - dropdownWidth - padding));
       } else {
-        // Desktop: align to right edge of button
+        // Desktop/Tablet: align dropdown's right edge to button's right edge
+        // Calculate from the right edge of the button
         left = rect.right - dropdownWidth;
-        if (left < padding) {
-          left = padding;
-        }
-        if (left + dropdownWidth + padding > viewportWidth) {
-          left = viewportWidth - dropdownWidth - padding;
-        }
+        // Clamp to viewport bounds
+        left = Math.max(padding, Math.min(left, viewportWidth - dropdownWidth - padding));
       }
       
       setDropdownPosition({
@@ -164,7 +155,7 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
 
   const dropdownContent = isOpen ? (
     <div 
-      className={`${mobileMenuStyle ? 'fixed' : 'absolute'} mt-2 ${mobileMenuStyle ? 'w-[calc(100vw-2rem)] max-w-80' : 'w-80'} bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 ${mobileMenuStyle ? 'z-[9999]' : 'z-[200]'} max-h-96 overflow-hidden flex flex-col`}
+      className={`fixed mt-2 ${mobileMenuStyle ? 'w-[calc(100vw-2rem)] max-w-80' : 'w-80'} bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 ${mobileMenuStyle ? 'z-[9999]' : 'z-[200]'} max-h-96 overflow-hidden flex flex-col`}
       style={{ 
         top: `${dropdownPosition.top}px`, 
         left: `${dropdownPosition.left}px`
