@@ -110,14 +110,14 @@ export default function AddCourseModal({ userId, onClose, onSuccess }: AddCourse
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
-          {/* Course Code */}
+          {/* Course */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Course Code <span className="text-red-500">*</span>
+              Course <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              {...register('courseCode', { required: 'Course code is required' })}
+              {...register('courseCode', { required: 'Course is required' })}
               placeholder="CSCI 3172"
               className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />

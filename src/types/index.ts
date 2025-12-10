@@ -33,7 +33,7 @@ export interface Semester {
 export interface Course {
   id: string;
   semesterId: string;
-  courseCode: string; // "CSCI 3172"
+  courseCode: string; // "CSCI 3172" - Course identifier
   courseName: string; // "Web-Centric Computing"
   professor?: string;
   color: string; // Hex code, e.g., "#2563EB"
@@ -169,6 +169,36 @@ export interface WeatherData {
     condition: string;
     icon: string;
   }[];
+}
+
+// Schedule Block Types
+export type ScheduleBlockType = 'lecture' | 'tutorial';
+
+export type DayOfWeek = 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+
+export interface ScheduleBlock {
+  id: string;
+  userId: string;
+  semesterId: string;
+  courseId: string;
+  type: ScheduleBlockType;
+  dayOfWeek: DayOfWeek;
+  startTime: string; // "14:00" (2:00 PM)
+  endTime: string; // "15:30" (3:30 PM)
+  location?: {
+    building?: string;
+    room?: string;
+  };
+  instructorName?: string;
+  sectionNumber?: string;
+  scheduleType?: string; // "Lecture", "Tutorial", etc.
+  crn?: string;
+  courseNumber?: string;
+  title?: string;
+  subject?: string;
+  associatedTerm?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 

@@ -14,7 +14,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Semester, Course, Assignment, RecurringTemplate, Notification, DashboardLayout, WidgetConfig, QuickNote } from '../types';
+import { Semester, Course, Assignment, RecurringTemplate, Notification, DashboardLayout, WidgetConfig, QuickNote, ScheduleBlock } from '../types';
 
 // Helper to convert Firestore timestamps to Date objects
 const convertTimestamp = (data: any) => {
@@ -765,6 +765,113 @@ export const quickNotesService = {
   },
 };
 
+// Schedule Service
+export const scheduleService = {
+  async getScheduleBlocks(userId: string, semesterId: string): Promise<ScheduleBlock[]> {
+    try {
+      // Get all blocks without ordering to avoid index requirement
+      const snapshot = await getDocs(
+        collection(db, 'users', userId, 'semesters', semesterId, 'scheduleBlocks')
+      );
+      // Sort in memory: first by day of week, then by start time
+      const daysOrder: Record<string, number> = {
+        'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+        'Thursday': 4, 'Friday': 5, 'Saturday': 6
+      };
+      return snapshot.docs
+        .map((doc) => convertTimestamp({ id: doc.id, ...doc.data() }) as ScheduleBlock)
+        .sort((a, b) => {
+          const dayDiff = (daysOrder[a.dayOfWeek] || 0) - (daysOrder[b.dayOfWeek] || 0);
+          if (dayDiff !== 0) return dayDiff;
+          // If same day, sort by start time
+          return a.startTime.localeCompare(b.startTime);
+        });
+    } catch (error) {
+      console.error('Error getting schedule blocks:', error);
+      throw error;
+    }
+  },
+
+  async createScheduleBlock(
+    userId: string,
+    semesterId: string,
+    blockData: Omit<ScheduleBlock, 'id' | 'userId' | 'semesterId' | 'createdAt' | 'updatedAt'>
+  ): Promise<string> {
+    try {
+      const now = new Date();
+      const docRef = await addDoc(
+        collection(db, 'users', userId, 'semesters', semesterId, 'scheduleBlocks'),
+        {
+          ...blockData,
+          userId,
+          semesterId,
+          createdAt: Timestamp.fromDate(now),
+          updatedAt: Timestamp.fromDate(now),
+        }
+      );
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating schedule block:', error);
+      throw error;
+    }
+  },
+
+  async updateScheduleBlock(
+    userId: string,
+    semesterId: string,
+    blockId: string,
+    updates: Partial<Omit<ScheduleBlock, 'id' | 'userId' | 'semesterId' | 'createdAt' | 'updatedAt'>>
+  ): Promise<void> {
+    try {
+      const docRef = doc(db, 'users', userId, 'semesters', semesterId, 'scheduleBlocks', blockId);
+      await updateDoc(docRef, {
+        ...updates,
+        updatedAt: Timestamp.fromDate(new Date()),
+      });
+    } catch (error) {
+      console.error('Error updating schedule block:', error);
+      throw error;
+    }
+  },
+
+  async deleteScheduleBlock(userId: string, semesterId: string, blockId: string): Promise<void> {
+    try {
+      const docRef = doc(db, 'users', userId, 'semesters', semesterId, 'scheduleBlocks', blockId);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error('Error deleting schedule block:', error);
+      throw error;
+    }
+  },
+
+  async getScheduleBlocksByCourse(userId: string, semesterId: string, courseId: string): Promise<ScheduleBlock[]> {
+    try {
+      // Get blocks for specific course without ordering to avoid index requirement
+      const q = query(
+        collection(db, 'users', userId, 'semesters', semesterId, 'scheduleBlocks'),
+        where('courseId', '==', courseId)
+      );
+      const snapshot = await getDocs(q);
+      // Sort in memory: first by day of week, then by start time
+      const daysOrder: Record<string, number> = {
+        'Sunday': 0, 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3,
+        'Thursday': 4, 'Friday': 5, 'Saturday': 6
+      };
+      return snapshot.docs
+        .map((doc) => convertTimestamp({ id: doc.id, ...doc.data() }) as ScheduleBlock)
+        .sort((a, b) => {
+          const dayDiff = (daysOrder[a.dayOfWeek] || 0) - (daysOrder[b.dayOfWeek] || 0);
+          if (dayDiff !== 0) return dayDiff;
+          // If same day, sort by start time
+          return a.startTime.localeCompare(b.startTime);
+        });
+    } catch (error) {
+      console.error('Error getting schedule blocks by course:', error);
+      throw error;
+    }
+  },
+};
+
 // Account Deletion Service
 export const accountService = {
   /**
@@ -826,6 +933,21 @@ export const accountService = {
           const batchDocs = templateDocs.slice(i, i + batchSize);
           batchDocs.forEach((templateDoc) => {
             batch.delete(doc(db, 'users', userId, 'semesters', semesterId, 'recurringTemplates', templateDoc.id));
+          });
+          await batch.commit();
+        }
+        
+        // Delete all schedule blocks in this semester
+        const scheduleBlocksSnapshot = await getDocs(
+          collection(db, 'users', userId, 'semesters', semesterId, 'scheduleBlocks')
+        );
+        
+        const scheduleBlockDocs = scheduleBlocksSnapshot.docs;
+        for (let i = 0; i < scheduleBlockDocs.length; i += batchSize) {
+          const batch = writeBatch(db);
+          const batchDocs = scheduleBlockDocs.slice(i, i + batchSize);
+          batchDocs.forEach((blockDoc) => {
+            batch.delete(doc(db, 'users', userId, 'semesters', semesterId, 'scheduleBlocks', blockDoc.id));
           });
           await batch.commit();
         }

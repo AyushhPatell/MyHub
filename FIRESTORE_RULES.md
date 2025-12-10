@@ -35,6 +35,11 @@ service cloud.firestore {
                     allow read, write, delete: if request.auth != null && request.auth.uid == userId;
                 }
             }
+
+            // Schedule Blocks
+            match /scheduleBlocks/{blockId} {
+                allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+            }
         }
 
         // Notifications

@@ -272,7 +272,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Course Code <span className="text-red-500">*</span>
+                    Course <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"

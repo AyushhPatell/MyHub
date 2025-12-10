@@ -8,6 +8,7 @@ import SemesterSetupModal from '../components/SemesterSetupModal';
 import AddCourseModal from '../components/AddCourseModal';
 import EditCourseModal from '../components/EditCourseModal';
 import QuickAddModal from '../components/QuickAddModal';
+import ScheduleModal from '../components/ScheduleModal';
 
 export default function CoursesPage() {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export default function CoursesPage() {
   const [showSemesterSetup, setShowSemesterSetup] = useState(false);
   const [showAddCourse, setShowAddCourse] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showSchedule, setShowSchedule] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isEditingSemester, setIsEditingSemester] = useState(false);
   const [semesterName, setSemesterName] = useState('');
@@ -168,7 +170,15 @@ export default function CoursesPage() {
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <button
+              onClick={() => setShowSchedule(true)}
+              className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-xs sm:text-base"
+            >
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="hidden sm:inline">Course Schedule</span>
+              <span className="sm:hidden">Schedule</span>
+            </button>
             <button
               onClick={() => setShowAddCourse(true)}
               className="flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-xs sm:text-base"
@@ -258,6 +268,10 @@ export default function CoursesPage() {
             loadData();
           }}
         />
+      )}
+
+      {showSchedule && (
+        <ScheduleModal onClose={() => setShowSchedule(false)} />
       )}
     </div>
   );
