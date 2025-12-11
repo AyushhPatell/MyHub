@@ -129,7 +129,7 @@ export interface Notification {
 }
 
 // Widget Types
-export type WidgetType = "weather" | "notes" | "calendar" | "stats";
+export type WidgetType = "weather" | "notes" | "calendar" | "stats" | "schedule";
 
 export type WidgetSize = "small" | "medium" | "large";
 

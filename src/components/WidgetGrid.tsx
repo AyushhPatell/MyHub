@@ -7,6 +7,7 @@ import WeatherWidget from './widgets/WeatherWidget';
 import QuickNotesWidget from './widgets/QuickNotesWidget';
 import CalendarWidget from './widgets/CalendarWidget';
 import StatsWidget from './widgets/StatsWidget';
+import ScheduleWidget from './widgets/ScheduleWidget';
 import { Assignment, Course } from '../types';
 import WidgetPickerModal from './WidgetPickerModal';
 
@@ -217,6 +218,8 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick, 
             onStatClick={onStatClick}
           />
         );
+      case 'schedule':
+        return <ScheduleWidget size={widget.size} />;
       default:
         return null;
     }
@@ -236,7 +239,7 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick, 
     .filter((w) => w.visible)
     .sort((a, b) => a.position - b.position);
 
-  const availableWidgetTypes: WidgetType[] = ['stats', 'weather', 'calendar', 'notes'];
+  const availableWidgetTypes: WidgetType[] = ['stats', 'weather', 'calendar', 'notes', 'schedule'];
   const usedWidgetTypes = new Set(visibleWidgets.map((w) => w.type));
   const unusedWidgetTypes = availableWidgetTypes.filter((type) => !usedWidgetTypes.has(type));
 

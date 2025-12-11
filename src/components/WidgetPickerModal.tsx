@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Calendar, Cloud, StickyNote, BarChart3 } from 'lucide-react';
+import { X, Calendar, Cloud, StickyNote, BarChart3, Clock } from 'lucide-react';
 import { WidgetType } from '../types';
 import ModalContainer from './ModalContainer';
 
@@ -29,6 +29,11 @@ const widgetInfo: Record<WidgetType, { name: string; description: string; icon: 
     name: 'Quick Notes',
     description: 'Create and manage quick notes',
     icon: StickyNote,
+  },
+  schedule: {
+    name: 'Class Schedule',
+    description: 'View your weekly class schedule',
+    icon: Clock,
   },
 };
 
