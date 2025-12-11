@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { semesterService, courseService, scheduleService } from '../../services/firestore';
 import { Course, ScheduleBlock, DayOfWeek } from '../../types';
@@ -43,7 +43,7 @@ function ScheduleBlockDetailsModal({ course, blocks, onClose }: ScheduleBlockDet
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-hide">
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-            {course?.course || firstBlock.course || 'Course'} {course?.courseName || firstBlock.title ? `- ${course?.courseName || firstBlock.title}` : ''}
+            {course?.courseCode || firstBlock.courseNumber || firstBlock.title || 'Course'} {course?.courseName || firstBlock.title ? `- ${course?.courseName || firstBlock.title}` : ''}
           </h2>
           <button
             onClick={onClose}
@@ -63,7 +63,7 @@ function ScheduleBlockDetailsModal({ course, blocks, onClose }: ScheduleBlockDet
               <div className="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
                 <span className="text-sm font-medium text-gray-500 dark:text-gray-400">Course</span>
                 <span className="text-sm font-semibold text-gray-900 dark:text-white text-right">
-                  {course?.courseCode || firstBlock.course || 'N/A'}
+                  {course?.courseCode || firstBlock.courseNumber || 'N/A'}
                 </span>
               </div>
               <div className="flex items-start justify-between py-2 border-b border-gray-100 dark:border-gray-700">
@@ -348,7 +348,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                         />
                         {/* Content - Only course name */}
                         <div className={`relative z-10 ${fontSize} font-bold text-gray-900 dark:text-white truncate leading-tight`}>
-                          {course?.courseCode || block.course || 'Course'}
+                          {course?.courseCode || block.courseNumber || block.title || 'Course'}
                         </div>
                       </div>
                     );
