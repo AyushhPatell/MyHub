@@ -116,5 +116,46 @@
     -webkit-appearance: none;
     appearance: none;
   }
+
+  /* Autofill styling to keep theme colors */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  textarea:-webkit-autofill:hover,
+  textarea:-webkit-autofill:focus,
+  select:-webkit-autofill,
+  select:-webkit-autofill:hover,
+  select:-webkit-autofill:focus {
+    /* Match light input background and text color */
+    -webkit-box-shadow: 0 0 0px 1000px rgba(243, 244, 246, 0.9) inset !important; /* near gray-100 */
+    -webkit-text-fill-color: #0f172a !important; /* slate-900 */
+    caret-color: #0f172a !important;
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+    font-family: inherit !important;
+    -webkit-text-size-adjust: 100% !important;
+    transition: none !important;
+  }
+
+  /* Dark mode autofill tweak */
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus,
+  .dark textarea:-webkit-autofill,
+  .dark textarea:-webkit-autofill:hover,
+  .dark textarea:-webkit-autofill:focus,
+  .dark select:-webkit-autofill,
+  .dark select:-webkit-autofill:hover,
+  .dark select:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px rgba(55, 65, 81, 0.85) inset !important; /* gray-700 */
+    -webkit-text-fill-color: #e5e7eb !important; /* gray-200 */
+    caret-color: #e5e7eb !important;
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+    font-family: inherit !important;
+    -webkit-text-size-adjust: 100% !important;
+    transition: none !important;
+  }
 }
 
