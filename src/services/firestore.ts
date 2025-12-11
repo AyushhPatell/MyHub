@@ -14,7 +14,7 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Semester, Course, Assignment, RecurringTemplate, Notification, DashboardLayout, WidgetConfig, QuickNote, ScheduleBlock } from '../types';
+import { Semester, Course, Assignment, RecurringTemplate, Notification, DashboardLayout, WidgetConfig, QuickNote, ScheduleBlock, CalendarEvent } from '../types';
 
 // Helper to convert Firestore timestamps to Date objects
 const convertTimestamp = (data: any) => {
@@ -867,6 +867,85 @@ export const scheduleService = {
         });
     } catch (error) {
       console.error('Error getting schedule blocks by course:', error);
+      throw error;
+    }
+  },
+};
+
+// Calendar Event operations (personal events for calendar widget)
+export const calendarEventService = {
+  async getEvents(userId: string, semesterId: string): Promise<CalendarEvent[]> {
+    try {
+      const q = collection(db, 'users', userId, 'semesters', semesterId, 'calendarEvents');
+      const snapshot = await getDocs(q);
+      const events = snapshot.docs.map((doc) => convertTimestamp({ id: doc.id, ...doc.data() }) as CalendarEvent);
+      // Sort by date/time
+      return events.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return (a.startTime || '').localeCompare(b.startTime || '');
+      });
+    } catch (error) {
+      console.error('Error getting calendar events:', error);
+      throw error;
+    }
+  },
+
+  async createEvent(
+    userId: string,
+    semesterId: string,
+    event: Omit<CalendarEvent, 'id' | 'userId' | 'semesterId' | 'createdAt' | 'updatedAt'>
+  ): Promise<string> {
+    try {
+      const now = new Date();
+      // Filter out undefined values - Firestore doesn't accept undefined
+      const eventData: any = {
+        date: event.date,
+        title: event.title,
+        userId,
+        semesterId,
+        createdAt: now,
+        updatedAt: now,
+      };
+      if (event.startTime) eventData.startTime = event.startTime;
+      if (event.endTime) eventData.endTime = event.endTime;
+      if (event.notes) eventData.notes = event.notes;
+      
+      const docRef = await addDoc(collection(db, 'users', userId, 'semesters', semesterId, 'calendarEvents'), eventData);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating calendar event:', error);
+      throw error;
+    }
+  },
+
+  async updateEvent(
+    userId: string,
+    semesterId: string,
+    eventId: string,
+    eventData: Partial<Omit<CalendarEvent, 'id' | 'userId' | 'semesterId' | 'createdAt'>>
+  ): Promise<void> {
+    try {
+      const docRef = doc(db, 'users', userId, 'semesters', semesterId, 'calendarEvents', eventId);
+      const updateData: any = {};
+      if (eventData.date) updateData.date = eventData.date;
+      if (eventData.title) updateData.title = eventData.title;
+      if (eventData.startTime !== undefined) updateData.startTime = eventData.startTime;
+      if (eventData.endTime !== undefined) updateData.endTime = eventData.endTime;
+      if (eventData.notes !== undefined) updateData.notes = eventData.notes;
+      updateData.updatedAt = new Date();
+      await updateDoc(docRef, updateData);
+    } catch (error) {
+      console.error('Error updating calendar event:', error);
+      throw error;
+    }
+  },
+
+  async deleteEvent(userId: string, semesterId: string, eventId: string): Promise<void> {
+    try {
+      const docRef = doc(db, 'users', userId, 'semesters', semesterId, 'calendarEvents', eventId);
+      await deleteDoc(docRef);
+    } catch (error) {
+      console.error('Error deleting calendar event:', error);
       throw error;
     }
   },

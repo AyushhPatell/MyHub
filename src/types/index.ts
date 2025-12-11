@@ -148,6 +148,20 @@ export interface DashboardLayout {
   updatedAt: Date;
 }
 
+// Calendar Events (for personal events in calendar widget)
+export interface CalendarEvent {
+  id: string;
+  userId: string;
+  semesterId: string;
+  date: string; // YYYY-MM-DD
+  title: string;
+  startTime?: string; // HH:MM
+  endTime?: string;   // HH:MM
+  notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Weather Widget Types
 export interface WeatherData {
   location: string;
