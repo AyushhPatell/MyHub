@@ -74,12 +74,6 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
     setSelectedBlock(block);
   };
 
-  const handleEditCourseClick = (courseId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingCourseId(courseId);
-    setSelectedBlock(null);
-    setShowAddForm(true);
-  };
 
   const handleDeleteCourseClick = (courseId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -311,7 +305,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                       {/* Time slots - Reduced height with grid lines */}
                       <div className="relative" style={{ height: `${TIME_SLOTS.length * 32}px` }}>
                         {/* Grid lines - Hour and half-hour marks */}
-                        {TIME_SLOTS.map((hour, idx) => {
+                        {TIME_SLOTS.map((_hour, idx) => {
                           const isHour = idx % 2 === 0;
                           const top = (idx / TIME_SLOTS.length) * 100;
                           return (
@@ -466,7 +460,7 @@ interface CourseScheduleDetailsModalProps {
 }
 
 function CourseScheduleDetailsModal({ 
-  courseId, 
+  courseId: _courseId, 
   course, 
   blocks, 
   onClose, 
@@ -764,7 +758,7 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
 
     // Build blocks array
     const blocks: any[] = [];
-    lectureBlocks.forEach((block, index) => {
+    lectureBlocks.forEach((block, _index) => {
       blocks.push({
         type: 'lecture' as ScheduleBlockType,
         dayOfWeek: block.day,
@@ -772,7 +766,7 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
         endTime: block.endTime,
       });
     });
-    tutorialBlocks.forEach((block, index) => {
+    tutorialBlocks.forEach((block, _index) => {
       blocks.push({
         type: 'tutorial' as ScheduleBlockType,
         dayOfWeek: block.day,
