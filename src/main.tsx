@@ -21,7 +21,7 @@ if ('serviceWorker' in navigator) {
     onOfflineReady() {
       console.log('App ready to work offline');
     },
-    onRegistered(registration) {
+    onRegistered(registration: ServiceWorkerRegistration | undefined) {
       console.log('Service worker registered');
       if (registration) {
         // Check for updates immediately
@@ -42,7 +42,7 @@ if ('serviceWorker' in navigator) {
         }, 2 * 60 * 1000); // Check every 2 minutes
       }
     },
-    onRegisterError(error) {
+    onRegisterError(error: Error) {
       console.error('Service worker registration error:', error);
     }
   });
