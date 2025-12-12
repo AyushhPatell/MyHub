@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Trash2, Check, Calendar, X, Edit2, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Trash2, Calendar, X, Edit2, Clock } from 'lucide-react';
 import { formatDate, formatTime, isOverdue } from '../../utils/dateHelpers';
 import { Assignment, Course, CalendarEvent, Semester } from '../../types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
@@ -15,7 +15,7 @@ interface CalendarWidgetProps {
   onDateClick?: (date: Date, assignments: Assignment[]) => void;
 }
 
-export default function CalendarWidget({ size, assignments, courses, onDateClick }: CalendarWidgetProps) {
+export default function CalendarWidget({ size, assignments, courses, onDateClick: _onDateClick }: CalendarWidgetProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const { user } = useAuth();
   const navigate = useNavigate();
