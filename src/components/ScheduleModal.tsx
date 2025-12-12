@@ -260,7 +260,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
 
           {/* Schedule Grid - Full Width */}
           <div className="flex-1 overflow-auto scrollbar-hide" style={{ padding: '0' }}>
-            <div style={{ padding: '1.5rem' }}>
+            <div className="p-3 sm:p-6">
             {scheduleBlocks.length === 0 && !showAddForm ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center max-w-md">
@@ -280,15 +280,15 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
               </div>
             ) : (
               <div className="relative">
-                {/* Grid - Increased width for day columns */}
-                <div className="grid grid-cols-8 gap-4 min-w-[1200px]">
+                {/* Grid - Responsive width for day columns */}
+                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px]">
                   {/* Time column */}
-                  <div className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-24" style={{ boxShadow: '2px 0 4px -1px rgba(0, 0, 0, 0.1)', marginLeft: '-1.5rem', paddingLeft: '1.5rem', overflow: 'visible' }}>
-                    <div className="h-12 bg-white dark:bg-gray-900 sticky top-0 z-30" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)' }}></div>
+                  <div className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-16 sm:w-24" style={{ boxShadow: '2px 0 4px -1px rgba(0, 0, 0, 0.1)', marginLeft: '-0.75rem', paddingLeft: '0.75rem', overflow: 'visible' }}>
+                    <div className="h-8 sm:h-12 bg-white dark:bg-gray-900 sticky top-0 z-30" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)' }}></div>
                     {TIME_SLOTS.map((hour, idx) => (
                       <div
                         key={idx}
-                        className="h-8 border-r pr-2 text-xs text-gray-500 dark:text-gray-400 text-right bg-white dark:bg-gray-900"
+                        className="h-6 sm:h-8 border-r pr-1 sm:pr-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right bg-white dark:bg-gray-900"
                         style={{ borderColor: 'rgba(75, 85, 99, 0.4)' }}
                       >
                         {idx % 2 === 0 && formatTime(hour)}
@@ -300,11 +300,11 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                   {DAYS_OF_WEEK.map((day, dayIndex) => (
                     <div key={day} className="relative border-r" style={{ borderRightWidth: dayIndex === DAYS_OF_WEEK.length - 1 ? '0px' : '1px', borderColor: 'rgba(75, 85, 99, 0.4)' }}>
                       {/* Day header */}
-                      <div className="h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold text-sm text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-20" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)', marginTop: '-1.5rem', paddingTop: '1.5rem' }}>
+                      <div className="h-8 sm:h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-20" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)', marginTop: '-0.75rem', paddingTop: '0.75rem' }}>
                         {day.substring(0, 3)}
                       </div>
                       {/* Time slots - Reduced height with grid lines */}
-                      <div className="relative" style={{ height: `${TIME_SLOTS.length * 32}px` }}>
+                      <div className="relative" style={{ height: `calc(${TIME_SLOTS.length} * 1.5rem)` }}>
                         {/* Grid lines - Hour and half-hour marks */}
                         {TIME_SLOTS.map((_hour, idx) => {
                           const isHour = idx % 2 === 0;
@@ -331,13 +331,13 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                             <div
                               key={block.id}
                               onClick={(e) => handleBlockClick(block, e)}
-                              className="absolute left-1 right-1 rounded-lg p-2.5 cursor-pointer hover:opacity-90 transition-opacity shadow-sm border-l-4 group"
+                              className="absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-md sm:rounded-lg p-1.5 sm:p-2.5 cursor-pointer hover:opacity-90 transition-opacity shadow-sm border-l-4 group"
                                 style={{
                                 top: `${top}%`,
                                 height: `${height}%`,
                                 borderLeftColor: getCourseColor(block.courseId),
-                                borderLeftWidth: '4px',
-                                minHeight: '32px',
+                                borderLeftWidth: '3px',
+                                minHeight: '24px',
                                 zIndex: 10, // Higher z-index to ensure blocks are above grid lines but below time column
                                 position: 'relative', // Ensure proper stacking context
                               }}
@@ -360,10 +360,10 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                               {/* Content layer */}
                               <div className="flex items-start justify-between h-full relative" style={{ zIndex: 2 }}>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                                  <div className="text-[10px] sm:text-sm font-bold text-gray-900 dark:text-white truncate leading-tight">
                                     {course?.courseCode || block.courseNumber || 'Course'}
                                   </div>
-                                  <div className="text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5 capitalize">
+                                  <div className="text-[9px] sm:text-xs text-gray-600 dark:text-gray-400 truncate mt-0.5 capitalize leading-tight">
                                     {block.type}
                                   </div>
                                 </div>

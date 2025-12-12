@@ -62,15 +62,15 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
             <button
               key={stat.type}
               onClick={() => onStatClick?.(stat.type)}
-              className="w-full group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
+              className="w-full group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-4 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-14 h-14 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
-                    <Icon className="w-7 h-7 text-white" />
+                <div className="flex items-center gap-3">
+                  <div className={`w-12 h-12 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
+                    <Icon className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <div className="text-4xl font-bold text-gray-900 dark:text-white mb-1 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
+                    <div className="text-3xl font-bold text-gray-900 dark:text-white mb-0.5 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
                     <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                       {stat.label}
                     </div>
@@ -93,14 +93,14 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
           <button
             key={stat.type}
             onClick={() => onStatClick?.(stat.type)}
-            className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-3xl border border-gray-200 dark:border-white/10 p-3 sm:p-6 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
+            className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-3xl border border-gray-200 dark:border-white/10 p-2.5 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
           >
-            <div className="flex flex-col items-center text-center space-y-2 sm:space-y-4">
-              <div className={`w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-br ${stat.gradient} rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
-                <Icon className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
+            <div className="flex flex-col items-center text-center space-y-1.5 sm:space-y-3">
+              <div className={`w-9 h-9 sm:w-14 sm:h-14 bg-gradient-to-br ${stat.gradient} rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
+                <Icon className="w-4 h-4 sm:w-7 sm:h-7 text-white" />
               </div>
               <div>
-                <div className="text-2xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
+                <div className="text-xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
                 <div className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide leading-tight">
                   {stat.label}
                 </div>

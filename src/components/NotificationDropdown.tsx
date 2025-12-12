@@ -60,6 +60,11 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
       const dropdownWidth = 320; // w-80 = 320px
       const padding = 16; // 1rem
       
+      // Get safe area inset for iPhone notch (only on mobile)
+      // Estimate safe area: iPhone notch is typically 44-50px, but we'll use a conservative estimate
+      // Only apply if button is near the top of the screen (likely behind notch area)
+      const safeAreaEstimate = mobileMenuStyle && rect.top < 60 ? 50 : 0;
+      
       let left: number;
       if (mobileMenuStyle) {
         // Mobile: center it or align to button, but ensure it fits
@@ -72,8 +77,15 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
         left = Math.max(padding, Math.min(left, viewportWidth - dropdownWidth - padding));
       }
       
+      // Calculate top position, ensuring it doesn't go behind the notch on iPhone
+      let top = rect.bottom + 8;
+      if (mobileMenuStyle && safeAreaEstimate > 0) {
+        // Ensure dropdown starts below the safe area (notch)
+        top = Math.max(safeAreaEstimate + 8, top);
+      }
+      
       setDropdownPosition({
-        top: rect.bottom + 8,
+        top: top,
         left: left
       });
     }

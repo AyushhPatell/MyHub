@@ -8,6 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'auto',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
         name: 'MyHub - Personal Dashboard',
@@ -38,7 +39,26 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // Use NetworkFirst strategy for HTML to always check for updates
+        navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
+        // Ensure service worker file itself is not cached
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
+          {
+            // HTML files - always check network first for updates
+            urlPattern: /\.html$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 0 // Don't cache HTML, always check for updates
+              },
+              networkTimeoutSeconds: 3
+            }
+          },
           {
             urlPattern: /^https:\/\/api\.openweathermap\.org\/.*/i,
             handler: 'NetworkFirst',
@@ -48,6 +68,22 @@ export default defineConfig({
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 // 1 hour
               }
+            }
+          },
+          {
+            // Cache static assets but check network first for updates
+            urlPattern: /\.(?:js|css|png|jpg|jpeg|svg|gif|woff|woff2)$/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'static-resources',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              },
+              networkTimeoutSeconds: 3
             }
           }
         ]
