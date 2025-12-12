@@ -42,28 +42,40 @@ export default defineConfig({
         // Use NetworkFirst strategy for HTML to always check for updates
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/_/, /\/[^/?]+\.[^/]+$/],
-        // Ensure service worker file itself is not cached
+        // Ensure service worker file itself is not cached and updates immediately
         skipWaiting: true,
         clientsClaim: true,
+        // Don't cache the service worker file itself
+        dontCacheBustURLsMatching: /^\/sw\.js$/,
+        // Add cache version to force updates
+        cacheId: 'myhub-v1',
         runtimeCaching: [
           {
-            // HTML files - always check network first for updates
+            // HTML files - always check network first for updates (no cache)
             urlPattern: /\.html$/,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'html-cache',
+              cacheName: 'html-cache-v1',
               expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 0 // Don't cache HTML, always check for updates
+                maxEntries: 1,
+                maxAgeSeconds: 0 // Never cache HTML, always check for updates
               },
-              networkTimeoutSeconds: 3
+              networkTimeoutSeconds: 1
+            }
+          },
+          {
+            // Service worker file - never cache
+            urlPattern: /\/sw\.js$/,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'sw-cache-v1'
             }
           },
           {
             urlPattern: /^https:\/\/api\.openweathermap\.org\/.*/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'weather-api-cache',
+              cacheName: 'weather-api-cache-v1',
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 // 1 hour
@@ -75,15 +87,15 @@ export default defineConfig({
             urlPattern: /\.(?:js|css|png|jpg|jpeg|svg|gif|woff|woff2)$/,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'static-resources',
+              cacheName: 'static-resources-v1',
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+                maxAgeSeconds: 60 * 60 * 12 // 12 hours (reduced from 24)
               },
               cacheableResponse: {
                 statuses: [0, 200]
               },
-              networkTimeoutSeconds: 3
+              networkTimeoutSeconds: 2
             }
           }
         ]

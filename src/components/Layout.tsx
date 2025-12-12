@@ -217,7 +217,7 @@ export default function Layout({ children }: LayoutProps) {
           <div className="fixed top-0 left-0 right-0 bottom-0 md:hidden z-[110] overflow-y-auto">
             <div className="min-h-full bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
               {/* Menu Header */}
-              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 px-6 py-5">
+              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 px-6 py-5 pt-safe">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
