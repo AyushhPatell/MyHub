@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X, Filter, BookOpen, FileText, Calendar, StickyNote, ChevronDown } from 'lucide-react';
+import { Search, X, Filter, BookOpen, FileText, Calendar, StickyNote } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { semesterService, courseService, assignmentService, quickNotesService, calendarEventService } from '../services/firestore';
