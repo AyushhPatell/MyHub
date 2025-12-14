@@ -3,11 +3,12 @@ import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { deleteUser, signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
-import { accountService } from '../services/firestore';
-import { UserPreferences } from '../types';
-import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle } from 'lucide-react';
+import { accountService, semesterService } from '../services/firestore';
+import { UserPreferences, Semester } from '../types';
+import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle, Calendar, Archive, RotateCcw, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';
+import SemesterSetupModal from '../components/SemesterSetupModal';
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -17,10 +18,16 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [currentSemester, setCurrentSemester] = useState<Semester | null>(null);
+  const [archivedSemester, setArchivedSemester] = useState<Semester | null>(null);
+  const [loadingSemesters, setLoadingSemesters] = useState(true);
+  const [switching, setSwitching] = useState(false);
+  const [showSemesterSetup, setShowSemesterSetup] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadPreferences();
+      loadSemesters();
     }
   }, [user]);
 
@@ -39,6 +46,39 @@ export default function SettingsPage() {
       setPreferences(getDefaultPreferences());
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSemesters = async () => {
+    if (!user) return;
+    try {
+      setLoadingSemesters(true);
+      const [active, archived] = await Promise.all([
+        semesterService.getActiveSemester(user.uid),
+        semesterService.getArchivedSemester(user.uid)
+      ]);
+      setCurrentSemester(active);
+      setArchivedSemester(archived);
+    } catch (error) {
+      console.error('Error loading semesters:', error);
+    } finally {
+      setLoadingSemesters(false);
+    }
+  };
+
+  const handleSwitchSemester = async (semesterId: string) => {
+    if (!user) return;
+    try {
+      setSwitching(true);
+      await semesterService.switchToSemester(user.uid, semesterId);
+      await loadSemesters();
+      // Reload the page to refresh all data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error switching semester:', error);
+      alert('Failed to switch semester. Please try again.');
+    } finally {
+      setSwitching(false);
     }
   };
 
@@ -163,6 +203,74 @@ export default function SettingsPage() {
         </div>
 
         <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 mb-8">
+          {/* Semester Management */}
+          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
+            <div className="flex items-center space-x-3 mb-4">
+              <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Semester Management</h2>
+            </div>
+            {loadingSemesters ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {currentSemester && (
+                  <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-200 dark:border-indigo-800">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <span className="font-semibold text-gray-900 dark:text-white">Current Semester</span>
+                      </div>
+                      <span className="px-2 py-1 text-xs font-bold bg-indigo-600 text-white rounded-lg">Active</span>
+                    </div>
+                    <p className="text-lg font-bold text-indigo-900 dark:text-indigo-100">{currentSemester.name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {new Date(currentSemester.startDate).toLocaleDateString()} - {new Date(currentSemester.endDate).toLocaleDateString()}
+                    </p>
+                    <button
+                      onClick={() => setShowSemesterSetup(true)}
+                      className="mt-3 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Start New Semester
+                    </button>
+                  </div>
+                )}
+                
+                {archivedSemester && (
+                  <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Archive className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">Archived Semester</span>
+                      </div>
+                      <span className="px-2 py-1 text-xs font-bold bg-gray-600 text-white rounded-lg">Archived</span>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{archivedSemester.name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {new Date(archivedSemester.startDate).toLocaleDateString()} - {new Date(archivedSemester.endDate).toLocaleDateString()}
+                    </p>
+                    <button
+                      onClick={() => handleSwitchSemester(archivedSemester.id)}
+                      disabled={switching}
+                      className="mt-3 flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors text-sm"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      {switching ? 'Switching...' : 'Switch to This Semester'}
+                    </button>
+                  </div>
+                )}
+
+                {!currentSemester && !archivedSemester && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                    No semesters found. Create your first semester from the Courses page.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Dashboard Widgets */}
           <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
             <div className="flex items-center space-x-3 mb-4">
@@ -380,6 +488,19 @@ export default function SettingsPage() {
             </div>
           </div>
         </ModalContainer>
+      )}
+
+      {showSemesterSetup && user && (
+        <SemesterSetupModal
+          userId={user.uid}
+          onClose={() => setShowSemesterSetup(false)}
+          onSuccess={() => {
+            setShowSemesterSetup(false);
+            loadSemesters();
+            // Reload the page to refresh all data
+            window.location.reload();
+          }}
+        />
       )}
     </div>
   );

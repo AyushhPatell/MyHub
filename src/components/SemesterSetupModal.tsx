@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Info } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { semesterService, courseService } from '../services/firestore';
 import ModalContainer from './ModalContainer';
@@ -43,6 +43,19 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
   const [semesterId, setSemesterId] = useState<string | null>(null);
   const [courses, setCourses] = useState<CourseFormData[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [hasExistingSemester, setHasExistingSemester] = useState(false);
+
+  useEffect(() => {
+    const checkExistingSemester = async () => {
+      try {
+        const existing = await semesterService.getActiveSemester(userId);
+        setHasExistingSemester(!!existing);
+      } catch (error) {
+        console.error('Error checking existing semester:', error);
+      }
+    };
+    checkExistingSemester();
+  }, [userId]);
 
   const {
     register: registerSemester,
@@ -165,6 +178,19 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
           </div>
 
           <form onSubmit={handleSemesterSubmit(handleSemesterFormSubmit)} className="p-6 space-y-4">
+            {hasExistingSemester && (
+              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-start gap-3">
+                <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+                    Starting a New Semester
+                  </p>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    Your current semester will be automatically archived. You can switch between semesters anytime from Settings.
+                  </p>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Semester Name <span className="text-red-500">*</span>

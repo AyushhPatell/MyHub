@@ -41,19 +41,26 @@ export const semesterService = {
       // Sort in memory to avoid index requirement
       const semesters = snapshot.docs
         .map((doc) => convertTimestamp({ id: doc.id, ...doc.data() }) as Semester)
+        .filter(s => !s.archived) // Exclude archived semesters
         .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      return semesters[0];
+      return semesters[0] || null;
     } catch (error) {
       console.error('Error getting active semester:', error);
       throw error;
     }
   },
 
-  async getSemesters(userId: string): Promise<Semester[]> {
+  async getSemesters(userId: string, includeArchived: boolean = false): Promise<Semester[]> {
     try {
       const q = query(collection(db, 'users', userId, 'semesters'));
       const snapshot = await getDocs(q);
-      const semesters = snapshot.docs.map((doc) => convertTimestamp({ id: doc.id, ...doc.data() }) as Semester);
+      let semesters = snapshot.docs.map((doc) => convertTimestamp({ id: doc.id, ...doc.data() }) as Semester);
+      
+      // Exclude archived semesters unless explicitly requested
+      if (!includeArchived) {
+        semesters = semesters.filter(s => !s.archived);
+      }
+      
       // Sort in memory to avoid index requirement
       return semesters.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     } catch (error) {
@@ -63,20 +70,83 @@ export const semesterService = {
   },
 
   async createSemester(userId: string, semester: Omit<Semester, 'id' | 'userId' | 'createdAt'>): Promise<string> {
-    // Deactivate all other semesters
+    // Get all existing semesters
     const existingSemesters = await this.getSemesters(userId);
-    for (const existing of existingSemesters) {
-      if (existing.isActive) {
-        await updateDoc(doc(db, 'users', userId, 'semesters', existing.id), { isActive: false });
+    
+    // Find the currently active semester
+    const activeSemester = existingSemesters.find(s => s.isActive && !s.archived);
+    
+    // Archive the active semester (only keep 1 archived)
+    if (activeSemester) {
+      // If there's already an archived semester, delete it (we only keep 1)
+      const archivedSemester = existingSemesters.find(s => s.archived);
+      if (archivedSemester) {
+        await deleteDoc(doc(db, 'users', userId, 'semesters', archivedSemester.id));
       }
+      
+      // Archive the current active semester
+      await updateDoc(doc(db, 'users', userId, 'semesters', activeSemester.id), { 
+        isActive: false,
+        archived: true
+      });
     }
 
     const docRef = await addDoc(collection(db, 'users', userId, 'semesters'), {
       ...semester,
       userId,
+      archived: false,
       createdAt: Timestamp.now(),
     });
     return docRef.id;
+  },
+
+  async getArchivedSemester(userId: string): Promise<Semester | null> {
+    try {
+      const q = query(
+        collection(db, 'users', userId, 'semesters'),
+        where('archived', '==', true)
+      );
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      const semesters = snapshot.docs
+        .map((doc) => convertTimestamp({ id: doc.id, ...doc.data() }) as Semester)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      return semesters[0]; // Return the most recent archived semester
+    } catch (error) {
+      console.error('Error getting archived semester:', error);
+      throw error;
+    }
+  },
+
+  async switchToSemester(userId: string, semesterId: string): Promise<void> {
+    // Get all semesters
+    const allSemesters = await this.getSemesters(userId);
+    const targetSemester = allSemesters.find(s => s.id === semesterId);
+    
+    if (!targetSemester) {
+      throw new Error('Semester not found');
+    }
+
+    // Deactivate current active semester and archive it if it's not already archived
+    const currentActive = allSemesters.find(s => s.isActive && !s.archived);
+    if (currentActive && currentActive.id !== semesterId) {
+      // If there's already an archived semester, delete it (we only keep 1)
+      const existingArchived = allSemesters.find(s => s.archived);
+      if (existingArchived) {
+        await deleteDoc(doc(db, 'users', userId, 'semesters', existingArchived.id));
+      }
+      
+      await updateDoc(doc(db, 'users', userId, 'semesters', currentActive.id), {
+        isActive: false,
+        archived: true
+      });
+    }
+
+    // Activate the target semester and unarchive it
+    await updateDoc(doc(db, 'users', userId, 'semesters', semesterId), {
+      isActive: true,
+      archived: false
+    });
   },
 
   // Will be used for editing semester details

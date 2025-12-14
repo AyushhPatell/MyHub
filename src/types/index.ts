@@ -26,6 +26,7 @@ export interface Semester {
   startDate: Date;
   endDate: Date;
   isActive: boolean;
+  archived?: boolean; // If true, semester is archived (only 1 archived semester kept)
   createdAt: Date;
 }
 
