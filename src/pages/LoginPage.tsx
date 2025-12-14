@@ -32,6 +32,8 @@ export default function LoginPage() {
         return 'The email or password you entered is incorrect. Please try again.';
       case 'auth/too-many-requests':
         return 'Too many attempts. Please wait a moment and try again.';
+      case 'auth/network-request-failed':
+        return 'Network connection failed. Please check your internet connection and try again.';
       default:
         return 'Unable to sign in right now. Please try again.';
     }
@@ -57,11 +59,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950 px-4 py-10 sm:py-12">
       <div className="max-w-md w-full">
         <div className="text-center mb-7 sm:mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-2xl mb-4">
-            <LayoutGrid className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-primary-100 dark:bg-primary-900/20 rounded-2xl mb-3 sm:mb-4">
+            <LayoutGrid className="w-7 h-7 sm:w-8 sm:h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">MyHub</h1>
-          <p className="text-gray-600 dark:text-gray-400">Sign in to your personal dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">MyHub</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Sign in to your personal dashboard</p>
         </div>
 
         <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 shadow-2xl p-7 sm:p-8">

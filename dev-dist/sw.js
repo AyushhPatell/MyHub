@@ -67,8 +67,11 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-c5fd805d'], (function (workbox) { 'use strict';
+define(['./workbox-dc478237'], (function (workbox) { 'use strict';
 
+  workbox.setCacheNameDetails({
+    prefix: "myhub-v1"
+  });
   self.skipWaiting();
   workbox.clientsClaim();
 
@@ -81,18 +84,41 @@ define(['./workbox-c5fd805d'], (function (workbox) { 'use strict';
     "url": "registerSW.js",
     "revision": "3ca0b8505b4bec776b69afdba2768812"
   }, {
-    "url": "index.html",
-    "revision": "0.2e6i1v4djhs"
+    "url": "/index.html",
+    "revision": "0.inid2hi857g"
   }], {});
   workbox.cleanupOutdatedCaches();
-  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
-    allowlist: [/^\/$/]
+  workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("/index.html"), {
+    allowlist: [/^\/$/],
+    denylist: [/^\/_/, /\/[^/?]+\.[^/]+$/]
   }));
+  workbox.registerRoute(/\.html$/, new workbox.NetworkFirst({
+    "cacheName": "html-cache-v1",
+    "networkTimeoutSeconds": 1,
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 1,
+      maxAgeSeconds: 0
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\/sw\.js$/, new workbox.NetworkOnly({
+    "cacheName": "sw-cache-v1",
+    plugins: []
+  }), 'GET');
   workbox.registerRoute(/^https:\/\/api\.openweathermap\.org\/.*/i, new workbox.NetworkFirst({
-    "cacheName": "weather-api-cache",
+    "cacheName": "weather-api-cache-v1",
     plugins: [new workbox.ExpirationPlugin({
       maxEntries: 10,
       maxAgeSeconds: 3600
+    })]
+  }), 'GET');
+  workbox.registerRoute(/\.(?:js|css|png|jpg|jpeg|svg|gif|woff|woff2)$/, new workbox.NetworkFirst({
+    "cacheName": "static-resources-v1",
+    "networkTimeoutSeconds": 2,
+    plugins: [new workbox.ExpirationPlugin({
+      maxEntries: 100,
+      maxAgeSeconds: 43200
+    }), new workbox.CacheableResponsePlugin({
+      statuses: [0, 200]
     })]
   }), 'GET');
 

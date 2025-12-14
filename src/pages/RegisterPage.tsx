@@ -67,7 +67,20 @@ export default function RegisterPage() {
 
       navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Failed to create account');
+      const errorCode = err?.code || '';
+      let errorMessage = 'Failed to create account';
+      
+      if (errorCode === 'auth/network-request-failed') {
+        errorMessage = 'Network connection failed. Please check your internet connection and try again.';
+      } else if (errorCode === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please sign in instead.';
+      } else if (errorCode === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please use a stronger password.';
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -77,11 +90,11 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950 px-4 py-4 sm:py-6">
       <div className="max-w-md w-full">
         <div className="text-center mb-5 sm:mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary-100 dark:bg-primary-900/20 rounded-2xl mb-4">
-            <LayoutGrid className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+          <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-primary-100 dark:bg-primary-900/20 rounded-2xl mb-3 sm:mb-4">
+            <LayoutGrid className="w-7 h-7 sm:w-8 sm:h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">MyHub</h1>
-          <p className="text-gray-600 dark:text-gray-400">Create your personal dashboard</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">MyHub</h1>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Create your personal dashboard</p>
         </div>
 
         <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 shadow-2xl p-6 sm:p-7">

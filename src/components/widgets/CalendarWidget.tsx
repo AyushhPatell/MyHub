@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Trash2, Calendar, X, Edit2, Clock } from 'lucide-react';
 import { formatDate, formatTime, isOverdue } from '../../utils/dateHelpers';
 import { Assignment, Course, CalendarEvent, Semester } from '../../types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isPast, startOfDay } from 'date-fns';
 import ModalContainer from '../ModalContainer';
 import { useAuth } from '../../hooks/useAuth';
 import { calendarEventService, semesterService } from '../../services/firestore';
@@ -81,6 +81,10 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
   const getEventsForDate = (date: Date) => {
     const key = format(date, 'yyyy-MM-dd');
     return eventsByDate[key] || [];
+  };
+
+  const isDatePast = (date: Date) => {
+    return isPast(startOfDay(date)) && !isSameDay(date, new Date());
   };
 
   const handleDayClick = (day: Date) => {
@@ -209,6 +213,11 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
         const dayEvents = getEventsForDate(day);
         const isToday = isSameDay(day, new Date());
         const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
+        const isPastDate = isDatePast(day);
+        const hasPastItems = isPastDate && (
+          dayAssignments.some(a => isDatePast(new Date(a.dueDate))) ||
+          dayEvents.some(e => isDatePast(new Date(e.date)))
+        );
         return (
           <button
             key={day.toISOString()}
@@ -217,7 +226,9 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
               isToday
                 ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg'
                 : hasItems
-                ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-500/30'
+                ? hasPastItems
+                  ? 'bg-gray-300 dark:bg-gray-600/60 text-gray-600 dark:text-gray-400 hover:bg-gray-400 dark:hover:bg-gray-600/80 opacity-70'
+                  : 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-500/30'
                 : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400'
             }`}
             title={
@@ -228,7 +239,9 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
           >
             {format(day, 'd')}
             {hasItems && (
-              <div className="w-1.5 h-1.5 bg-current rounded-full mx-auto mt-1" />
+              <div className={`w-1.5 h-1.5 rounded-full mx-auto mt-1 ${
+                hasPastItems ? 'bg-gray-400 dark:bg-gray-500' : 'bg-current'
+              }`} />
             )}
           </button>
         );
@@ -251,6 +264,11 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
         const dayEvents = getEventsForDate(day);
         const isToday = isSameDay(day, new Date());
         const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
+        const isPastDate = isDatePast(day);
+        const hasPastItems = isPastDate && (
+          dayAssignments.some(a => isDatePast(new Date(a.dueDate))) ||
+          dayEvents.some(e => isDatePast(new Date(e.date)))
+        );
         return (
           <button
             key={day.toISOString()}
@@ -259,7 +277,9 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
               isToday
                 ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white ring-2 ring-indigo-300 dark:ring-indigo-700 shadow-lg'
                 : hasItems
-                ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 border border-indigo-200 dark:border-indigo-500/30'
+                ? hasPastItems
+                  ? 'bg-gray-300 dark:bg-gray-600/60 text-gray-600 dark:text-gray-400 hover:bg-gray-400 dark:hover:bg-gray-600/80 border border-gray-400 dark:border-gray-500 opacity-70'
+                  : 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 border border-indigo-200 dark:border-indigo-500/30'
                 : 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-600 dark:text-gray-400'
             }`}
             title={
@@ -269,7 +289,13 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
             }
           >
             <div>{format(day, 'd')}</div>
-            {hasItems && <div className="text-[10px] mt-1 font-bold">{hasItems ? '•' : ''}</div>}
+            {hasItems && (
+              <div className={`text-[10px] mt-1 font-bold ${
+                hasPastItems ? 'text-gray-400 dark:text-gray-500' : ''
+              }`}>
+                {hasItems ? '•' : ''}
+              </div>
+            )}
           </button>
         );
       })}
@@ -366,6 +392,7 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                       {getAssignmentsForDate(selectedDate).map((assignment) => {
                         const course = courses.find((c) => c.id === assignment.courseId);
                         const isOverdueAssignment = !assignment.completedAt && isOverdue(new Date(assignment.dueDate));
+                        const isPastAssignment = !assignment.completedAt && isDatePast(new Date(assignment.dueDate)) && !isOverdueAssignment;
                         return (
                           <div
                             key={assignment.id}
@@ -374,6 +401,8 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                                 ? 'border-gray-200 dark:border-gray-700 opacity-60'
                                 : isOverdueAssignment
                                 ? 'border-red-200 dark:border-red-800'
+                                : isPastAssignment
+                                ? 'border-gray-300 dark:border-gray-600 opacity-60'
                                 : 'border-gray-200 dark:border-gray-700'
                             } hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all cursor-pointer`}
                             onClick={() => {
@@ -396,18 +425,28 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                                       className={`text-base font-semibold ${
                                         assignment.completedAt
                                           ? 'text-gray-500 dark:text-gray-400 line-through'
+                                          : isPastAssignment
+                                          ? 'text-gray-500 dark:text-gray-400 line-through'
                                           : 'text-gray-900 dark:text-white'
                                       }`}
                                     >
                                       {assignment.name}
                                     </h3>
-                                    <span className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                                    <span className={`text-xs font-medium ${
+                                      isPastAssignment
+                                        ? 'text-gray-400 dark:text-gray-500'
+                                        : 'text-primary-600 dark:text-primary-400'
+                                    }`}>
                                       {course?.courseCode || 'Course'}
                                     </span>
                                   </div>
 
                                   <div className="flex flex-wrap items-center gap-2 text-sm">
-                                    <span className="flex items-center text-gray-600 dark:text-gray-400">
+                                    <span className={`flex items-center ${
+                                      isPastAssignment
+                                        ? 'text-gray-400 dark:text-gray-500'
+                                        : 'text-gray-600 dark:text-gray-400'
+                                    }`}>
                                       <Calendar size={12} className="mr-1.5" />
                                       {formatDate(new Date(assignment.dueDate))} at {formatTime(new Date(assignment.dueDate))}
                                     </span>
@@ -432,29 +471,46 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                   {/* Events Section */}
                   {getEventsForDate(selectedDate).length > 0 && (
                     <div className={`space-y-4 ${getAssignmentsForDate(selectedDate).length > 0 ? 'mt-6' : ''}`}>
-                      {getEventsForDate(selectedDate).map((evt) => (
+                      {getEventsForDate(selectedDate).map((evt) => {
+                        const eventDate = new Date(evt.date);
+                        const isPastEvent = isDatePast(eventDate);
+                        return (
                         <div
                           key={evt.id}
-                          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all"
+                          className={`bg-white dark:bg-gray-800 rounded-xl border hover:shadow-md transition-all ${
+                            isPastEvent
+                              ? 'border-gray-300 dark:border-gray-600 opacity-60'
+                              : 'border-gray-200 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-600'
+                          }`}
                         >
                           <div className="p-3">
                             <div className="flex items-center gap-3">
-                              <div className="w-3 h-3 rounded-full flex-shrink-0 bg-purple-500" />
+                              <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                                isPastEvent ? 'bg-gray-400 dark:bg-gray-500' : 'bg-purple-500'
+                              }`} />
                               
                               <div className="flex-1 min-w-0">
-                                <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1.5">
+                                <h3 className={`text-base font-semibold mb-1.5 ${
+                                  isPastEvent
+                                    ? 'text-gray-500 dark:text-gray-400 line-through'
+                                    : 'text-gray-900 dark:text-white'
+                                }`}>
                                   {evt.title}
                                 </h3>
 
                                 <div className="flex flex-wrap items-center gap-2 text-sm">
                                   {(evt.startTime || evt.endTime) && (
-                                    <span className="flex items-center text-gray-600 dark:text-gray-400">
+                                    <span className={`flex items-center ${
+                                      isPastEvent ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-400'
+                                    }`}>
                                       <Clock size={12} className="mr-1.5" />
                                       {evt.startTime || ''}{evt.startTime && evt.endTime ? ' - ' : ''}{evt.endTime || ''}
                                     </span>
                                   )}
                                   {evt.notes && (
-                                    <span className="text-gray-600 dark:text-gray-400 text-xs">
+                                    <span className={`text-xs ${
+                                      isPastEvent ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-400'
+                                    }`}>
                                       {evt.notes}
                                     </span>
                                   )}
@@ -491,7 +547,8 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                             </div>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
 

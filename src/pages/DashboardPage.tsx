@@ -159,15 +159,15 @@ export default function DashboardPage() {
           <div className="space-y-10 text-center">
             {/* Hero Section */}
             <div className="space-y-6">
-              <div className="flex items-center justify-center gap-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
-                  <LayoutGrid className="w-8 h-8 text-white" />
+              <div className="flex flex-col items-center justify-center gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <LayoutGrid className="w-5 h-5 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <div>
-                  <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 dark:text-white">
-                    Welcome to <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">MyHub</span>
+                <div className="text-center">
+                  <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-gray-900 dark:text-white">
+                    <span className="whitespace-nowrap">Welcome to <span className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">MyHub</span></span>
                   </h1>
-                  <p className="text-gray-600 dark:text-gray-400 mt-2 text-lg">
+                  <p className="text-gray-600 dark:text-gray-400 mt-2 text-base sm:text-lg">
                     Your personal command center for academic success
                   </p>
                 </div>
