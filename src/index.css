@@ -3,9 +3,41 @@
 @tailwind utilities;
 
 @layer base {
+  /* Smooth theme transitions - apply to elements that change colors */
+  html {
+    transition: background-color 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
   body {
     @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50;
     font-family: 'Inter', system-ui, sans-serif;
+    transition: background-color 600ms cubic-bezier(0.4, 0, 0.2, 1), 
+                color 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Smooth transitions for common elements */
+  div,
+  section,
+  article,
+  main,
+  header,
+  footer,
+  nav,
+  aside {
+    transition: background-color 600ms cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 600ms cubic-bezier(0.4, 0, 0.2, 1),
+                color 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Faster transitions for interactive elements */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
+                color 300ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
 
@@ -15,6 +47,16 @@
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Time Picker Scroll Styles */
+  .time-picker-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .time-picker-scroll::-webkit-scrollbar {
     display: none;
   }
   

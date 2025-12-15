@@ -1,14 +1,165 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { deleteUser, signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { accountService, semesterService } from '../services/firestore';
 import { UserPreferences, Semester } from '../types';
-import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle, Calendar, Archive, RotateCcw, Plus } from 'lucide-react';
+import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle, Calendar, Archive, RotateCcw, Plus, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';
 import SemesterSetupModal from '../components/SemesterSetupModal';
+import { applySmoothThemeTransition } from '../utils/themeTransition';
+
+// Compact Scrollable Time Picker Component
+function TimePicker({ value, onChange }: { value: string; onChange: (time: string) => void }) {
+  const [hours, minutes] = value.split(':').map(Number);
+  const hoursValue = isNaN(hours) ? 18 : hours;
+  const minutesValue = isNaN(minutes) ? 0 : minutes;
+
+  const hoursRef = useRef<HTMLDivElement>(null);
+  const minutesRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Scroll to selected hour
+    if (hoursRef.current) {
+      const selectedElement = hoursRef.current.querySelector(`[data-value="${hoursValue}"]`) as HTMLElement;
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [hoursValue]);
+
+  useEffect(() => {
+    // Scroll to selected minute
+    if (minutesRef.current) {
+      const selectedElement = minutesRef.current.querySelector(`[data-value="${minutesValue}"]`) as HTMLElement;
+      if (selectedElement) {
+        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [minutesValue]);
+
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const handleScroll = (type: 'hours' | 'minutes', container: HTMLDivElement) => {
+    // Debounce scroll handling
+    if (scrollTimeoutRef.current) {
+      clearTimeout(scrollTimeoutRef.current);
+    }
+
+    scrollTimeoutRef.current = setTimeout(() => {
+      const items = container.querySelectorAll('[data-value]');
+      let closestItem: HTMLElement | null = null;
+      let closestDistance = Infinity;
+
+      items.forEach((item) => {
+        const rect = item.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const centerY = containerRect.top + containerRect.height / 2;
+        const distance = Math.abs(rect.top + rect.height / 2 - centerY);
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestItem = item as HTMLElement;
+        }
+      });
+
+      if (closestItem) {
+        const value = Number((closestItem as HTMLElement).dataset.value);
+        if (type === 'hours') {
+          const time = `${String(value).padStart(2, '0')}:${String(minutesValue).padStart(2, '0')}`;
+          onChange(time);
+        } else {
+          const time = `${String(hoursValue).padStart(2, '0')}:${String(value).padStart(2, '0')}`;
+          onChange(time);
+        }
+      }
+    }, 150); // Debounce for 150ms
+  };
+
+  return (
+    <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-2 border border-gray-200 dark:border-gray-700">
+      {/* Hours Picker */}
+      <div className="flex-1 relative">
+        <div
+          ref={hoursRef}
+          className="time-picker-scroll h-32 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+          onScroll={(e) => handleScroll('hours', e.currentTarget)}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <div className="py-12">
+            {Array.from({ length: 24 }, (_, i) => (
+              <div
+                key={i}
+                data-value={i}
+                className={`snap-center h-8 flex items-center justify-center text-lg font-semibold transition-all cursor-pointer rounded-lg ${
+                  hoursValue === i
+                    ? 'text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 scale-110'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                onClick={() => {
+                  const time = `${String(i).padStart(2, '0')}:${String(minutesValue).padStart(2, '0')}`;
+                  onChange(time);
+                }}
+              >
+                {String(i).padStart(2, '0')}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Selection indicator overlay */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none border-t-2 border-b-2 border-primary-400 dark:border-primary-500 rounded-lg h-8 opacity-50"></div>
+        {/* Gradient fade at top and bottom */}
+        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-t-xl"></div>
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-b-xl"></div>
+      </div>
+
+      <span className="text-2xl font-bold text-gray-400 dark:text-gray-500">:</span>
+
+      {/* Minutes Picker */}
+      <div className="flex-1 relative">
+        <div
+          ref={minutesRef}
+          className="time-picker-scroll h-32 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+          onScroll={(e) => handleScroll('minutes', e.currentTarget)}
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+          }}
+        >
+          <div className="py-12">
+            {Array.from({ length: 60 }, (_, i) => (
+              <div
+                key={i}
+                data-value={i}
+                className={`snap-center h-8 flex items-center justify-center text-lg font-semibold transition-all cursor-pointer rounded-lg ${
+                  minutesValue === i
+                    ? 'text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 scale-110'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+                onClick={() => {
+                  const time = `${String(hoursValue).padStart(2, '0')}:${String(i).padStart(2, '0')}`;
+                  onChange(time);
+                }}
+              >
+                {String(i).padStart(2, '0')}
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Selection indicator overlay */}
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none border-t-2 border-b-2 border-primary-400 dark:border-primary-500 rounded-lg h-8 opacity-50"></div>
+        {/* Gradient fade at top and bottom */}
+        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-t-xl"></div>
+        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-b-xl"></div>
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -91,6 +242,10 @@ export default function SettingsPage() {
     timezone: 'America/Halifax',
     dateFormat: 'MM/DD/YYYY',
     firstDayOfWeek: 'Monday',
+    darkModeScheduleEnabled: false,
+    darkModeScheduleType: 'time',
+    darkModeScheduleTimeFrom: '18:00',
+    darkModeScheduleTimeTo: '07:00',
   });
 
   const updatePreference = async (updates: Partial<UserPreferences>) => {
@@ -102,9 +257,40 @@ export default function SettingsPage() {
       await updateDoc(doc(db, 'users', user.uid), { preferences: newPreferences });
       setPreferences(newPreferences);
 
-      // Apply theme change immediately
+      // Apply theme change immediately (but preserve state when switching to system)
       if (updates.theme) {
-        applyTheme(updates.theme);
+        const root = document.documentElement;
+        
+        if (updates.theme === 'system') {
+          // When switching to system, preserve current theme state
+          // Don't change theme - let OS preference or scheduler handle it
+          localStorage.setItem('theme', 'system');
+          
+          // Only apply OS preference if scheduling is disabled
+          if (!newPreferences.darkModeScheduleEnabled) {
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (prefersDark) {
+              root.classList.add('dark');
+            } else {
+              root.classList.remove('dark');
+            }
+          }
+          // If scheduling is enabled, scheduler will handle it
+        } else if (updates.theme) {
+          // Manual theme (light or dark) - apply with smooth transition
+          const theme = updates.theme;
+          const root = document.documentElement;
+          const currentIsDark = root.classList.contains('dark');
+          const willBeDark = theme === 'dark';
+          
+          if (currentIsDark !== willBeDark) {
+            applySmoothThemeTransition(() => {
+              applyTheme(theme);
+            }, 400);
+          } else {
+            applyTheme(theme);
+          }
+        }
       }
     } catch (error) {
       console.error('Error updating preferences:', error);
@@ -119,10 +305,25 @@ export default function SettingsPage() {
     // Update localStorage immediately so login/register pages pick it up
     localStorage.setItem('theme', theme);
     
-    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (theme === 'dark') {
       root.classList.add('dark');
-    } else {
+    } else if (theme === 'light') {
       root.classList.remove('dark');
+    } else if (theme === 'system') {
+      // For system theme, preserve current state if scheduling is disabled
+      // Otherwise, use OS preference
+      if (!preferences?.darkModeScheduleEnabled) {
+        // Scheduling disabled - use OS preference
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+          root.classList.add('dark');
+        } else {
+          root.classList.remove('dark');
+        }
+      } else {
+        // Scheduling enabled - preserve current state, scheduler will handle it
+        // Don't change theme here
+      }
     }
   };
 
@@ -306,30 +507,160 @@ export default function SettingsPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Appearance</h2>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-gray-700 dark:text-gray-300">Theme</span>
-                <button
-                  onClick={() => {
-                    const newTheme = preferences.theme === 'dark' ? 'light' : 'dark';
-                    updatePreference({ theme: newTheme });
-                  }}
-                  className="flex items-center justify-center w-14 h-8 rounded-full bg-gray-200 dark:bg-gray-700 relative transition-colors"
-                  title={`Switch to ${preferences.theme === 'dark' ? 'light' : 'dark'} mode`}
+                <div>
+                  <span className="text-gray-700 dark:text-gray-300 font-semibold">Theme Mode</span>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Choose how theme is applied</p>
+                </div>
+                <select
+                  value={preferences.theme}
+                  onChange={(e) => updatePreference({ theme: e.target.value as 'light' | 'dark' | 'system' })}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 >
-                  <div
-                    className={`absolute left-1 top-1 w-6 h-6 rounded-full bg-white dark:bg-gray-800 shadow-md transform transition-transform flex items-center justify-center ${
-                      preferences.theme === 'dark' ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  >
-                    {preferences.theme === 'dark' ? (
-                      <Moon size={14} className="text-gray-700" />
-                    ) : (
-                      <Sun size={14} className="text-amber-500" />
-                    )}
-                  </div>
-                </button>
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                  <option value="system">Auto (Scheduled)</option>
+                </select>
               </div>
+
+              {/* Dark Mode Scheduling */}
+              {preferences.theme === 'system' && (
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-gray-700 dark:text-gray-300 font-semibold">Dark Mode Scheduling</span>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Automatically switch theme based on time or sunset/sunrise</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={preferences.darkModeScheduleEnabled || false}
+                        onChange={(e) => updatePreference({ darkModeScheduleEnabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                    </label>
+                  </div>
+
+                  {preferences.darkModeScheduleEnabled && (
+                    <div className="space-y-4 pl-4 border-l-2 border-primary-200 dark:border-primary-800">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Schedule Type
+                        </label>
+                        <select
+                          value={preferences.darkModeScheduleType || 'time'}
+                          onChange={(e) => updatePreference({ darkModeScheduleType: e.target.value as 'time' | 'sunset' | 'sunrise' })}
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        >
+                          <option value="time">Custom Time</option>
+                          <option value="sunset">Sunset</option>
+                          <option value="sunrise">Sunset to Sunrise</option>
+                        </select>
+                      </div>
+
+                      {preferences.darkModeScheduleType === 'time' && (
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Dark Mode From
+                            </label>
+                            <TimePicker
+                              value={preferences.darkModeScheduleTimeFrom || '18:00'}
+                              onChange={(time) => updatePreference({ darkModeScheduleTimeFrom: time })}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Light Mode From
+                            </label>
+                            <TimePicker
+                              value={preferences.darkModeScheduleTimeTo || '07:00'}
+                              onChange={(time) => updatePreference({ darkModeScheduleTimeTo: time })}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {(preferences.darkModeScheduleType === 'sunset' || preferences.darkModeScheduleType === 'sunrise') && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Location (for sunset/sunrise)
+                          </label>
+                          {preferences.darkModeScheduleLocation ? (
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <MapPin size={16} />
+                                <span>
+                                  {preferences.darkModeScheduleLocation.lat.toFixed(4)}, {preferences.darkModeScheduleLocation.lng.toFixed(4)}
+                                </span>
+                              </div>
+                              <button
+                                onClick={async () => {
+                                  if (navigator.geolocation) {
+                                    navigator.geolocation.getCurrentPosition(
+                                      (position) => {
+                                        updatePreference({
+                                          darkModeScheduleLocation: {
+                                            lat: position.coords.latitude,
+                                            lng: position.coords.longitude,
+                                          },
+                                        });
+                                      },
+                                      (error) => {
+                                        alert('Failed to get location. Please enable location permissions.');
+                                        console.error('Geolocation error:', error);
+                                      }
+                                    );
+                                  } else {
+                                    alert('Geolocation is not supported by your browser.');
+                                  }
+                                }}
+                                className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                              >
+                                Update Location
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                if (navigator.geolocation) {
+                                  navigator.geolocation.getCurrentPosition(
+                                    (position) => {
+                                      updatePreference({
+                                        darkModeScheduleLocation: {
+                                          lat: position.coords.latitude,
+                                          lng: position.coords.longitude,
+                                        },
+                                      });
+                                    },
+                                    (error) => {
+                                      alert('Failed to get location. Please enable location permissions.');
+                                      console.error('Geolocation error:', error);
+                                    }
+                                  );
+                                } else {
+                                  alert('Geolocation is not supported by your browser.');
+                                }
+                              }}
+                              className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                            >
+                              <MapPin className="w-4 h-4 inline mr-2" />
+                              Use Current Location
+                            </button>
+                          )}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                            {preferences.darkModeScheduleType === 'sunset'
+                              ? 'Theme switches to dark mode at sunset each day.'
+                              : 'Theme switches to dark mode at sunset and back to light at sunrise.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

@@ -16,6 +16,15 @@ export interface UserPreferences {
   timezone: string; // "America/Halifax"
   dateFormat: "MM/DD/YYYY" | "DD/MM/YYYY";
   firstDayOfWeek: "Sunday" | "Monday";
+  // Dark Mode Scheduling
+  darkModeScheduleEnabled?: boolean;
+  darkModeScheduleType?: "time" | "sunset" | "sunrise";
+  darkModeScheduleTimeFrom?: string; // "18:00" - when to switch to dark mode
+  darkModeScheduleTimeTo?: string; // "07:00" - when to switch back to light mode
+  darkModeScheduleLocation?: {
+    lat: number;
+    lng: number;
+  }; // For sunset/sunrise calculations
 }
 
 // Semester Types
