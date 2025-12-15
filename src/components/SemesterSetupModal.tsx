@@ -217,9 +217,11 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                 style={{ 
                   minWidth: '100%',
                   width: '100%',
+                  maxWidth: '100%',
                   boxSizing: 'border-box',
                   WebkitAppearance: 'none',
-                  appearance: 'none'
+                  appearance: 'none',
+                  MozAppearance: 'textfield'
                 }}
               />
               {semesterErrors.startDate && (
@@ -238,9 +240,11 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                 style={{ 
                   minWidth: '100%',
                   width: '100%',
+                  maxWidth: '100%',
                   boxSizing: 'border-box',
                   WebkitAppearance: 'none',
-                  appearance: 'none'
+                  appearance: 'none',
+                  MozAppearance: 'textfield'
                 }}
               />
               {semesterErrors.endDate && (

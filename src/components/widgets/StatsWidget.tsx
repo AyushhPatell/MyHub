@@ -88,18 +88,17 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
 
   // Medium and Large - Compact horizontal layout on all screens
   return (
-    <div className="flex gap-2 sm:gap-4 w-full" style={{ width: '100%', minWidth: '100%' }}>
+    <div className="stats-widget-container flex gap-2 sm:gap-4 w-full" style={{ width: '100%', minWidth: '100%' }}>
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
           <button
             key={stat.type}
             onClick={() => onStatClick?.(stat.type)}
-            className="stats-widget-button group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-3xl border border-gray-200 dark:border-white/10 p-2.5 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
+            className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-3xl border border-gray-200 dark:border-white/10 p-2.5 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
             style={{
-              flex: '1 1 0%',
-              minWidth: '150px',
-              width: 'auto',
+              flex: '1 1 33.333%',
+              minWidth: '160px',
               maxWidth: 'none',
             }}
           >

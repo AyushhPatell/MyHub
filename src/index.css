@@ -60,9 +60,17 @@
     display: none;
   }
 
-  /* Force minimum width for stats widget buttons when empty */
-  .stats-widget-button {
-    min-width: 150px !important;
+  /* Force minimum width for stats widget buttons - prevents narrow boxes when empty */
+  .stats-widget-container {
+    display: flex !important;
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  .stats-widget-container > button {
+    flex: 1 1 33.333% !important;
+    min-width: 160px !important;
+    max-width: none !important;
   }
   
   /* Mobile touch improvements */
@@ -153,12 +161,22 @@
   
   /* iOS Safari date input fix */
   input[type="date"] {
-    -webkit-appearance: none;
-    appearance: none;
+    -webkit-appearance: none !important;
+    appearance: none !important;
     width: 100% !important;
     min-width: 100% !important;
-    max-width: 100%;
-    box-sizing: border-box;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Mobile Safari date input specific fixes */
+  @media (max-width: 768px) {
+    input[type="date"] {
+      width: 100% !important;
+      min-width: 100% !important;
+      max-width: 100% !important;
+      font-size: 16px !important; /* Prevents zoom on iOS */
+    }
   }
   
   input[type="date"]::-webkit-datetime-edit-fields-wrapper,
