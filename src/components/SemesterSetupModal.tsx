@@ -214,6 +214,13 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                 type="date"
                 {...registerSemester('startDate', { required: 'Start date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                style={{ 
+                  minWidth: '100%',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  WebkitAppearance: 'none',
+                  appearance: 'none'
+                }}
               />
               {semesterErrors.startDate && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{semesterErrors.startDate.message}</p>
@@ -228,6 +235,13 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                 type="date"
                 {...registerSemester('endDate', { required: 'End date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                style={{ 
+                  minWidth: '100%',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  WebkitAppearance: 'none',
+                  appearance: 'none'
+                }}
               />
               {semesterErrors.endDate && (
                 <p className="mt-1 text-sm text-red-600 dark:text-red-400">{semesterErrors.endDate.message}</p>

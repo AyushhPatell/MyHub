@@ -58,11 +58,13 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
       <div className="space-y-3">
         {stats.map((stat) => {
           const Icon = stat.icon;
+          // Add minimum width when count is 0 to prevent boxes from being too narrow
+          const minWidthClass = stat.count === 0 ? 'min-w-[200px]' : '';
           return (
             <button
               key={stat.type}
               onClick={() => onStatClick?.(stat.type)}
-              className="w-full group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-4 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
+              className={`w-full group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl border border-gray-200 dark:border-white/10 p-4 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl ${minWidthClass}`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -86,22 +88,28 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
 
   // Medium and Large - Compact horizontal layout on all screens
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-4">
+    <div className="flex gap-2 sm:gap-4 w-full" style={{ width: '100%', minWidth: '100%' }}>
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
           <button
             key={stat.type}
             onClick={() => onStatClick?.(stat.type)}
-            className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-3xl border border-gray-200 dark:border-white/10 p-2.5 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
+            className="stats-widget-button group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-3xl border border-gray-200 dark:border-white/10 p-2.5 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
+            style={{
+              flex: '1 1 0%',
+              minWidth: '150px',
+              width: 'auto',
+              maxWidth: 'none',
+            }}
           >
-            <div className="flex flex-col items-center text-center space-y-1.5 sm:space-y-3">
-              <div className={`w-9 h-9 sm:w-14 sm:h-14 bg-gradient-to-br ${stat.gradient} rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl`}>
+            <div className="flex flex-col items-center text-center space-y-1.5 sm:space-y-3 w-full">
+              <div className={`w-9 h-9 sm:w-14 sm:h-14 bg-gradient-to-br ${stat.gradient} rounded-lg sm:rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all shadow-xl flex-shrink-0`}>
                 <Icon className="w-4 h-4 sm:w-7 sm:h-7 text-white" />
               </div>
-              <div>
+              <div className="w-full">
                 <div className="text-xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-0.5 sm:mb-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:to-indigo-200 bg-clip-text text-transparent">{stat.count}</div>
-                <div className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide leading-tight">
+                <div className="text-[10px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide leading-tight whitespace-nowrap">
                   {stat.label}
                 </div>
               </div>

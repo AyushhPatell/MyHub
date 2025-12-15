@@ -138,7 +138,7 @@ export default function WidgetContainer({
         )}
 
         {/* Widget Content */}
-        <div className="flex-1 p-4 sm:p-6 overflow-auto">{children}</div>
+        <div className="flex-1 p-4 sm:p-6 overflow-auto w-full">{children}</div>
       </div>
     </div>
   );

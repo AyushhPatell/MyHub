@@ -59,6 +59,11 @@
   .time-picker-scroll::-webkit-scrollbar {
     display: none;
   }
+
+  /* Force minimum width for stats widget buttons when empty */
+  .stats-widget-button {
+    min-width: 150px !important;
+  }
   
   /* Mobile touch improvements */
   @media (max-width: 640px) {
@@ -150,8 +155,10 @@
   input[type="date"] {
     -webkit-appearance: none;
     appearance: none;
-    width: 100%;
+    width: 100% !important;
+    min-width: 100% !important;
     max-width: 100%;
+    box-sizing: border-box;
   }
   
   input[type="date"]::-webkit-datetime-edit-fields-wrapper,
