@@ -1057,6 +1057,11 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
                             setLectureBlocks(newBlocks);
                           }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+                          style={{ 
+                            minHeight: '44px',
+                            height: '44px',
+                            fontSize: '16px'
+                          }}
                           required
                         />
                       </div>
@@ -1073,6 +1078,11 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
                             setLectureBlocks(newBlocks);
                           }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+                          style={{ 
+                            minHeight: '44px',
+                            height: '44px',
+                            fontSize: '16px'
+                          }}
                           required
                         />
                       </div>
@@ -1124,6 +1134,11 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
                             setTutorialBlocks(newBlocks);
                           }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+                          style={{ 
+                            minHeight: '44px',
+                            height: '44px',
+                            fontSize: '16px'
+                          }}
                           required
                         />
                       </div>
@@ -1140,6 +1155,11 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
                             setTutorialBlocks(newBlocks);
                           }}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 text-sm"
+                          style={{ 
+                            minHeight: '44px',
+                            height: '44px',
+                            fontSize: '16px'
+                          }}
                           required
                         />
                       </div>
@@ -1242,6 +1262,11 @@ function EditSingleBlockModal({ block, onSave, onClose }: EditSingleBlockModalPr
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                style={{ 
+                  minHeight: '44px',
+                  height: '44px',
+                  fontSize: '16px'
+                }}
                 required
               />
             </div>
@@ -1254,6 +1279,11 @@ function EditSingleBlockModal({ block, onSave, onClose }: EditSingleBlockModalPr
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                style={{ 
+                  minHeight: '44px',
+                  height: '44px',
+                  fontSize: '16px'
+                }}
                 required
               />
             </div>

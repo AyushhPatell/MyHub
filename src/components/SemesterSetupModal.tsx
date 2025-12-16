@@ -215,6 +215,8 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                 {...registerSemester('startDate', { required: 'Start date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 style={{ 
+                  minHeight: '44px',
+                  height: '44px',
                   minWidth: '100%',
                   width: '100%',
                   maxWidth: '100%',
@@ -239,6 +241,8 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                 {...registerSemester('endDate', { required: 'End date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 style={{ 
+                  minHeight: '44px',
+                  height: '44px',
                   minWidth: '100%',
                   width: '100%',
                   maxWidth: '100%',

@@ -624,6 +624,17 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                           value={newEventStart}
                           onChange={(e) => setNewEventStart(e.target.value)}
                           className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          style={{ 
+                            minHeight: '44px',
+                            height: '44px',
+                            minWidth: '100%',
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            WebkitAppearance: 'none',
+                            appearance: 'none',
+                            fontSize: '16px'
+                          }}
                         />
                       </div>
                       <div className="space-y-1">
@@ -633,6 +644,17 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                           value={newEventEnd}
                           onChange={(e) => setNewEventEnd(e.target.value)}
                           className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          style={{ 
+                            minHeight: '44px',
+                            height: '44px',
+                            minWidth: '100%',
+                            width: '100%',
+                            maxWidth: '100%',
+                            boxSizing: 'border-box',
+                            WebkitAppearance: 'none',
+                            appearance: 'none',
+                            fontSize: '16px'
+                          }}
                         />
                       </div>
                     </div>

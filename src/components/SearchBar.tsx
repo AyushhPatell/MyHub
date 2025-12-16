@@ -494,6 +494,8 @@ export default function SearchBar() {
                           onChange={(e) => setFilters(prev => ({ ...prev, dateFrom: e.target.value || undefined }))}
                           className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           style={{ 
+                            minHeight: '44px',
+                            height: '44px',
                             minWidth: '100%',
                             width: '100%',
                             maxWidth: '100%',
@@ -514,6 +516,8 @@ export default function SearchBar() {
                           onChange={(e) => setFilters(prev => ({ ...prev, dateTo: e.target.value || undefined }))}
                           className="w-full px-2 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           style={{ 
+                            minHeight: '44px',
+                            height: '44px',
                             minWidth: '100%',
                             width: '100%',
                             maxWidth: '100%',
