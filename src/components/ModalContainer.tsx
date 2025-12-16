@@ -17,7 +17,6 @@ export default function ModalContainer({ children, onClose, backdropClassName = 
     
     // Scroll the modal content into view
     if (contentRef.current) {
-      // Use requestAnimationFrame to ensure DOM is ready
       requestAnimationFrame(() => {
         contentRef.current?.scrollIntoView({ 
           behavior: 'smooth', 
@@ -35,21 +34,21 @@ export default function ModalContainer({ children, onClose, backdropClassName = 
 
   const modalContent = (
     <div 
-      className={`fixed inset-0 ${backdropClassName} z-[9999] flex items-center justify-center p-4`}
+      className={`fixed inset-0 ${backdropClassName} z-[9999] flex items-center justify-center p-4 modal-backdrop`}
       style={{ 
         position: 'fixed', 
         top: 0, 
         left: 0, 
         right: 0, 
         bottom: 0,
-        overflowY: 'auto'
+        overflowY: 'auto',
       }}
       onClick={onClose}
     >
       <div 
         ref={contentRef}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto"
+        className="my-auto modal-content"
       >
         {children}
       </div>

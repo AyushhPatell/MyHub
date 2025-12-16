@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Smooth modal animations */
+@keyframes modalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modalContentSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-backdrop {
+  animation: modalBackdropFadeIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.modal-content {
+  animation: modalContentSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
 @layer base {
   /* Smooth theme transitions - apply to elements that change colors */
   html {
@@ -60,21 +90,6 @@
     display: none;
   }
 
-  /* Force minimum width for stats widget buttons - prevents narrow boxes when empty */
-  /* Using CSS Grid instead of flex for better width control */
-  .stats-widget-container {
-    display: grid !important;
-    grid-template-columns: repeat(3, minmax(140px, 1fr)) !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    gap: 0.5rem !important;
-  }
-
-  @media (min-width: 640px) {
-    .stats-widget-container {
-      gap: 1rem !important;
-    }
-  }
   
   /* Mobile touch improvements */
   @media (max-width: 640px) {

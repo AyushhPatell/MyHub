@@ -49,7 +49,12 @@ export default function AssignmentFilterModal({ assignments, filterType, onClose
   return (
     <ModalContainer onClose={onClose} backdropClassName="bg-black bg-opacity-50">
       <div 
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+        style={{ 
+          width: 'calc(100vw - 2rem)',
+          maxWidth: '42rem',
+          minWidth: '320px'
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex items-center justify-between">
