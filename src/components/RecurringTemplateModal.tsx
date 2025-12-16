@@ -283,11 +283,14 @@ export default function RecurringTemplateModal({
                 {...register('startDate', { required: 'Start date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 style={{ 
+                  minWidth: '100%',
                   width: '100%', 
                   maxWidth: '100%', 
                   boxSizing: 'border-box',
                   WebkitAppearance: 'none',
-                  appearance: 'none'
+                  appearance: 'none',
+                  MozAppearance: 'textfield',
+                  fontSize: '16px'
                 }}
               />
               {errors.startDate && <p className="mt-1 text-sm text-red-500">{errors.startDate.message}</p>}
@@ -301,11 +304,14 @@ export default function RecurringTemplateModal({
                 {...register('endDate', { required: 'End date is required' })}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 style={{ 
+                  minWidth: '100%',
                   width: '100%', 
                   maxWidth: '100%', 
                   boxSizing: 'border-box',
                   WebkitAppearance: 'none',
-                  appearance: 'none'
+                  appearance: 'none',
+                  MozAppearance: 'textfield',
+                  fontSize: '16px'
                 }}
               />
               {errors.endDate && <p className="mt-1 text-sm text-red-500">{errors.endDate.message}</p>}

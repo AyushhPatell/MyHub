@@ -221,7 +221,8 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                   boxSizing: 'border-box',
                   WebkitAppearance: 'none',
                   appearance: 'none',
-                  MozAppearance: 'textfield'
+                  MozAppearance: 'textfield',
+                  fontSize: '16px'
                 }}
               />
               {semesterErrors.startDate && (
@@ -244,7 +245,8 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
                   boxSizing: 'border-box',
                   WebkitAppearance: 'none',
                   appearance: 'none',
-                  MozAppearance: 'textfield'
+                  MozAppearance: 'textfield',
+                  fontSize: '16px'
                 }}
               />
               {semesterErrors.endDate && (

@@ -86,9 +86,9 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
     );
   }
 
-  // Medium and Large - Compact horizontal layout on all screens
+  // Medium and Large - Use CSS Grid with explicit min-widths to prevent narrow boxes
   return (
-    <div className="stats-widget-container flex gap-2 sm:gap-4 w-full" style={{ width: '100%', minWidth: '100%' }}>
+    <div className="grid grid-cols-3 gap-2 sm:gap-4" style={{ width: '100%', minWidth: '100%' }}>
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (
@@ -97,9 +97,8 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
             onClick={() => onStatClick?.(stat.type)}
             className="group relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-3xl border border-gray-200 dark:border-white/10 p-2.5 sm:p-5 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.02] hover:shadow-2xl"
             style={{
-              flex: '1 1 33.333%',
-              minWidth: '160px',
-              maxWidth: 'none',
+              minWidth: '140px',
+              width: '100%',
             }}
           >
             <div className="flex flex-col items-center text-center space-y-1.5 sm:space-y-3 w-full">
