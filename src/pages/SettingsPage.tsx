@@ -882,10 +882,18 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Info Note */}
-                  <div className="mt-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
-                    <p className="text-xs text-indigo-800 dark:text-indigo-200">
-                      Free tier: <strong>200 emails/month</strong>
-                    </p>
+                  <div className="mt-4 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">🚧</div>
+                      <div>
+                        <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-100 mb-1">
+                          Scheduled Email Notifications
+                        </p>
+                        <p className="text-xs text-indigo-700 dark:text-indigo-300 leading-relaxed">
+                          This feature is currently under construction. We're working hard to bring you automated email notifications for your assignments. Please stay tuned for updates! ✨
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

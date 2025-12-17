@@ -1019,6 +1019,56 @@ export const calendarEventService = {
       throw error;
     }
   },
+
+  /**
+   * Delete events from previous months (keep only current month)
+   * This should be called when a new month starts
+   */
+  async cleanupOldEvents(userId: string, semesterId: string): Promise<number> {
+    try {
+      const now = new Date();
+      const currentMonth = now.getMonth();
+      const currentYear = now.getFullYear();
+      
+      // Get all events
+      const q = collection(db, 'users', userId, 'semesters', semesterId, 'calendarEvents');
+      const snapshot = await getDocs(q);
+      
+      let deletedCount = 0;
+      const batchSize = 500;
+      let batch = writeBatch(db);
+      let batchCount = 0;
+
+      for (const eventDoc of snapshot.docs) {
+        const eventData = eventDoc.data();
+        const eventDate = new Date(eventData.date);
+        
+        // Delete if event is from a previous month
+        if (eventDate.getMonth() < currentMonth || eventDate.getFullYear() < currentYear) {
+          batch.delete(doc(db, 'users', userId, 'semesters', semesterId, 'calendarEvents', eventDoc.id));
+          batchCount++;
+          deletedCount++;
+          
+          // Commit batch if it reaches the limit
+          if (batchCount >= batchSize) {
+            await batch.commit();
+            batch = writeBatch(db);
+            batchCount = 0;
+          }
+        }
+      }
+      
+      // Commit remaining deletes
+      if (batchCount > 0) {
+        await batch.commit();
+      }
+      
+      return deletedCount;
+    } catch (error) {
+      console.error('Error cleaning up old events:', error);
+      throw error;
+    }
+  },
 };
 
 // Account Deletion Service

@@ -14,6 +14,7 @@ import SettingsPage from './pages/SettingsPage';
 import { useDarkModeSchedule } from './hooks/useDarkModeSchedule';
 import { UserPreferences } from './types';
 import { applySmoothThemeTransition } from './utils/themeTransition';
+import { startEmailScheduler } from './services/emailScheduler';
 
 function App() {
   const { user, loading } = useAuth();
@@ -140,6 +141,14 @@ function App() {
     : null;
 
   useDarkModeSchedule(scheduleConfig, userPreferences?.theme || 'light');
+
+  // Start email scheduler when user is logged in and has preferences
+  useEffect(() => {
+    if (!user || !userPreferences) return;
+
+    const cleanup = startEmailScheduler(user.uid, userPreferences);
+    return cleanup;
+  }, [user, userPreferences]);
 
   return (
     <Router>

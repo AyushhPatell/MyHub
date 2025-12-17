@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Plus, Trash2, Calendar, X, Edit2, Clock } from 'lucide-react';
 import { formatDate, formatTime, isOverdue } from '../../utils/dateHelpers';
 import { Assignment, Course, CalendarEvent, Semester } from '../../types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isPast, startOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfDay } from 'date-fns';
 import ModalContainer from '../ModalContainer';
 import { useAuth } from '../../hooks/useAuth';
 import { calendarEventService, semesterService } from '../../services/firestore';
@@ -46,7 +46,7 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
     });
   };
 
-  // Load semester and events
+  // Load semester and events, and cleanup old events
   useEffect(() => {
     const load = async () => {
       if (!user) return;
@@ -55,6 +55,25 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
         const activeSemester = await semesterService.getActiveSemester(user.uid);
         setSemester(activeSemester);
         if (activeSemester) {
+          // Check if we need to cleanup old events (new month started)
+          const lastCleanupKey = `last-event-cleanup-${user.uid}-${activeSemester.id}`;
+          const lastCleanup = localStorage.getItem(lastCleanupKey);
+          const now = new Date();
+          const currentMonth = `${now.getFullYear()}-${now.getMonth()}`;
+          
+          if (lastCleanup !== currentMonth) {
+            // New month - cleanup old events
+            try {
+              const deletedCount = await calendarEventService.cleanupOldEvents(user.uid, activeSemester.id);
+              if (deletedCount > 0) {
+                console.log(`Cleaned up ${deletedCount} old events from previous months`);
+              }
+              localStorage.setItem(lastCleanupKey, currentMonth);
+            } catch (error) {
+              console.error('Error cleaning up old events:', error);
+            }
+          }
+          
           const evts = await calendarEventService.getEvents(user.uid, activeSemester.id);
           setEvents(evts);
         } else {
@@ -84,7 +103,10 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
   };
 
   const isDatePast = (date: Date) => {
-    return isPast(startOfDay(date)) && !isSameDay(date, new Date());
+    const today = startOfDay(new Date());
+    const eventDate = startOfDay(date);
+    // Only mark as past if the event date is strictly before today (not today or future)
+    return eventDate.getTime() < today.getTime();
   };
 
   const handleDayClick = (day: Date) => {
