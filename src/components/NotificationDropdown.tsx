@@ -198,7 +198,13 @@ export default function NotificationDropdown({ userId, onOpen, mobileMenuStyle =
       </div>
 
       {/* Notifications List */}
-      <div className="overflow-y-auto flex-1">
+      <div 
+        className="overflow-y-auto flex-1 scrollbar-hide" 
+        style={{ 
+          scrollbarWidth: 'none', 
+          msOverflowStyle: 'none',
+        }}
+      >
         {loading ? (
           <div className="p-4 text-center text-gray-500 dark:text-gray-400">Loading...</div>
         ) : notifications.length === 0 ? (

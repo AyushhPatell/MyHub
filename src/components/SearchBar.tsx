@@ -336,13 +336,12 @@ export default function SearchBar() {
     <div ref={searchRef} className="relative">
       <button
         onClick={() => setIsOpen(true)}
-        className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 md:px-4 py-2 h-9 sm:h-10 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-white dark:hover:bg-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all font-semibold text-sm shadow-sm touch-manipulation"
+        className="flex items-center justify-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 md:px-4 py-2 h-9 sm:h-10 bg-white/60 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-white dark:hover:bg-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all font-semibold text-sm shadow-sm touch-manipulation group relative"
         style={{ minWidth: '36px', minHeight: '36px' }}
-        title="Search (Ctrl+K or Cmd+K)"
+        title={`Search (${navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl'}+K)`}
       >
         <Search size={16} className="sm:w-[18px] sm:h-[18px]" />
         <span className="hidden md:inline">Search...</span>
-        <span className="hidden lg:inline text-xs text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800/50 rounded border border-gray-200 dark:border-white/10">⌘K</span>
       </button>
 
       {isOpen && createPortal(

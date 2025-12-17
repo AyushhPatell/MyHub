@@ -5,11 +5,13 @@ import { deleteUser, signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { accountService, semesterService } from '../services/firestore';
 import { UserPreferences, Semester } from '../types';
+import { sendTestEmail, isEmailConfigured } from '../services/email';
 import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle, Calendar, Archive, RotateCcw, Plus, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';
 import SemesterSetupModal from '../components/SemesterSetupModal';
 import { applySmoothThemeTransition } from '../utils/themeTransition';
+import Toast, { Toast as ToastType } from '../components/Toast';
 
 // Compact Scrollable Time Picker Component
 function TimePicker({ value, onChange }: { value: string; onChange: (time: string) => void }) {
@@ -79,24 +81,24 @@ function TimePicker({ value, onChange }: { value: string; onChange: (time: strin
   };
 
   return (
-    <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-2 border border-gray-200 dark:border-gray-700">
+    <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-1.5 border border-gray-200 dark:border-gray-700">
       {/* Hours Picker */}
       <div className="flex-1 relative">
         <div
           ref={hoursRef}
-          className="time-picker-scroll h-32 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+          className="time-picker-scroll h-20 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
           onScroll={(e) => handleScroll('hours', e.currentTarget)}
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
         >
-          <div className="py-12">
+          <div className="py-6">
             {Array.from({ length: 24 }, (_, i) => (
               <div
                 key={i}
                 data-value={i}
-                className={`snap-center h-8 flex items-center justify-center text-lg font-semibold transition-all cursor-pointer rounded-lg ${
+                className={`snap-center h-6 flex items-center justify-center text-sm font-semibold transition-all cursor-pointer rounded ${
                   hoursValue === i
                     ? 'text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 scale-110'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -112,31 +114,31 @@ function TimePicker({ value, onChange }: { value: string; onChange: (time: strin
           </div>
         </div>
         {/* Selection indicator overlay */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none border-t-2 border-b-2 border-primary-400 dark:border-primary-500 rounded-lg h-8 opacity-50"></div>
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none border-t-2 border-b-2 border-primary-400 dark:border-primary-500 rounded h-6 opacity-50"></div>
         {/* Gradient fade at top and bottom */}
-        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-t-xl"></div>
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-b-xl"></div>
+        <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-t-lg"></div>
+        <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-b-lg"></div>
       </div>
 
-      <span className="text-2xl font-bold text-gray-400 dark:text-gray-500">:</span>
+      <span className="text-base font-bold text-gray-400 dark:text-gray-500">:</span>
 
       {/* Minutes Picker */}
       <div className="flex-1 relative">
         <div
           ref={minutesRef}
-          className="time-picker-scroll h-32 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
+          className="time-picker-scroll h-20 overflow-y-auto snap-y snap-mandatory scrollbar-hide"
           onScroll={(e) => handleScroll('minutes', e.currentTarget)}
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
         >
-          <div className="py-12">
+          <div className="py-6">
             {Array.from({ length: 60 }, (_, i) => (
               <div
                 key={i}
                 data-value={i}
-                className={`snap-center h-8 flex items-center justify-center text-lg font-semibold transition-all cursor-pointer rounded-lg ${
+                className={`snap-center h-6 flex items-center justify-center text-sm font-semibold transition-all cursor-pointer rounded ${
                   minutesValue === i
                     ? 'text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 scale-110'
                     : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
@@ -152,10 +154,10 @@ function TimePicker({ value, onChange }: { value: string; onChange: (time: strin
           </div>
         </div>
         {/* Selection indicator overlay */}
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none border-t-2 border-b-2 border-primary-400 dark:border-primary-500 rounded-lg h-8 opacity-50"></div>
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 pointer-events-none border-t-2 border-b-2 border-primary-400 dark:border-primary-500 rounded h-6 opacity-50"></div>
         {/* Gradient fade at top and bottom */}
-        <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-b from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-t-xl"></div>
-        <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-b-xl"></div>
+        <div className="absolute inset-x-0 top-0 h-6 bg-gradient-to-b from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-t-lg"></div>
+        <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-gray-50 to-transparent dark:from-gray-800/50 pointer-events-none rounded-b-lg"></div>
       </div>
     </div>
   );
@@ -174,6 +176,8 @@ export default function SettingsPage() {
   const [loadingSemesters, setLoadingSemesters] = useState(true);
   const [switching, setSwitching] = useState(false);
   const [showSemesterSetup, setShowSemesterSetup] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [toast, setToast] = useState<ToastType | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -227,7 +231,11 @@ export default function SettingsPage() {
       window.location.reload();
     } catch (error) {
       console.error('Error switching semester:', error);
-      alert('Failed to switch semester. Please try again.');
+      setToast({
+        id: Date.now().toString(),
+        message: 'Failed to switch semester. Please try again.',
+        type: 'error',
+      });
     } finally {
       setSwitching(false);
     }
@@ -246,6 +254,10 @@ export default function SettingsPage() {
     darkModeScheduleType: 'time',
     darkModeScheduleTimeFrom: '18:00',
     darkModeScheduleTimeTo: '07:00',
+    emailNotificationsEnabled: false,
+    emailAssignmentReminders: true,
+    emailDigestTime: '09:00',
+    emailDigestDay: 'Monday',
   });
 
   const updatePreference = async (updates: Partial<UserPreferences>) => {
@@ -294,7 +306,11 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error updating preferences:', error);
-      alert('Failed to update preferences. Please try again.');
+      setToast({
+        id: Date.now().toString(),
+        message: 'Failed to update preferences. Please try again.',
+        type: 'error',
+      });
     } finally {
       setSaving(false);
     }
@@ -370,11 +386,23 @@ export default function SettingsPage() {
     } catch (error: any) {
       console.error('Error deleting account:', error);
       if (error.code === 'auth/requires-recent-login') {
-        alert('For security, please sign out and sign back in, then try deleting your account again.');
+        setToast({
+          id: Date.now().toString(),
+          message: 'For security, please sign out and sign back in, then try deleting your account again.',
+          type: 'warning',
+        });
       } else if (error.code === 'permission-denied' || error.message?.includes('permission') || error.message?.includes('Permission')) {
-        alert('Permission denied. Please ensure:\n1. You are logged in\n2. Firestore security rules include "delete" permissions\n3. Rules have been published in Firebase Console\n\nSee UPDATED_FIRESTORE_RULES.txt for the correct rules.');
+        setToast({
+          id: Date.now().toString(),
+          message: 'Permission denied. Please check Firestore security rules and ensure you are logged in.',
+          type: 'error',
+        });
       } else {
-        alert(`Failed to delete account: ${error.message || 'Unknown error'}. Please try again or contact support.`);
+        setToast({
+          id: Date.now().toString(),
+          message: `Failed to delete account: ${error.message || 'Unknown error'}. Please try again or contact support.`,
+          type: 'error',
+        });
       }
     } finally {
       setDeleting(false);
@@ -609,12 +637,20 @@ export default function SettingsPage() {
                                         });
                                       },
                                       (error) => {
-                                        alert('Failed to get location. Please enable location permissions.');
+                                        setToast({
+                                          id: Date.now().toString(),
+                                          message: 'Failed to get location. Please enable location permissions.',
+                                          type: 'error',
+                                        });
                                         console.error('Geolocation error:', error);
                                       }
                                     );
                                   } else {
-                                    alert('Geolocation is not supported by your browser.');
+                                    setToast({
+                                      id: Date.now().toString(),
+                                      message: 'Geolocation is not supported by your browser.',
+                                      type: 'warning',
+                                    });
                                   }
                                 }}
                                 className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -636,12 +672,20 @@ export default function SettingsPage() {
                                       });
                                     },
                                     (error) => {
-                                      alert('Failed to get location. Please enable location permissions.');
+                                      setToast({
+                                        id: Date.now().toString(),
+                                        message: 'Failed to get location. Please enable location permissions.',
+                                        type: 'error',
+                                      });
                                       console.error('Geolocation error:', error);
                                     }
                                   );
                                 } else {
-                                  alert('Geolocation is not supported by your browser.');
+                                  setToast({
+                                    id: Date.now().toString(),
+                                    message: 'Geolocation is not supported by your browser.',
+                                    type: 'warning',
+                                  });
                                 }
                               }}
                               className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -664,26 +708,193 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Notification Settings */}
+          {/* Notifications (Combined) */}
           <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
             <div className="flex items-center space-x-3 mb-4">
               <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
             </div>
 
-            <div className="space-y-4">
-              <label className="flex items-center justify-between cursor-pointer">
-                <div>
-                  <span className="text-gray-700 dark:text-gray-300">Enable Notifications</span>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Get notified about upcoming deadlines</p>
+            <div className="space-y-6">
+              {/* In-App Notifications */}
+              <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">In-App Notifications</span>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Get notified about upcoming deadlines in the app</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={preferences.notificationsEnabled}
+                    onChange={(e) => updatePreference({ notificationsEnabled: e.target.checked })}
+                    className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                  />
+                </label>
+              </div>
+
+              {/* Email Notifications */}
+              <div>
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div>
+                    <span className="text-gray-700 dark:text-gray-300 font-semibold">Email Notifications</span>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Receive email updates about your assignments</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={preferences.emailNotificationsEnabled || false}
+                    onChange={(e) => updatePreference({ emailNotificationsEnabled: e.target.checked })}
+                    className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                  />
+                </label>
+
+                {/* Assignment Reminders */}
+              {preferences.emailNotificationsEnabled && (
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 space-y-4 pl-4 border-l-2 border-primary-200 dark:border-primary-800">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <span className="text-gray-700 dark:text-gray-300">Assignment Reminders</span>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Get emails for due today, 1 day, 3 days, and overdue</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={preferences.emailAssignmentReminders !== false}
+                      onChange={(e) => updatePreference({ emailAssignmentReminders: e.target.checked })}
+                      className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                    />
+                  </label>
+
+                  {/* Email Digest Settings */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Email Digest Frequency
+                      </label>
+                      <select
+                        value={preferences.emailDigestFrequency || 'none'}
+                        onChange={(e) => updatePreference({ emailDigestFrequency: e.target.value as 'daily' | 'weekly' | 'none' })}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      >
+                        <option value="none">None</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                      </select>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Receive a summary of your assignments via email
+                      </p>
+                    </div>
+
+                    {/* Digest Time (for daily) */}
+                    {preferences.emailDigestFrequency === 'daily' && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Daily Digest Time
+                        </label>
+                        <TimePicker
+                          value={preferences.emailDigestTime || '09:00'}
+                          onChange={(time) => updatePreference({ emailDigestTime: time })}
+                        />
+                      </div>
+                    )}
+
+                    {/* Weekly Digest Day */}
+                    {preferences.emailDigestFrequency === 'weekly' && (
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Weekly Digest Day
+                          </label>
+                          <select
+                            value={preferences.emailDigestDay || 'Monday'}
+                            onChange={(e) => updatePreference({ emailDigestDay: e.target.value as 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday' })}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          >
+                            <option value="Monday">Monday</option>
+                            <option value="Tuesday">Tuesday</option>
+                            <option value="Wednesday">Wednesday</option>
+                            <option value="Thursday">Thursday</option>
+                            <option value="Friday">Friday</option>
+                            <option value="Saturday">Saturday</option>
+                            <option value="Sunday">Sunday</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Weekly Digest Time
+                          </label>
+                          <TimePicker
+                            value={preferences.emailDigestTime || '09:00'}
+                            onChange={(time) => updatePreference({ emailDigestTime: time })}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Email Configuration Status */}
+                  {!isEmailConfigured() && (
+                    <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                        <strong>⚠️ Email not configured:</strong> Add EmailJS credentials to your <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">.env</code> file. See <strong>EMAIL_SETUP_FREE.md</strong> for instructions.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Test Email Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={async () => {
+                        if (!user) return;
+                        if (!isEmailConfigured()) {
+                          setToast({
+                            id: Date.now().toString(),
+                            message: 'Email service not configured. Please set up EmailJS first.',
+                            type: 'warning',
+                          });
+                          return;
+                        }
+                        setTestingEmail(true);
+                        try {
+                          await sendTestEmail(user.uid);
+                          setToast({
+                            id: Date.now().toString(),
+                            message: 'Test email sent! Check your inbox (and spam folder).',
+                            type: 'success',
+                          });
+                        } catch (error: any) {
+                          console.error('Error sending test email:', error);
+                          if (error.message?.includes('not configured')) {
+                            setToast({
+                              id: Date.now().toString(),
+                              message: 'Email service not configured. Please set up EmailJS first.',
+                              type: 'error',
+                            });
+                          } else {
+                            setToast({
+                              id: Date.now().toString(),
+                              message: `Failed to send test email: ${error.message || 'Unknown error'}`,
+                              type: 'error',
+                            });
+                          }
+                        } finally {
+                          setTestingEmail(false);
+                        }
+                      }}
+                      disabled={testingEmail || !isEmailConfigured()}
+                      className="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-lg transition-all shadow-lg disabled:cursor-not-allowed"
+                    >
+                      {testingEmail ? 'Sending Test Email...' : isEmailConfigured() ? 'Send Test Email' : 'Configure Email First'}
+                    </button>
+                  </div>
+
+                  {/* Info Note */}
+                  <div className="mt-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg">
+                    <p className="text-xs text-indigo-800 dark:text-indigo-200">
+                      Free tier: <strong>200 emails/month</strong>
+                    </p>
+                  </div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={preferences.notificationsEnabled}
-                  onChange={(e) => updatePreference({ notificationsEnabled: e.target.checked })}
-                  className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
-                />
-              </label>
+              )}
+              </div>
             </div>
           </div>
 
@@ -831,6 +1042,14 @@ export default function SettingsPage() {
             // Reload the page to refresh all data
             window.location.reload();
           }}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          toast={toast}
+          onClose={() => setToast(null)}
         />
       )}
     </div>

@@ -367,7 +367,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                                     {block.type}
                                   </div>
                                 </div>
-                              <div className="hidden lg:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                              <div className="hidden xl:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                                   <button
                                     onClick={(e) => handleDeleteBlockClick(block, e)}
                                     className="p-1 bg-white/80 dark:bg-gray-800/80 rounded hover:bg-white dark:hover:bg-gray-700 transition-colors"

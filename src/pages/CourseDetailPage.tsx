@@ -171,8 +171,10 @@ export default function CourseDetailPage() {
             </button>
             <button
               onClick={() => setShowQuickAdd(true)}
+              data-quick-add="true"
               className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-base touch-manipulation"
               style={{ minHeight: '44px' }}
+              title={`Quick Add Assignment (${navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl'}+N)`}
             >
               <Plus className="w-5 h-5" />
               <span>Add Assignment</span>
@@ -195,8 +197,10 @@ export default function CourseDetailPage() {
           {/* Add Assignment Button - Mobile */}
           <button
             onClick={() => setShowQuickAdd(true)}
+            data-quick-add="true"
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-sm touch-manipulation"
             style={{ minHeight: '44px' }}
+            title={`Quick Add Assignment (${navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl'}+N)`}
           >
             <Plus className="w-4 h-4" />
             <span>Add Assignment</span>

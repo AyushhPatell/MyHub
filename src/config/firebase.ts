@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 
 // TODO: Replace with your Firebase config
 // Get this from Firebase Console > Project Settings > General > Your apps
@@ -19,6 +20,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const functions = getFunctions(app);
 
 // Set auth persistence (this is the default, but explicit for security)
 setPersistence(auth, browserLocalPersistence).catch((error) => {

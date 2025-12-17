@@ -8,6 +8,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
+import { useKeyboardShortcuts, isMac } from '../hooks/useKeyboardShortcuts';
+import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 
 interface LayoutProps {
   children: ReactNode;
@@ -20,7 +22,9 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const mac = isMac();
 
   useEffect(() => {
     const loadUserName = async () => {
@@ -85,6 +89,35 @@ export default function Layout({ children }: LayoutProps) {
     return user.email.split('@')[0];
   };
 
+  // Keyboard shortcuts
+  const handleQuickAdd = () => {
+    // Find and click the Quick Add button if it exists on the page
+    const quickAddButton = document.querySelector('[data-quick-add="true"]') as HTMLButtonElement;
+    if (quickAddButton) {
+      quickAddButton.click();
+    } else {
+      // Fallback: try finding by text content
+      const buttons = Array.from(document.querySelectorAll('button'));
+      const found = buttons.find(btn => 
+        btn.textContent?.includes('Quick Add') || 
+        btn.textContent?.includes('Quick')
+      );
+      if (found) {
+        found.click();
+      }
+    }
+  };
+
+  useKeyboardShortcuts({
+    onQuickAdd: handleQuickAdd,
+    onOpenSettings: () => {
+      navigate('/settings');
+      setUserMenuOpen(false);
+    },
+    onOpenShortcutsHelp: () => setShowShortcutsModal(true),
+    enabled: !!user, // Only enable when user is logged in
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
       {/* Top Navigation Bar */}
@@ -106,6 +139,7 @@ export default function Layout({ children }: LayoutProps) {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
+                  const shortcut = item.path === '/' ? 'D' : item.path === '/courses' ? 'C' : null;
                   return (
                     <Link
                       key={item.path}
@@ -115,6 +149,7 @@ export default function Layout({ children }: LayoutProps) {
                           ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
                       }`}
+                      title={shortcut ? `${item.label} (${mac ? '⌘' : 'Ctrl'}+${shortcut})` : item.label}
                     >
                       <Icon size={18} />
                       {item.label}
@@ -173,6 +208,7 @@ export default function Layout({ children }: LayoutProps) {
                             setUserMenuOpen(false);
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors"
+                          title={`Settings (${mac ? '⌘' : 'Ctrl'}+,)`}
                         >
                           <Settings size={18} />
                           Settings
@@ -275,6 +311,11 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main Content - Full Width */}
       <main className="w-full">{children}</main>
+
+      {/* Keyboard Shortcuts Modal */}
+      {showShortcutsModal && (
+        <KeyboardShortcutsModal onClose={() => setShowShortcutsModal(false)} />
+      )}
     </div>
   );
 }

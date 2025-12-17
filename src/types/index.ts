@@ -25,6 +25,11 @@ export interface UserPreferences {
     lat: number;
     lng: number;
   }; // For sunset/sunrise calculations
+  // Email Preferences
+  emailNotificationsEnabled?: boolean; // Master toggle for all email notifications
+  emailAssignmentReminders?: boolean; // Individual assignment reminders (due today, 1 day, 3 days, overdue)
+  emailDigestTime?: string; // "09:00" - Time of day to send digest emails
+  emailDigestDay?: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"; // Day of week for weekly digest
 }
 
 // Semester Types

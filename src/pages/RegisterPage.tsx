@@ -62,6 +62,10 @@ export default function RegisterPage() {
           timezone: 'America/Halifax',
           dateFormat: 'MM/DD/YYYY',
           firstDayOfWeek: 'Monday',
+          emailNotificationsEnabled: false,
+          emailAssignmentReminders: true,
+          emailDigestTime: '09:00',
+          emailDigestDay: 'Monday',
         },
       });
 
