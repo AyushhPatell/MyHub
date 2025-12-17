@@ -23,21 +23,31 @@ function TimePicker({ value, onChange }: { value: string; onChange: (time: strin
   const minutesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Scroll to selected hour
+    // Scroll to selected hour (only within the container, not the page)
     if (hoursRef.current) {
       const selectedElement = hoursRef.current.querySelector(`[data-value="${hoursValue}"]`) as HTMLElement;
-      if (selectedElement) {
-        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (selectedElement && hoursRef.current) {
+        const container = hoursRef.current;
+        const elementTop = selectedElement.offsetTop;
+        const elementHeight = selectedElement.offsetHeight;
+        const containerHeight = container.clientHeight;
+        const scrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+        container.scrollTo({ top: scrollTop, behavior: 'smooth' });
       }
     }
   }, [hoursValue]);
 
   useEffect(() => {
-    // Scroll to selected minute
+    // Scroll to selected minute (only within the container, not the page)
     if (minutesRef.current) {
       const selectedElement = minutesRef.current.querySelector(`[data-value="${minutesValue}"]`) as HTMLElement;
-      if (selectedElement) {
-        selectedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (selectedElement && minutesRef.current) {
+        const container = minutesRef.current;
+        const elementTop = selectedElement.offsetTop;
+        const elementHeight = selectedElement.offsetHeight;
+        const containerHeight = container.clientHeight;
+        const scrollTop = elementTop - (containerHeight / 2) + (elementHeight / 2);
+        container.scrollTo({ top: scrollTop, behavior: 'smooth' });
       }
     }
   }, [minutesValue]);
@@ -185,6 +195,27 @@ export default function SettingsPage() {
       loadSemesters();
     }
   }, [user]);
+
+  // Prevent auto-scroll on page load - run only once
+  useEffect(() => {
+    // Only scroll if there's an explicit hash in the URL
+    if (window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const element = document.getElementById(hash);
+      if (element) {
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    } else {
+      // Ensure we're at the top of the page on initial load
+      // Use requestAnimationFrame to ensure this happens after React renders
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      });
+    }
+  }, []); // Empty dependency array - only run once on mount
 
   const loadPreferences = async () => {
     if (!user) return;

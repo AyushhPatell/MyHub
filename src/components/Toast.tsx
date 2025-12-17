@@ -55,15 +55,16 @@ export default function Toast({ toast, onClose }: ToastProps) {
 
   const toastContent = (
     <div
-      className={`fixed top-4 left-1/2 -translate-x-1/2 z-[10000] w-auto max-w-[90vw] sm:max-w-2xl ${
+      className={`fixed pt-safe top-4 left-1/2 -translate-x-1/2 z-[10000] w-auto max-w-[90vw] sm:max-w-2xl ${
         isClosing ? 'animate-slide-up' : 'animate-slide-down'
       }`}
       role="alert"
       style={{ 
         position: 'fixed',
-        top: '1rem',
+        top: 'max(1rem, env(safe-area-inset-top, 1rem))',
         left: '50%',
         transform: 'translateX(-50%)',
+        paddingTop: 'max(1rem, env(safe-area-inset-top, 1rem))',
       }}
     >
       <div
