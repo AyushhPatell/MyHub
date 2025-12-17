@@ -11,7 +11,6 @@ import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';
 import SemesterSetupModal from '../components/SemesterSetupModal';
 import { applySmoothThemeTransition } from '../utils/themeTransition';
-import Toast, { Toast as ToastType } from '../components/Toast';
 
 // Compact Scrollable Time Picker Component
 function TimePicker({ value, onChange }: { value: string; onChange: (time: string) => void }) {
@@ -177,7 +176,6 @@ export default function SettingsPage() {
   const [switching, setSwitching] = useState(false);
   const [showSemesterSetup, setShowSemesterSetup] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
-  const [toast, setToast] = useState<ToastType | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -231,11 +229,7 @@ export default function SettingsPage() {
       window.location.reload();
     } catch (error) {
       console.error('Error switching semester:', error);
-      setToast({
-        id: Date.now().toString(),
-        message: 'Failed to switch semester. Please try again.',
-        type: 'error',
-      });
+      alert('Failed to switch semester. Please try again.');
     } finally {
       setSwitching(false);
     }
@@ -306,11 +300,7 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error updating preferences:', error);
-      setToast({
-        id: Date.now().toString(),
-        message: 'Failed to update preferences. Please try again.',
-        type: 'error',
-      });
+      alert('Failed to update preferences. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -386,23 +376,11 @@ export default function SettingsPage() {
     } catch (error: any) {
       console.error('Error deleting account:', error);
       if (error.code === 'auth/requires-recent-login') {
-        setToast({
-          id: Date.now().toString(),
-          message: 'For security, please sign out and sign back in, then try deleting your account again.',
-          type: 'warning',
-        });
+        alert('For security, please sign out and sign back in, then try deleting your account again.');
       } else if (error.code === 'permission-denied' || error.message?.includes('permission') || error.message?.includes('Permission')) {
-        setToast({
-          id: Date.now().toString(),
-          message: 'Permission denied. Please check Firestore security rules and ensure you are logged in.',
-          type: 'error',
-        });
+        alert('Permission denied. Please ensure:\n1. You are logged in\n2. Firestore security rules include "delete" permissions\n3. Rules have been published in Firebase Console\n\nSee UPDATED_FIRESTORE_RULES.txt for the correct rules.');
       } else {
-        setToast({
-          id: Date.now().toString(),
-          message: `Failed to delete account: ${error.message || 'Unknown error'}. Please try again or contact support.`,
-          type: 'error',
-        });
+        alert(`Failed to delete account: ${error.message || 'Unknown error'}. Please try again or contact support.`);
       }
     } finally {
       setDeleting(false);
@@ -637,20 +615,12 @@ export default function SettingsPage() {
                                         });
                                       },
                                       (error) => {
-                                        setToast({
-                                          id: Date.now().toString(),
-                                          message: 'Failed to get location. Please enable location permissions.',
-                                          type: 'error',
-                                        });
+                                        alert('Failed to get location. Please enable location permissions.');
                                         console.error('Geolocation error:', error);
                                       }
                                     );
                                   } else {
-                                    setToast({
-                                      id: Date.now().toString(),
-                                      message: 'Geolocation is not supported by your browser.',
-                                      type: 'warning',
-                                    });
+                                    alert('Geolocation is not supported by your browser.');
                                   }
                                 }}
                                 className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -672,20 +642,12 @@ export default function SettingsPage() {
                                       });
                                     },
                                     (error) => {
-                                      setToast({
-                                        id: Date.now().toString(),
-                                        message: 'Failed to get location. Please enable location permissions.',
-                                        type: 'error',
-                                      });
+                                      alert('Failed to get location. Please enable location permissions.');
                                       console.error('Geolocation error:', error);
                                     }
                                   );
                                 } else {
-                                  setToast({
-                                    id: Date.now().toString(),
-                                    message: 'Geolocation is not supported by your browser.',
-                                    type: 'warning',
-                                  });
+                                  alert('Geolocation is not supported by your browser.');
                                 }
                               }}
                               className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -834,7 +796,7 @@ export default function SettingsPage() {
                   {!isEmailConfigured() && (
                     <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                       <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                        <strong>⚠️ Email not configured:</strong> Add EmailJS credentials to your <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">.env</code> file. See <strong>EMAIL_SETUP_FREE.md</strong> for instructions.
+                        <strong>⚠️ Email not configured:</strong> Add EmailJS credentials to your <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">.env</code> file and rebuild the project. See <strong>DEPLOYMENT_GUIDE.md</strong> for deployment instructions.
                       </p>
                     </div>
                   )}
@@ -845,35 +807,19 @@ export default function SettingsPage() {
                       onClick={async () => {
                         if (!user) return;
                         if (!isEmailConfigured()) {
-                          setToast({
-                            id: Date.now().toString(),
-                            message: 'Email service not configured. Please set up EmailJS first.',
-                            type: 'warning',
-                          });
+                          alert('Email service not configured. Add EmailJS credentials to .env file and rebuild. See DEPLOYMENT_GUIDE.md for deployment instructions.');
                           return;
                         }
                         setTestingEmail(true);
                         try {
                           await sendTestEmail(user.uid);
-                          setToast({
-                            id: Date.now().toString(),
-                            message: 'Test email sent! Check your inbox (and spam folder).',
-                            type: 'success',
-                          });
+                          alert('✅ Test email sent! Check your inbox (and spam folder).');
                         } catch (error: any) {
                           console.error('Error sending test email:', error);
                           if (error.message?.includes('not configured')) {
-                            setToast({
-                              id: Date.now().toString(),
-                              message: 'Email service not configured. Please set up EmailJS first.',
-                              type: 'error',
-                            });
+                            alert('Email service not configured. Please set up EmailJS first. See EMAIL_SETUP_FREE.md for instructions.');
                           } else {
-                            setToast({
-                              id: Date.now().toString(),
-                              message: `Failed to send test email: ${error.message || 'Unknown error'}`,
-                              type: 'error',
-                            });
+                            alert(`Failed to send test email: ${error.message || 'Unknown error'}. Check EmailJS dashboard logs for details.`);
                           }
                         } finally {
                           setTestingEmail(false);
@@ -1042,14 +988,6 @@ export default function SettingsPage() {
             // Reload the page to refresh all data
             window.location.reload();
           }}
-        />
-      )}
-
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          toast={toast}
-          onClose={() => setToast(null)}
         />
       )}
     </div>

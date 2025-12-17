@@ -32,37 +32,6 @@
   will-change: transform, opacity;
 }
 
-/* Toast notification animations */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -100%);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-  to {
-    opacity: 0;
-    transform: translate(-50%, -100%);
-  }
-}
-
-.animate-slide-down {
-  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.animate-slide-up {
-  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
 @layer base {
   /* Smooth theme transitions - apply to elements that change colors */
   html {
