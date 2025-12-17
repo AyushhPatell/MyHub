@@ -133,6 +133,37 @@
     animation: fadeIn 0.3s ease-in-out;
   }
   
+  /* Toast animations */
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-100%);
+    }
+  }
+  
+  .animate-slide-down {
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-in;
+  }
+  
   /* Safe area insets for mobile browsers */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0);

@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';
 import SemesterSetupModal from '../components/SemesterSetupModal';
 import { applySmoothThemeTransition } from '../utils/themeTransition';
+import Toast, { Toast as ToastType } from '../components/Toast';
 
 // Compact Scrollable Time Picker Component
 function TimePicker({ value, onChange }: { value: string; onChange: (time: string) => void }) {
@@ -176,6 +177,7 @@ export default function SettingsPage() {
   const [switching, setSwitching] = useState(false);
   const [showSemesterSetup, setShowSemesterSetup] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
+  const [toast, setToast] = useState<ToastType | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -807,19 +809,35 @@ export default function SettingsPage() {
                       onClick={async () => {
                         if (!user) return;
                         if (!isEmailConfigured()) {
-                          alert('Email service not configured. Add EmailJS credentials to .env file and rebuild. See DEPLOYMENT_GUIDE.md for deployment instructions.');
+                          setToast({
+                            id: Date.now().toString(),
+                            message: 'Email service not configured. Add EmailJS credentials to .env file and rebuild. See DEPLOYMENT_GUIDE.md for deployment instructions.',
+                            type: 'warning'
+                          });
                           return;
                         }
                         setTestingEmail(true);
                         try {
                           await sendTestEmail(user.uid);
-                          alert('✅ Test email sent! Check your inbox (and spam folder).');
+                          setToast({
+                            id: Date.now().toString(),
+                            message: 'Test email sent! Check your inbox (and spam folder).',
+                            type: 'success'
+                          });
                         } catch (error: any) {
                           console.error('Error sending test email:', error);
                           if (error.message?.includes('not configured')) {
-                            alert('Email service not configured. Please set up EmailJS first. See EMAIL_SETUP_FREE.md for instructions.');
+                            setToast({
+                              id: Date.now().toString(),
+                              message: 'Email service not configured. Please set up EmailJS first. See EMAIL_SETUP_FREE.md for instructions.',
+                              type: 'warning'
+                            });
                           } else {
-                            alert(`Failed to send test email: ${error.message || 'Unknown error'}. Check EmailJS dashboard logs for details.`);
+                            setToast({
+                              id: Date.now().toString(),
+                              message: `Failed to send test email: ${error.message || 'Unknown error'}. Check EmailJS dashboard logs for details.`,
+                              type: 'error'
+                            });
                           }
                         } finally {
                           setTestingEmail(false);
@@ -988,6 +1006,13 @@ export default function SettingsPage() {
             // Reload the page to refresh all data
             window.location.reload();
           }}
+        />
+      )}
+
+      {toast && (
+        <Toast
+          toast={toast}
+          onClose={() => setToast(null)}
         />
       )}
     </div>
