@@ -140,14 +140,16 @@ async function trackCost(tokensUsed: number, cost: number): Promise<void> {
 }
 
 /**
- * Gather user context from Firestore
+ * Gather user context from Firestore (optimized for cost efficiency)
  * @param {string} userId - The user's unique ID
  * @param {Date} today - Today's date in user's timezone (optional)
+ * @param {string} userMessage - User's message to determine relevant context
  * @return {Promise<string>} Formatted user context string
  */
 async function gatherUserContext(
   userId: string,
-  today?: Date
+  today?: Date,
+  userMessage?: string
 ): Promise<string> {
   try {
     const db = admin.firestore();
@@ -165,6 +167,27 @@ async function gatherUserContext(
       }
       contextParts.push(`Timezone: ${userTimezone}`);
     }
+
+    // Analyze message to determine what context is needed (cost optimization)
+    const messageLower = (userMessage || "").toLowerCase();
+    const schedulePattern = new RegExp(
+      "\\b(schedule|class|lecture|meeting|appointment|time|when|" +
+      "today|tomorrow|week|day)\\b"
+    );
+    const needsSchedule = messageLower.match(schedulePattern);
+    const needsAssignments = messageLower.match(
+      /\b(assignment|homework|due|deadline|task|project)\b/
+    );
+    const needsCalendar = messageLower.match(
+      /\b(event|calendar|appointment|meeting|reminder)\b/
+    );
+    const needsCourses = messageLower.match(
+      /\b(course|class|subject|semester)\b/
+    );
+
+    // If no specific keywords, include everything (general chat)
+    const includeAll = !needsSchedule && !needsAssignments &&
+      !needsCalendar && !needsCourses;
 
     // Get active semester
     const semestersSnapshot = await db
@@ -224,18 +247,13 @@ async function gatherUserContext(
           });
         });
 
-        if (courseSchedules.length > 0) {
-          const scheduleText = courseSchedules
-            .map((s) => {
-              const loc = s.location ? ` (${s.location})` : "";
-              return `${s.day}: ${s.startTime} - ${s.endTime} - ` +
-                `${s.course}${loc}`;
-            })
-            .join("\n");
-          contextParts.push(`Weekly Schedule:\n${scheduleText}`);
-
-          // If today is provided, also include today's specific schedule
-          if (today) {
+        // Only include schedule if needed (cost optimization)
+        if ((includeAll || needsSchedule || needsCourses) &&
+          courseSchedules.length > 0) {
+          // If today is provided and user asks about today/tomorrow,
+          // only show relevant day
+          if (today && (messageLower.includes("today") ||
+            messageLower.includes("tomorrow"))) {
             const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday",
               "Thursday", "Friday", "Saturday"];
             const todayDayName = dayNames[today.getDay()];
@@ -257,194 +275,233 @@ async function gatherUserContext(
                 `Today's Schedule (${todayDayName}): No classes scheduled`
               );
             }
+          } else {
+            // Include full weekly schedule
+            const scheduleText = courseSchedules
+              .map((s) => {
+                const loc = s.location ? ` (${s.location})` : "";
+                return `${s.day}: ${s.startTime} - ${s.endTime} - ` +
+                  `${s.course}${loc}`;
+              })
+              .join("\n");
+            contextParts.push(`Weekly Schedule:\n${scheduleText}`);
           }
         }
 
-        // Get schedule blocks
-        const scheduleBlocksSnapshot = await db
+        // Get schedule blocks (only if needed)
+        if (includeAll || needsSchedule) {
+          const scheduleBlocksSnapshot = await db
+            .collection("users")
+            .doc(userId)
+            .collection("semesters")
+            .doc(semesterId)
+            .collection("scheduleBlocks")
+            .get();
+
+          if (!scheduleBlocksSnapshot.empty) {
+            const blocks = scheduleBlocksSnapshot.docs.map((doc) => {
+              const data = doc.data();
+              const building = data.location?.building || "";
+              const room = data.location?.room || "";
+              const location = data.location ?
+                ` (${building} ${room})`.trim() :
+                "";
+              const title = data.title || data.courseNumber || "";
+              return `${data.dayOfWeek || ""}: ${data.startTime || ""} - ` +
+                `${data.endTime || ""} - ${title}${location}`;
+            });
+            if (blocks.length > 0) {
+              // Filter by today if asking about today
+              if (today && messageLower.includes("today")) {
+                const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday",
+                  "Thursday", "Friday", "Saturday"];
+                const todayDayName = dayNames[today.getDay()];
+                const todayBlocks = blocks.filter((b) =>
+                  b.startsWith(`${todayDayName}:`)
+                );
+                if (todayBlocks.length > 0) {
+                  contextParts.push(
+                    `Today's Schedule Blocks:\n${todayBlocks.join("\n")}`
+                  );
+                }
+              } else {
+                contextParts.push(`Schedule Blocks:\n${blocks.join("\n")}`);
+              }
+            }
+          }
+        }
+      }
+
+      // Get calendar events (only if needed)
+      if (includeAll || needsCalendar || needsSchedule) {
+        const calendarEventsSnapshot = await db
           .collection("users")
           .doc(userId)
           .collection("semesters")
           .doc(semesterId)
-          .collection("scheduleBlocks")
+          .collection("calendarEvents")
           .get();
 
-        if (!scheduleBlocksSnapshot.empty) {
-          const blocks = scheduleBlocksSnapshot.docs.map((doc) => {
+        if (!calendarEventsSnapshot.empty) {
+          // Use today if provided, otherwise use current date
+          const todayForFilter = today || new Date();
+          const todayDateStr = todayForFilter.toISOString().split("T")[0];
+          const nextWeekForEventsCalc = new Date(todayForFilter);
+          nextWeekForEventsCalc.setDate(nextWeekForEventsCalc.getDate() + 7);
+
+          const events: Array<{
+            date: string;
+            title: string;
+            startTime?: string;
+            endTime?: string;
+          }> = [];
+
+          calendarEventsSnapshot.docs.forEach((doc) => {
             const data = doc.data();
-            const building = data.location?.building || "";
-            const room = data.location?.room || "";
-            const location = data.location ?
-              ` (${building} ${room})`.trim() :
-              "";
-            const title = data.title || data.courseNumber || "";
-            return `${data.dayOfWeek || ""}: ${data.startTime || ""} - ` +
-              `${data.endTime || ""} - ${title}${location}`;
+            const eventDateStr = data.date; // Format: "YYYY-MM-DD"
+            const eventDate = new Date(eventDateStr + "T00:00:00");
+            const todayStart = new Date(todayDateStr + "T00:00:00");
+            const nextWeekDateStr = nextWeekForEventsCalc.toISOString()
+              .split("T")[0];
+            const nextWeekStart = new Date(nextWeekDateStr + "T00:00:00");
+
+            if (eventDate >= todayStart && eventDate <= nextWeekStart) {
+              events.push({
+                date: data.date,
+                title: data.title || "",
+                startTime: data.startTime,
+                endTime: data.endTime,
+              });
+            }
           });
-          if (blocks.length > 0) {
-            contextParts.push(`Schedule Blocks:\n${blocks.join("\n")}`);
+
+          // Also include today's specific events if today is provided
+          if (today) {
+            const todayEvents = events.filter((e) => e.date === todayDateStr);
+            if (todayEvents.length > 0) {
+              const todayEventsText = todayEvents
+                .map((e) => {
+                  const time = e.startTime && e.endTime ?
+                    ` (${e.startTime} - ${e.endTime})` :
+                    e.startTime ? ` (${e.startTime})` : "";
+                  return `${e.title}${time}`;
+                })
+                .join("\n");
+              contextParts.push(
+                `Today's Calendar Events:\n${todayEventsText}`
+              );
+            }
           }
-        }
-      }
 
-      // Get calendar events
-      const calendarEventsSnapshot = await db
-        .collection("users")
-        .doc(userId)
-        .collection("semesters")
-        .doc(semesterId)
-        .collection("calendarEvents")
-        .get();
-
-      if (!calendarEventsSnapshot.empty) {
-        // Use today if provided, otherwise use current date
-        const todayForFilter = today || new Date();
-        const todayDateStr = todayForFilter.toISOString().split("T")[0];
-        const nextWeekForEventsCalc = new Date(todayForFilter);
-        nextWeekForEventsCalc.setDate(nextWeekForEventsCalc.getDate() + 7);
-
-        const events: Array<{
-          date: string;
-          title: string;
-          startTime?: string;
-          endTime?: string;
-        }> = [];
-
-        calendarEventsSnapshot.docs.forEach((doc) => {
-          const data = doc.data();
-          const eventDateStr = data.date; // Format: "YYYY-MM-DD"
-          const eventDate = new Date(eventDateStr + "T00:00:00");
-          const todayStart = new Date(todayDateStr + "T00:00:00");
-          const nextWeekDateStr = nextWeekForEventsCalc.toISOString()
-            .split("T")[0];
-          const nextWeekStart = new Date(nextWeekDateStr + "T00:00:00");
-
-          if (eventDate >= todayStart && eventDate <= nextWeekStart) {
-            events.push({
-              date: data.date,
-              title: data.title || "",
-              startTime: data.startTime,
-              endTime: data.endTime,
-            });
-          }
-        });
-
-        // Also include today's specific events if today is provided
-        if (today) {
-          const todayEvents = events.filter((e) => e.date === todayDateStr);
-          if (todayEvents.length > 0) {
-            const todayEventsText = todayEvents
+          if (events.length > 0) {
+            const eventsText = events
+              .sort((a, b) => {
+                return new Date(a.date).getTime() - new Date(b.date).getTime();
+              })
               .map((e) => {
                 const time = e.startTime && e.endTime ?
                   ` (${e.startTime} - ${e.endTime})` :
                   e.startTime ? ` (${e.startTime})` : "";
-                return `${e.title}${time}`;
+                return `${e.date}: ${e.title}${time}`;
               })
               .join("\n");
-            contextParts.push(
-              `Today's Calendar Events:\n${todayEventsText}`
-            );
+            contextParts.push(`Calendar Events (next 7 days):\n${eventsText}`);
           }
-        }
-
-        if (events.length > 0) {
-          const eventsText = events
-            .sort((a, b) => {
-              return new Date(a.date).getTime() - new Date(b.date).getTime();
-            })
-            .map((e) => {
-              const time = e.startTime && e.endTime ?
-                ` (${e.startTime} - ${e.endTime})` :
-                e.startTime ? ` (${e.startTime})` : "";
-              return `${e.date}: ${e.title}${time}`;
-            })
-            .join("\n");
-          contextParts.push(`Calendar Events (next 7 days):\n${eventsText}`);
         }
       }
 
-      // Get upcoming assignments (next 7 days)
-      // Use today if provided, otherwise use current date
-      const todayForAssignments = today || new Date();
-      const nextWeekForAssignments = new Date(todayForAssignments);
-      nextWeekForAssignments.setDate(nextWeekForAssignments.getDate() + 7);
-
-      const assignments: Array<{
-        name: string;
-        dueDate: Date;
-        course: string;
-      }> = [];
-      for (const courseDoc of coursesSnapshot.docs) {
-        const courseId = courseDoc.id;
-        const assignmentsSnapshot = await db
+      // Get upcoming assignments (only if needed)
+      if (includeAll || needsAssignments) {
+        const coursesSnapshot = await db
           .collection("users")
           .doc(userId)
           .collection("semesters")
           .doc(semesterId)
           .collection("courses")
-          .doc(courseId)
-          .collection("assignments")
-          .where("completedAt", "==", null)
           .get();
 
-        assignmentsSnapshot.forEach((doc) => {
-          const data = doc.data();
-          const dueDate = data.dueDate?.toDate();
-          if (dueDate) {
-            // Compare dates (ignore time)
-            const dueDateOnly = new Date(
-              dueDate.getFullYear(),
-              dueDate.getMonth(),
-              dueDate.getDate()
-            );
-            const todayOnly = new Date(
-              todayForAssignments.getFullYear(),
-              todayForAssignments.getMonth(),
-              todayForAssignments.getDate()
-            );
-            const nextWeekOnly = new Date(
-              nextWeekForAssignments.getFullYear(),
-              nextWeekForAssignments.getMonth(),
-              nextWeekForAssignments.getDate()
-            );
+        // Use today if provided, otherwise use current date
+        const todayForAssignments = today || new Date();
+        const nextWeekForAssignments = new Date(todayForAssignments);
+        nextWeekForAssignments.setDate(nextWeekForAssignments.getDate() + 7);
 
-            if (dueDateOnly >= todayOnly && dueDateOnly <= nextWeekOnly) {
-              assignments.push({
-                name: data.name,
-                dueDate: dueDate,
-                course: courseDoc.data().courseName,
-              });
+        const assignments: Array<{
+          name: string;
+          dueDate: Date;
+          course: string;
+        }> = [];
+        for (const courseDoc of coursesSnapshot.docs) {
+          const courseId = courseDoc.id;
+          const assignmentsSnapshot = await db
+            .collection("users")
+            .doc(userId)
+            .collection("semesters")
+            .doc(semesterId)
+            .collection("courses")
+            .doc(courseId)
+            .collection("assignments")
+            .where("completedAt", "==", null)
+            .get();
+
+          assignmentsSnapshot.forEach((doc) => {
+            const data = doc.data();
+            const dueDate = data.dueDate?.toDate();
+            if (dueDate) {
+              // Compare dates (ignore time)
+              const dueDateOnly = new Date(
+                dueDate.getFullYear(),
+                dueDate.getMonth(),
+                dueDate.getDate()
+              );
+              const todayOnly = new Date(
+                todayForAssignments.getFullYear(),
+                todayForAssignments.getMonth(),
+                todayForAssignments.getDate()
+              );
+              const nextWeekOnly = new Date(
+                nextWeekForAssignments.getFullYear(),
+                nextWeekForAssignments.getMonth(),
+                nextWeekForAssignments.getDate()
+              );
+
+              if (dueDateOnly >= todayOnly && dueDateOnly <= nextWeekOnly) {
+                assignments.push({
+                  name: data.name,
+                  dueDate: dueDate,
+                  course: courseDoc.data().courseName,
+                });
+              }
             }
-          }
-        });
-      }
-
-      if (assignments.length > 0) {
-        const assignmentsText = assignments
-          .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
-          .map((a) => {
-            return `${a.name} (${a.course}) - ` +
-              `Due: ${a.dueDate.toLocaleDateString()}`;
-          })
-          .join("\n");
-        contextParts.push(
-          `Upcoming Assignments (next 7 days):\n${assignmentsText}`
-        );
-
-        // Also include today's assignments if today is provided
-        if (today) {
-          const todayDateStr = today.toISOString().split("T")[0];
-          const todayAssignments = assignments.filter((a) => {
-            const dueDateStr = a.dueDate.toISOString().split("T")[0];
-            return dueDateStr === todayDateStr;
           });
-          if (todayAssignments.length > 0) {
-            const todayAssignmentsText = todayAssignments
-              .map((a) => `${a.name} (${a.course})`)
-              .join("\n");
-            contextParts.push(
-              `Today's Assignments:\n${todayAssignmentsText}`
-            );
+        }
+
+        if (assignments.length > 0) {
+          const assignmentsText = assignments
+            .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+            .map((a) => {
+              return `${a.name} (${a.course}) - ` +
+                `Due: ${a.dueDate.toLocaleDateString()}`;
+            })
+            .join("\n");
+          contextParts.push(
+            `Upcoming Assignments (next 7 days):\n${assignmentsText}`
+          );
+
+          // Also include today's assignments if today is provided
+          if (today) {
+            const todayDateStr = today.toISOString().split("T")[0];
+            const todayAssignments = assignments.filter((a) => {
+              const dueDateStr = a.dueDate.toISOString().split("T")[0];
+              return dueDateStr === todayDateStr;
+            });
+            if (todayAssignments.length > 0) {
+              const todayAssignmentsText = todayAssignments
+                .map((a) => `${a.name} (${a.course})`)
+                .join("\n");
+              contextParts.push(
+                `Today's Assignments:\n${todayAssignmentsText}`
+              );
+            }
           }
         }
       }
@@ -501,8 +558,8 @@ export const chatWithAI = onCall(
     }
 
     try {
-      // Get timezone first to calculate today correctly
-      const tempContext = await gatherUserContext(userId);
+      // Get timezone first to calculate today correctly (minimal context)
+      const tempContext = await gatherUserContext(userId, undefined, "");
       const timezoneMatch = tempContext.match(/Timezone: ([^\n]+)/);
       const userTimezone = timezoneMatch ? timezoneMatch[1] : "UTC";
 
@@ -516,8 +573,9 @@ export const chatWithAI = onCall(
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Gather full user context with today's date for filtering
-      const userContext = await gatherUserContext(userId, today);
+      // Gather full user context with today's date and message
+      // for smart filtering
+      const userContext = await gatherUserContext(userId, today, message);
 
       // Format dates for display
       const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday",
@@ -541,36 +599,38 @@ export const chatWithAI = onCall(
         minute: "2-digit",
       });
 
-      // Create system prompt
-      const systemPrompt = "You are a friendly and helpful personal AI " +
-        "assistant for MyHub, a personal management app. " +
-        "You're here to help with various aspects of the user's life, " +
-        "including their academic schedule, assignments, courses, and " +
-        "general conversation.\n\n" +
-        "IMPORTANT: Only use the data provided in User Context. " +
-        "Do NOT make up or assume any information. " +
-        "If the data shows no events for a specific day, say so clearly.\n\n" +
-        `Current Date Information (User's Timezone: ${userTimezone}):
-- Today: ${todayStr} (${todayName})
-- Tomorrow: ${tomorrowStr} (${tomorrowName})
-- Current Time: ${currentTime}\n\n` +
-        `User Context:
-${userContext}\n\n` +
-        "Be conversational, friendly, and natural. You can chat about " +
-        "anything - not just academic tasks. Feel free to have casual " +
-        "conversations, answer questions, or just chat.\n" +
-        "When the user asks about their schedule, assignments, or courses, " +
-        "provide accurate information based on the data provided.\n" +
-        "When answering about specific dates (like 'today' or 'tomorrow'), " +
-        "use the Current Date Information above to determine the correct " +
-        "date in the user's timezone. Only mention events that are actually " +
-        "scheduled for that date. If no events exist for that date, clearly " +
-        "state that the schedule is empty.\n" +
-        "Don't end every response with questions like 'How can I help you?' " +
-        "or 'What else can I do?'. Be natural - sometimes just acknowledge " +
-        "their message, continue the conversation, or respond naturally " +
-        "without always asking follow-up questions.\n" +
-        "Keep responses concise but warm, engaging, and conversational.";
+      // Create optimized system prompt with better date parsing
+      const systemPrompt = "You are a friendly personal AI assistant for " +
+        "MyHub. Help with schedules, assignments, courses, and " +
+        "general chat.\n\n" +
+        "CRITICAL RULES:\n" +
+        "1. ONLY use data from User Context. Never make up information.\n" +
+        "2. If no events exist for a date, clearly state: 'Your schedule is " +
+        "free' or 'No events scheduled'.\n" +
+        "3. For dates, use Current Date Information below. Understand:\n" +
+        "   - 'today' = the current date shown\n" +
+        "   - 'tomorrow' = the next day shown\n" +
+        "   - 'next [day]' = the next occurrence of that weekday\n" +
+        "   - 'in X days' = X days from today\n" +
+        "   - Relative dates are based on the Current Date Information\n\n" +
+        `Current Date (${userTimezone}):\n` +
+        `- Today: ${todayStr} (${todayName})\n` +
+        `- Tomorrow: ${tomorrowStr} (${tomorrowName})\n` +
+        `- Current Time: ${currentTime}\n\n` +
+        `User Context:\n${userContext}\n\n` +
+        "RESPONSE GUIDELINES:\n" +
+        "- Be conversational and natural. Not just academic - " +
+        "general chat too.\n" +
+        "- Use provided data accurately. If schedule is empty, " +
+        "say so clearly.\n" +
+        "- Don't always end with questions. Sometimes just " +
+        "acknowledge or continue the conversation naturally.\n" +
+        "- Keep responses concise but warm and engaging.\n" +
+        "- Examples:\n" +
+        "  * Empty schedule: 'Your schedule is free today!' or 'No classes " +
+        "scheduled for tomorrow.'\n" +
+        "  * With events: List them clearly with times.\n" +
+        "  * Casual chat: Respond naturally without forcing academic context.";
 
       // Call OpenAI
       const completion = await openai.chat.completions.create({
