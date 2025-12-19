@@ -5,6 +5,7 @@ export interface User {
   name: string;
   createdAt: Date;
   preferences: UserPreferences;
+  isAdmin?: boolean; // Admin status (set server-side only)
 }
 
 export interface UserPreferences {

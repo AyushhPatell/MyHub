@@ -10,6 +10,7 @@ import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
 import { useKeyboardShortcuts, isMac } from '../hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
+import AIChatButton from './AIChatButton';
 
 interface LayoutProps {
   children: ReactNode;
@@ -316,6 +317,9 @@ export default function Layout({ children }: LayoutProps) {
       {showShortcutsModal && (
         <KeyboardShortcutsModal onClose={() => setShowShortcutsModal(false)} />
       )}
+
+      {/* AI Chat Button - Only show when user is logged in */}
+      {user && <AIChatButton />}
     </div>
   );
 }
