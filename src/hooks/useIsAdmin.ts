@@ -29,12 +29,19 @@ export function useIsAdmin() {
         
         if (docSnap.exists()) {
           const userData = docSnap.data();
-          setIsAdmin(userData.isAdmin === true);
+          const adminStatus = userData.isAdmin === true;
+          console.log('[useIsAdmin] Admin status check:', {
+            userId: user.uid,
+            isAdmin: adminStatus,
+            userData: { ...userData, isAdmin: userData.isAdmin }
+          });
+          setIsAdmin(adminStatus);
         } else {
+          console.warn('[useIsAdmin] User document does not exist:', user.uid);
           setIsAdmin(false);
         }
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('[useIsAdmin] Error checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setLoading(false);

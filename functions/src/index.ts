@@ -558,8 +558,9 @@ export const chatWithAI = onCall(
     const rateLimit = await checkRateLimit();
     if (!rateLimit.allowed) {
       throw new Error(
-        `Daily rate limit of ${DAILY_RATE_LIMIT} calls exceeded. ` +
-        "Please try again tomorrow."
+        "I've reached my daily usage limit. The app has a limit to " +
+        "keep costs manageable. Please try again tomorrow, or check " +
+        "the admin dashboard for more details."
       );
     }
 
@@ -605,47 +606,63 @@ export const chatWithAI = onCall(
         minute: "2-digit",
       });
 
-      // Create optimized system prompt with better date parsing
-      const systemPrompt = "You are a friendly personal AI assistant for " +
-        "MyHub. Help with schedules, assignments, courses, and " +
-        "general chat.\n\n" +
+      // Create optimized system prompt with personality and natural flow
+      const systemPrompt = "You are DashAI, a warm and helpful personal " +
+        "assistant for MyHub. You're friendly, professional, and genuinely " +
+        "care about helping users manage their academic life and beyond.\n\n" +
+        "YOUR PERSONALITY:\n" +
+        "- Be warm, approachable, and conversational - like a helpful " +
+        "friend who knows your schedule\n" +
+        "- Show enthusiasm when appropriate, but stay professional\n" +
+        "- Use natural language - avoid robotic or overly formal phrases\n" +
+        "- Vary your responses - don't repeat the same phrases\n" +
+        "- Match the user's tone (casual or formal)\n" +
+        "- Be concise but not terse - add personality to your responses\n\n" +
         "CRITICAL RULES:\n" +
-        "1. ONLY use data from User Context. Never make up information.\n" +
-        "2. If no events exist for a date, clearly state: 'Your schedule is " +
-        "free' or 'No events scheduled'.\n" +
-        "3. For dates, use Current Date Information below. Understand:\n" +
+        "1. ONLY use data from User Context. Never make up information. " +
+        "If you don't know something, say so honestly.\n" +
+        "2. For empty schedules, be positive: 'You have a free day!' or " +
+        "'Your schedule is clear - perfect for catching up!'\n" +
+        "3. Date handling - use Current Date Information below:\n" +
         "   - 'today' = the current date shown\n" +
         "   - 'tomorrow' = the next day shown\n" +
         "   - 'next [day]' = the next occurrence of that weekday\n" +
         "   - 'in X days' = X days from today\n" +
-        "   - Relative dates are based on the Current Date Information\n" +
-        "4. You have access to previous conversation history. Use it to " +
-        "understand context and continue conversations naturally. " +
-        "If the user refers to something mentioned earlier, use the " +
-        "chat history to understand what they're talking about.\n\n" +
+        "   - Relative dates are based on Current Date Information\n" +
+        "4. Use conversation history naturally. If the user says 'what " +
+        "about that?' or 'tell me more', refer back to previous messages.\n\n" +
         `Current Date (${userTimezone}):\n` +
         `- Today: ${todayStr} (${todayName})\n` +
         `- Tomorrow: ${tomorrowStr} (${tomorrowName})\n` +
         `- Current Time: ${currentTime}\n\n` +
         `User Context:\n${userContext}\n\n` +
-        "RESPONSE GUIDELINES:\n" +
-        "- Be conversational and natural. Not just academic - " +
-        "general chat too.\n" +
-        "- Use provided data accurately. If schedule is empty, " +
-        "say so clearly.\n" +
-        "- Remember previous messages in the conversation and use them " +
-        "for context when answering follow-up questions.\n" +
-        "- Don't always end with questions. Sometimes just " +
-        "acknowledge or continue the conversation naturally.\n" +
-        "- Keep responses concise but warm and engaging.\n" +
-        "- Examples:\n" +
-        "  * Empty schedule: 'Your schedule is free today!' or 'No classes " +
-        "scheduled for tomorrow.'\n" +
-        "  * With events: List them clearly with times.\n" +
-        "  * Casual chat: Respond naturally without forcing academic " +
-        "context.\n" +
-        "  * Follow-up questions: Use chat history to understand what " +
-        "the user is referring to.";
+        "CONVERSATION GUIDELINES:\n" +
+        "- NEVER end with questions like 'How can I help you today?' or " +
+        "'What can I do for you?' or 'Feel free to ask!' - these are " +
+        "repetitive and annoying\n" +
+        "- For casual conversation, just respond naturally and end " +
+        "naturally - don't force questions or suggestions\n" +
+        "- Only ask follow-up questions if it genuinely adds value to " +
+        "the conversation\n" +
+        "- Vary your responses - sometimes acknowledge, sometimes " +
+        "continue the topic, sometimes just provide info\n" +
+        "- For casual chat, engage naturally without forcing academic " +
+        "topics or suggestions\n" +
+        "- When listing schedules/assignments, make it easy to scan " +
+        "(use bullet points or clear formatting)\n" +
+        "- Show empathy: 'That's a busy day!' or 'You've got this!'\n" +
+        "- Keep responses under 200 words unless the user asks for " +
+        "detailed information\n" +
+        "- Examples of good responses:\n" +
+        "  * Empty schedule: 'Great news - you have a free day! Perfect " +
+        "for catching up on assignments or taking a break.'\n" +
+        "  * Busy schedule: 'You've got a packed day tomorrow! Here's " +
+        "what's coming up: [list with times]'\n" +
+        "  * Casual chat: Just respond naturally, like a friend. " +
+        "Don't add 'How can I help?' or 'Feel free to ask!' - just " +
+        "end naturally\n" +
+        "  * Follow-ups: 'Based on what we discussed earlier...' or " +
+        "'Remember that assignment we talked about?'";
 
       // Build messages array with chat history
       type MessageRole = "system" | "user" | "assistant";
@@ -681,11 +698,12 @@ export const chatWithAI = onCall(
       messagesArray.push({role: "user", content: message.trim()});
 
       // Call OpenAI with full conversation context
+      // Temperature 0.8 for more personality and variety
       const completion = await openai.chat.completions.create({
         model: GPT_MODEL,
         messages: messagesArray,
         max_tokens: MAX_TOKENS,
-        temperature: 0.7,
+        temperature: 0.8, // Slightly higher for more personality
       });
 
       const reply = completion.choices[0]?.message?.content ||
@@ -706,9 +724,28 @@ export const chatWithAI = onCall(
     } catch (error: unknown) {
       console.error("Error in chatWithAI:", error);
 
-      const errorMessage = error instanceof Error ?
-        error.message :
-        "An error occurred while processing your request.";
+      // Provide user-friendly error messages
+      let errorMessage = "I'm having trouble processing that right now. " +
+        "Please try again in a moment.";
+
+      if (error instanceof Error) {
+        const errMsg = error.message.toLowerCase();
+        if (errMsg.includes("rate limit") || errMsg.includes("quota")) {
+          errorMessage = "I've reached my usage limit for now. " +
+            "Please try again later, or check the admin dashboard " +
+            "for usage details.";
+        } else if (errMsg.includes("authentication") ||
+          errMsg.includes("unauthorized")) {
+          errorMessage = "Authentication error. Please refresh the page " +
+            "and try again.";
+        } else if (errMsg.includes("network") || errMsg.includes("timeout")) {
+          errorMessage = "Connection issue. Please check your internet " +
+            "and try again.";
+        } else if (errMsg.includes("invalid") || errMsg.includes("format")) {
+          errorMessage = "I couldn't understand that request. " +
+            "Could you rephrase it?";
+        }
+      }
 
       throw new Error(errorMessage);
     }

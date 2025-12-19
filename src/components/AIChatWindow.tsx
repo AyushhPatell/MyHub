@@ -33,6 +33,7 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
+  const typingMessageIdRef = useRef<string | null>(null); // Track message being typed
 
   // Load chat history from Firestore
   useEffect(() => {
@@ -54,7 +55,13 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
         })
         .reverse(); // Reverse to show oldest first
 
-      setMessages(loadedMessages);
+      // Filter out messages that are currently being typed
+      // This prevents duplicate display during typing animation
+      const filteredMessages = loadedMessages.filter(
+        (msg) => msg.id !== typingMessageIdRef.current
+      );
+
+      setMessages(filteredMessages);
     });
 
     return () => unsubscribe();
@@ -98,16 +105,33 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
 
   // Typing animation for AI responses
   const typeMessage = (text: string, onComplete?: () => void) => {
+    if (!text || text.length === 0) {
+      setIsTyping(false);
+      setTypingMessage('');
+      if (onComplete) onComplete();
+      return;
+    }
+
     setIsTyping(true);
     setTypingMessage('');
     let index = 0;
     const typingInterval = setInterval(() => {
-      if (index < text.length) {
-        setTypingMessage(text.slice(0, index + 1));
-        index++;
-      } else {
+      try {
+        if (index < text.length) {
+          setTypingMessage(text.slice(0, index + 1));
+          index++;
+        } else {
+          clearInterval(typingInterval);
+          setIsTyping(false);
+          if (onComplete) {
+            onComplete();
+          }
+        }
+      } catch (error) {
+        console.error('Error in typing animation:', error);
         clearInterval(typingInterval);
         setIsTyping(false);
+        setTypingMessage(text); // Show full message on error
         if (onComplete) {
           onComplete();
         }
@@ -139,24 +163,60 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
         timestamp: Timestamp.now(),
       });
 
-      // Call AI service
-      const reply = await sendChatMessage(userMessage.content);
+      // Prepare chat history (last 10 messages for context)
+      const recentHistory = messages
+        .slice(-10)
+        .map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        }));
+
+      // Call AI service with chat history
+      const reply = await sendChatMessage(userMessage.content, recentHistory);
+
+      // Create a temporary ID for the message being typed
+      // This prevents Firestore listener from showing it until typing completes
+      const tempMessageId = `typing-${Date.now()}`;
+      typingMessageIdRef.current = tempMessageId;
 
       // Type out the response smoothly, then save to Firestore
+      // This prevents duplicate messages (one from Firestore, one from typing)
       typeMessage(reply, async () => {
-        // Save AI response to Firestore after typing completes
-        await addDoc(collection(db, 'users', user.uid, 'aiChatHistory'), {
-          role: 'assistant',
-          content: reply,
-          timestamp: Timestamp.now(),
-        });
+        // Save to Firestore after typing completes
+        try {
+          await addDoc(
+            collection(db, 'users', user.uid, 'aiChatHistory'),
+            {
+              role: 'assistant',
+              content: reply,
+              timestamp: Timestamp.now(),
+            }
+          );
+          // Clear the typing message ID so Firestore listener can show it
+          typingMessageIdRef.current = null;
+        } catch (saveError) {
+          console.error('Error saving AI message to Firestore:', saveError);
+          typingMessageIdRef.current = null;
+          // Continue even if save fails - message is already shown
+        }
       });
 
       // Remove temporary user message (it's now in Firestore)
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } catch (err: any) {
       console.error('Error sending message:', err);
-      setError(err.message || 'Failed to send message. Please try again.');
+      
+      // Provide user-friendly error messages
+      let errorMsg = 'Something went wrong. Please try again.';
+      if (err.message) {
+        errorMsg = err.message;
+      } else if (err.code === 'functions/rate-limit-exceeded') {
+        errorMsg = 'Rate limit reached. Please try again in a moment.';
+      } else if (err.code === 'functions/unauthenticated') {
+        errorMsg = 'Please refresh the page and try again.';
+      }
+      
+      setError(errorMsg);
       
       // Remove temporary message on error
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
@@ -189,8 +249,8 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
               <span className="text-2xl">🤖</span>
             </div>
             <div>
-              <h2 className="text-white font-semibold">AI Assistant</h2>
-              <p className="text-white/80 text-xs">Your personal academic assistant</p>
+              <h2 className="text-white font-semibold">DashAI</h2>
+              <p className="text-white/80 text-xs">Your personal AI assistant</p>
             </div>
           </div>
           <button
@@ -205,9 +265,21 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
         {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
           {messages.length === 0 && !loading && (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-              <p className="text-lg mb-2">👋 Hello! I'm your personal AI assistant.</p>
-              <p className="text-sm">I'm here to help with your schedule, assignments, courses, or just chat about anything!</p>
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8 px-4">
+              <div className="mb-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mx-auto flex items-center justify-center mb-3">
+                  <span className="text-3xl">✨</span>
+                </div>
+              </div>
+              <p className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">
+                Hey there! I'm DashAI 👋
+              </p>
+              <p className="text-sm mb-3">
+                I'm here to help you stay on top of your schedule, assignments, and courses.
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Ask me anything - from "What's my schedule tomorrow?" to just having a chat!
+              </p>
             </div>
           )}
 
@@ -274,12 +346,12 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Ask me anything about your schedule, assignments, courses..."
-              disabled={loading || !user}
+              disabled={loading || !user || isTyping}
               className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || loading || !user}
+              disabled={!input.trim() || loading || !user || isTyping}
               className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (

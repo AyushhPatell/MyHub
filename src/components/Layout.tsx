@@ -5,12 +5,13 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
-import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown } from 'lucide-react';
+import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Shield } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
 import { useKeyboardShortcuts, isMac } from '../hooks/useKeyboardShortcuts';
 import KeyboardShortcutsModal from './KeyboardShortcutsModal';
 import AIChatButton from './AIChatButton';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 
 interface LayoutProps {
   children: ReactNode;
@@ -26,6 +27,7 @@ export default function Layout({ children }: LayoutProps) {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mac = isMac();
+  const { isAdmin, loading: loadingAdmin } = useIsAdmin();
 
   useEffect(() => {
     const loadUserName = async () => {
@@ -73,6 +75,8 @@ export default function Layout({ children }: LayoutProps) {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: Home },
     { path: '/courses', label: 'Courses', icon: BookOpen },
+    // Only show admin link if admin status is confirmed (not loading and isAdmin)
+    ...(!loadingAdmin && isAdmin ? [{ path: '/admin', label: 'Admin', icon: Shield }] : []),
   ];
 
   const getUserInitials = () => {

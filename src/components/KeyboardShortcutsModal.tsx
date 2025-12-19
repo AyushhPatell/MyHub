@@ -65,13 +65,6 @@ const shortcuts: KeyboardShortcutDisplay[] = [
     description: 'Go to dashboard',
     category: 'navigation',
   },
-  {
-    key: 'c',
-    ctrl: true,
-    meta: true,
-    description: 'Go to courses',
-    category: 'navigation',
-  },
 ];
 
 interface KeyboardShortcutsModalProps {

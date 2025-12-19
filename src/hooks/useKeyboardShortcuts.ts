@@ -88,16 +88,6 @@ export function useKeyboardShortcuts({
       description: 'Go to dashboard',
       category: 'navigation',
     },
-    {
-      key: 'c',
-      ctrl: true,
-      meta: true,
-      action: () => {
-        navigate('/courses');
-      },
-      description: 'Go to courses',
-      category: 'navigation',
-    },
   ];
 
   const handleKeyDown = useCallback(
@@ -111,13 +101,6 @@ export function useKeyboardShortcuts({
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable ||
         target.closest('[contenteditable="true"]');
-
-      // Special handling for Ctrl+C (copy) - only navigate if not in input
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'c') {
-        if (isInput) {
-          return; // Allow default copy behavior
-        }
-      }
 
       // Check each shortcut
       for (const shortcut of shortcuts) {

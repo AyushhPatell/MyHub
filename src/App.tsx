@@ -11,6 +11,8 @@ import DashboardPage from './pages/DashboardPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import SettingsPage from './pages/SettingsPage';
+import AdminDashboard from './pages/AdminDashboard';
+import AdminRoute from './components/AdminRoute';
 import { useDarkModeSchedule } from './hooks/useDarkModeSchedule';
 import { UserPreferences } from './types';
 import { applySmoothThemeTransition } from './utils/themeTransition';
@@ -234,6 +236,22 @@ function App() {
                 <Layout>
                   <PageTransition>
                     <SettingsPage />
+                  </PageTransition>
+                </Layout>
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              user ? (
+                <Layout>
+                  <PageTransition>
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
                   </PageTransition>
                 </Layout>
               ) : (
