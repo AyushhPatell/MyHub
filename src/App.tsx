@@ -16,7 +16,8 @@ import AdminRoute from './components/AdminRoute';
 import { useDarkModeSchedule } from './hooks/useDarkModeSchedule';
 import { UserPreferences } from './types';
 import { applySmoothThemeTransition } from './utils/themeTransition';
-import { startEmailScheduler } from './services/emailScheduler';
+// Email scheduling is now handled by Firebase Cloud Functions (backend)
+// No need for frontend scheduler - emails are sent automatically even when app is closed
 
 function App() {
   const { user, loading } = useAuth();
@@ -148,7 +149,8 @@ function App() {
   useEffect(() => {
     if (!user || !userPreferences) return;
 
-    const cleanup = startEmailScheduler(user.uid, userPreferences);
+    // Email scheduling is handled by Firebase Cloud Functions
+    // Scheduled functions run automatically on the backend
     return cleanup;
   }, [user, userPreferences]);
 

@@ -10,21 +10,31 @@
  */
 
 import {onCall} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 import {setGlobalOptions} from "firebase-functions/v2";
 import * as admin from "firebase-admin";
 import OpenAI from "openai";
 import {defineSecret} from "firebase-functions/params";
+import * as nodemailer from "nodemailer";
+import {format, startOfDay, differenceInDays} from "date-fns";
 
 // Initialize Firebase Admin
 admin.initializeApp();
 
-// Define the secret for OpenAI API key
+// Define secrets
 const openaiApiKey = defineSecret("OPENAI_API_KEY");
+const smtpHost = defineSecret("SMTP_HOST");
+const smtpPort = defineSecret("SMTP_PORT");
+const smtpUser = defineSecret("SMTP_USER");
+const smtpPassword = defineSecret("SMTP_PASSWORD");
+const smtpFromEmail = defineSecret("SMTP_FROM_EMAIL");
+const smtpFromName = defineSecret("SMTP_FROM_NAME");
 
 // Set global options for all functions
 setGlobalOptions({
   maxInstances: 10,
-  secrets: [openaiApiKey],
+  secrets: [openaiApiKey, smtpHost, smtpPort, smtpUser,
+    smtpPassword, smtpFromEmail, smtpFromName],
 });
 
 // Initialize OpenAI client (will be initialized in the function)
@@ -748,6 +758,944 @@ export const chatWithAI = onCall(
       }
 
       throw new Error(errorMessage);
+    }
+  }
+);
+
+// ============================================================================
+// EMAIL SERVICE FUNCTIONS
+// ============================================================================
+
+/**
+ * Get or create nodemailer transporter
+ * @return {nodemailer.Transporter} Configured email transporter
+ */
+function getEmailTransporter(): nodemailer.Transporter {
+  const host = smtpHost.value();
+  const port = parseInt(smtpPort.value() || "587", 10);
+  const user = smtpUser.value();
+  const password = smtpPassword.value();
+
+  return nodemailer.createTransport({
+    host: host,
+    port: port,
+    secure: port === 465, // true for 465, false for other ports
+    auth: {
+      user: user,
+      pass: password,
+    },
+  });
+}
+
+/**
+ * Generate email HTML template (same design as before)
+ * @param {string} subject - Email subject
+ * @param {string} content - Email body content
+ * @return {string} Complete HTML email template
+ */
+function generateEmailTemplate(
+  subject: string,
+  content: string
+): string {
+  const bodyStyle = "font-family: -apple-system, BlinkMacSystemFont, " +
+    "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; " +
+    "line-height: 1.6; color: #333; max-width: 600px; " +
+    "margin: 0 auto; padding: 20px;";
+  const headerStyle = "background: linear-gradient(135deg, " +
+    "#667eea 0%, #764ba2 100%); padding: 30px; " +
+    "text-align: center; border-radius: 10px 10px 0 0;";
+  const contentStyle = "background: #ffffff; padding: 30px; " +
+    "border: 1px solid #e5e7eb; border-top: none; " +
+    "border-radius: 0 0 10px 10px;";
+  const footerStyle = "text-align: center; margin-top: 30px; " +
+    "color: #6b7280; font-size: 12px;";
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+      </head>
+      <body style="${bodyStyle}">
+        <div style="${headerStyle}">
+          <h1 style="color: white; margin: 0; font-size: 28px;">MyHub</h1>
+        </div>
+        <div style="${contentStyle}">
+          ${content}
+        </div>
+        <div style="${footerStyle}">
+          <p>This email was sent from MyHub. You can manage your " +
+            "email preferences in Settings.</p>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
+/**
+ * Send email using nodemailer
+ * @param {string} to - Recipient email address
+ * @param {string} toName - Recipient name
+ * @param {string} subject - Email subject
+ * @param {string} htmlContent - HTML email content
+ * @return {Promise<void>} Promise that resolves when email is sent
+ */
+async function sendEmail(
+  to: string,
+  toName: string,
+  subject: string,
+  htmlContent: string
+): Promise<void> {
+  const transporter = getEmailTransporter();
+  const fromEmail = smtpFromEmail.value();
+  const fromName = smtpFromName.value();
+
+  await transporter.sendMail({
+    from: `"${fromName}" <${fromEmail}>`,
+    to: `"${toName}" <${to}>`,
+    subject: subject,
+    html: htmlContent,
+  });
+}
+
+/**
+ * Get user data from Firestore
+ * @param {string} userId - User ID
+ * @return {Promise<Object>} User data with email, name, preferences
+ */
+async function getUserData(userId: string): Promise<{
+  email: string;
+  name: string;
+  preferences: Record<string, unknown>;
+}> {
+  const userDoc = await admin.firestore()
+    .collection("users")
+    .doc(userId)
+    .get();
+
+  if (!userDoc.exists) {
+    throw new Error("User not found");
+  }
+
+  const data = userDoc.data();
+  return {
+    email: data?.email || "",
+    name: data?.name || "User",
+    preferences: data?.preferences || {},
+  };
+}
+
+/**
+ * Get assignment data
+ * @param {string} userId - User ID
+ * @param {string} assignmentId - Assignment ID
+ * @return {Promise<Object>} Assignment and course data
+ */
+async function getAssignmentData(
+  userId: string,
+  assignmentId: string
+): Promise<{
+  assignment: {name: string; dueDate: Date; completedAt?: Date};
+  course: {courseName: string; courseCode: string};
+}> {
+  const semesterSnapshot = await admin.firestore()
+    .collection("users")
+    .doc(userId)
+    .collection("semesters")
+    .where("isActive", "==", true)
+    .limit(1)
+    .get();
+
+  if (semesterSnapshot.empty) {
+    throw new Error("No active semester");
+  }
+
+  const semesterId = semesterSnapshot.docs[0].id;
+  const coursesSnapshot = await admin.firestore()
+    .collection("users")
+    .doc(userId)
+    .collection("semesters")
+    .doc(semesterId)
+    .collection("courses")
+    .get();
+
+  for (const courseDoc of coursesSnapshot.docs) {
+    const assignmentDoc = await admin.firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("semesters")
+      .doc(semesterId)
+      .collection("courses")
+      .doc(courseDoc.id)
+      .collection("assignments")
+      .doc(assignmentId)
+      .get();
+
+    if (assignmentDoc.exists) {
+      const assignmentData = assignmentDoc.data();
+      const courseData = courseDoc.data();
+      const dueDate = assignmentData?.dueDate?.toDate ?
+        assignmentData.dueDate.toDate() :
+        new Date(assignmentData?.dueDate);
+
+      return {
+        assignment: {
+          name: assignmentData?.name || "",
+          dueDate: dueDate,
+          completedAt: assignmentData?.completedAt?.toDate(),
+        },
+        course: {
+          courseName: courseData?.courseName || "Unknown Course",
+          courseCode: courseData?.courseCode || "",
+        },
+      };
+    }
+  }
+
+  throw new Error("Assignment not found");
+}
+
+/**
+ * Get all assignments for digest
+ * @param {string} userId - User ID
+ * @return {Promise<Object>} Assignments organized by due date
+ */
+async function getAllAssignmentsForDigest(userId: string): Promise<{
+  dueToday: Array<{name: string; dueDate: Date; courseName?: string}>;
+  dueThisWeek: Array<{name: string; dueDate: Date; courseName?: string}>;
+  overdue: Array<{name: string; dueDate: Date; courseName?: string}>;
+  semester: {id: string; name: string};
+}> {
+  const semesterSnapshot = await admin.firestore()
+    .collection("users")
+    .doc(userId)
+    .collection("semesters")
+    .where("isActive", "==", true)
+    .limit(1)
+    .get();
+
+  if (semesterSnapshot.empty) {
+    throw new Error("No active semester");
+  }
+
+  const semesterDoc = semesterSnapshot.docs[0];
+  const semesterId = semesterDoc.id;
+  const semesterData = semesterDoc.data();
+
+  const coursesSnapshot = await admin.firestore()
+    .collection("users")
+    .doc(userId)
+    .collection("semesters")
+    .doc(semesterId)
+    .collection("courses")
+    .get();
+
+  const courseMap = new Map();
+  coursesSnapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    courseMap.set(doc.id, {
+      courseName: data.courseName || "Unknown Course",
+      courseCode: data.courseCode || "",
+    });
+  });
+
+  const assignments: Array<{
+    name: string;
+    dueDate: Date;
+    completedAt?: Date;
+    courseId: string;
+  }> = [];
+
+  for (const courseDoc of coursesSnapshot.docs) {
+    const assignmentsSnapshot = await admin.firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("semesters")
+      .doc(semesterId)
+      .collection("courses")
+      .doc(courseDoc.id)
+      .collection("assignments")
+      .get();
+
+    assignmentsSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      const dueDate = data.dueDate?.toDate ?
+        data.dueDate.toDate() :
+        new Date(data.dueDate);
+      assignments.push({
+        name: data.name || "",
+        dueDate: dueDate,
+        completedAt: data.completedAt?.toDate(),
+        courseId: courseDoc.id,
+      });
+    });
+  }
+
+  const now = new Date();
+  const today = startOfDay(now);
+
+  const dueToday = assignments
+    .filter((a) => {
+      if (a.completedAt) return false;
+      const dueDate = startOfDay(a.dueDate);
+      return dueDate.getTime() === today.getTime();
+    })
+    .map((a) => ({
+      name: a.name,
+      dueDate: a.dueDate,
+      courseName: courseMap.get(a.courseId)?.courseName,
+    }));
+
+  const dueThisWeek = assignments
+    .filter((a) => {
+      if (a.completedAt) return false;
+      const dueDate = startOfDay(a.dueDate);
+      const daysUntil = differenceInDays(dueDate, today);
+      return daysUntil > 0 && daysUntil <= 7;
+    })
+    .map((a) => ({
+      name: a.name,
+      dueDate: a.dueDate,
+      courseName: courseMap.get(a.courseId)?.courseName,
+    }));
+
+  const overdue = assignments
+    .filter((a) => {
+      if (a.completedAt) return false;
+      const dueDate = startOfDay(a.dueDate);
+      return dueDate.getTime() < today.getTime();
+    })
+    .map((a) => ({
+      name: a.name,
+      dueDate: a.dueDate,
+      courseName: courseMap.get(a.courseId)?.courseName,
+    }));
+
+  return {
+    dueToday,
+    dueThisWeek,
+    overdue,
+    semester: {
+      id: semesterId,
+      name: semesterData?.name || "Unknown Semester",
+    },
+  };
+}
+
+/**
+ * Send assignment reminder email (callable function)
+ */
+export const sendAssignmentReminderEmail = onCall(
+  {
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPassword,
+      smtpFromEmail, smtpFromName],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new Error("User must be authenticated");
+    }
+
+    const userId = request.auth.uid;
+    const assignmentId = request.data.assignmentId;
+    const reminderType = request.data.reminderType;
+
+    if (!assignmentId || !reminderType) {
+      throw new Error("assignmentId and reminderType are required");
+    }
+
+    try {
+      const user = await getUserData(userId);
+      const preferences = user.preferences || {};
+
+      if (!preferences.emailNotificationsEnabled ||
+        !preferences.emailAssignmentReminders) {
+        return {success: false, message: "Email notifications disabled"};
+      }
+
+      const {assignment, course} = await getAssignmentData(
+        userId,
+        assignmentId
+      );
+
+      if (assignment.completedAt) {
+        return {success: false, message: "Assignment already completed"};
+      }
+
+      const dueDateStr = format(assignment.dueDate, "MMMM d, yyyy");
+      let subject = "";
+      let message = "";
+
+      switch (reminderType) {
+      case "due-today":
+        subject = `📅 ${assignment.name} is due today!`;
+        message = `<h2 style="color: #dc2626;">Assignment Due Today</h2>
+          <p><strong>${assignment.name}</strong> for ` +
+          `<strong>${course.courseName}</strong> is due today ` +
+          `(${dueDateStr}).</p>
+          <p>Make sure to submit it on time!</p>`;
+        break;
+      case "due-1-day":
+        subject = `⏰ ${assignment.name} is due tomorrow`;
+        message = `<h2 style="color: #f59e0b;">Assignment Due Tomorrow</h2>
+          <p><strong>${assignment.name}</strong> for ` +
+          `<strong>${course.courseName}</strong> is due tomorrow ` +
+          `(${dueDateStr}).</p>
+          <p>Don't forget to complete it!</p>`;
+        break;
+      case "due-3-days":
+        subject = `📝 ${assignment.name} is due in 3 days`;
+        message = `<h2 style="color: #3b82f6;">Upcoming Assignment</h2>
+          <p><strong>${assignment.name}</strong> for ` +
+          `<strong>${course.courseName}</strong> is due in 3 days ` +
+          `(${dueDateStr}).</p>
+          <p>Start working on it soon!</p>`;
+        break;
+      case "overdue":
+        subject = `⚠️ ${assignment.name} is overdue`;
+        message = `<h2 style="color: #dc2626;">Overdue Assignment</h2>
+          <p><strong>${assignment.name}</strong> for ` +
+          `<strong>${course.courseName}</strong> was due on ` +
+          `${dueDateStr} and is now overdue.</p>
+          <p>Please complete it as soon as possible!</p>`;
+        break;
+      default:
+        throw new Error("Invalid reminder type");
+      }
+
+      const emailHtml = generateEmailTemplate(subject, message);
+      await sendEmail(user.email, user.name, subject, emailHtml);
+
+      return {success: true};
+    } catch (error: unknown) {
+      console.error("Error sending assignment reminder:", error);
+      const errorMessage = error instanceof Error ?
+        error.message :
+        "Unknown error";
+      throw new Error(`Failed to send email: ${errorMessage}`);
+    }
+  }
+);
+
+/**
+ * Send daily digest email (callable function)
+ */
+export const sendDailyDigestEmail = onCall(
+  {
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPassword,
+      smtpFromEmail, smtpFromName],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new Error("User must be authenticated");
+    }
+
+    const userId = request.auth.uid;
+
+    try {
+      const user = await getUserData(userId);
+      const preferences = user.preferences || {};
+
+      if (!preferences.emailNotificationsEnabled ||
+        preferences.emailDigestFrequency !== "daily") {
+        return {success: false, message: "Daily digest not enabled"};
+      }
+
+      const {dueToday, dueThisWeek, overdue, semester} =
+        await getAllAssignmentsForDigest(userId);
+      const now = new Date();
+
+      let content = "<h2 style=\"color: #667eea;\">" +
+        "Your Daily Assignment Summary</h2>";
+      content += "<p>Here's what's coming up for " +
+        `<strong>${semester.name}</strong>:</p>`;
+
+      if (dueToday.length > 0) {
+        content += "<h3 style=\"color: #dc2626; margin-top: 20px;\">" +
+          `Due Today (${dueToday.length})</h3><ul>`;
+        dueToday.forEach((a) => {
+          const course = a.courseName || "Unknown Course";
+          const dueTime = format(a.dueDate, "h:mm a");
+          content += `<li><strong>${a.name}</strong> - ${course} ` +
+            `(${dueTime})</li>`;
+        });
+        content += "</ul>";
+      }
+
+      if (overdue.length > 0) {
+        content += "<h3 style=\"color: #dc2626; margin-top: 20px;\">" +
+          `Overdue (${overdue.length})</h3><ul>`;
+        overdue.forEach((a) => {
+          const course = a.courseName || "Unknown Course";
+          content += `<li><strong>${a.name}</strong> - ${course}</li>`;
+        });
+        content += "</ul>";
+      }
+
+      if (dueThisWeek.length > 0) {
+        content += "<h3 style=\"color: #3b82f6; margin-top: 20px;\">" +
+          `Due This Week (${dueThisWeek.length})</h3><ul>`;
+        dueThisWeek.forEach((a) => {
+          const course = a.courseName || "Unknown Course";
+          const dateStr = format(a.dueDate, "MMM d, h:mm a");
+          content += `<li><strong>${a.name}</strong> - ${course} ` +
+            `(${dateStr})</li>`;
+        });
+        content += "</ul>";
+      }
+
+      if (dueToday.length === 0 && overdue.length === 0 &&
+        dueThisWeek.length === 0) {
+        content += "<p style=\"color: #10b981;\">🎉 Great job! " +
+          "You have no assignments due soon.</p>";
+      }
+
+      const subject = "📚 Daily Assignment Digest - " +
+        `${format(now, "MMMM d, yyyy")}`;
+      const emailHtml = generateEmailTemplate(subject, content);
+      await sendEmail(user.email, user.name, subject, emailHtml);
+
+      return {success: true};
+    } catch (error: unknown) {
+      console.error("Error sending daily digest:", error);
+      const errorMessage = error instanceof Error ?
+        error.message :
+        "Unknown error";
+      throw new Error(`Failed to send email: ${errorMessage}`);
+    }
+  }
+);
+
+/**
+ * Send weekly digest email (callable function)
+ */
+export const sendWeeklyDigestEmail = onCall(
+  {
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPassword,
+      smtpFromEmail, smtpFromName],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new Error("User must be authenticated");
+    }
+
+    const userId = request.auth.uid;
+
+    try {
+      const user = await getUserData(userId);
+      const preferences = user.preferences || {};
+
+      if (!preferences.emailNotificationsEnabled ||
+        preferences.emailDigestFrequency !== "weekly") {
+        return {success: false, message: "Weekly digest not enabled"};
+      }
+
+      const {dueThisWeek, overdue, semester} =
+        await getAllAssignmentsForDigest(userId);
+      const now = new Date();
+
+      let content = "<h2 style=\"color: #667eea;\">" +
+        "Your Weekly Assignment Summary</h2>";
+      content += "<p>Here's what's coming up for " +
+        `<strong>${semester.name}</strong> this week:</p>`;
+
+      if (overdue.length > 0) {
+        content += "<h3 style=\"color: #dc2626; margin-top: 20px;\">" +
+          `Overdue (${overdue.length})</h3><ul>`;
+        overdue.forEach((a) => {
+          const course = a.courseName || "Unknown Course";
+          content += `<li><strong>${a.name}</strong> - ${course}</li>`;
+        });
+        content += "</ul>";
+      }
+
+      if (dueThisWeek.length > 0) {
+        content += "<h3 style=\"color: #3b82f6; margin-top: 20px;\">" +
+          `Due This Week (${dueThisWeek.length})</h3><ul>`;
+        dueThisWeek.forEach((a) => {
+          const course = a.courseName || "Unknown Course";
+          const dateStr = format(a.dueDate, "MMM d, h:mm a");
+          content += `<li><strong>${a.name}</strong> - ${course} ` +
+            `(${dateStr})</li>`;
+        });
+        content += "</ul>";
+      }
+
+      if (overdue.length === 0 && dueThisWeek.length === 0) {
+        content += "<p style=\"color: #10b981;\">🎉 Great job! " +
+          "You have no assignments due this week.</p>";
+      }
+
+      const subject = "📚 Weekly Assignment Digest - Week of " +
+        `${format(now, "MMMM d")}`;
+      const emailHtml = generateEmailTemplate(subject, content);
+      await sendEmail(user.email, user.name, subject, emailHtml);
+
+      return {success: true};
+    } catch (error: unknown) {
+      console.error("Error sending weekly digest:", error);
+      const errorMessage = error instanceof Error ?
+        error.message :
+        "Unknown error";
+      throw new Error(`Failed to send email: ${errorMessage}`);
+    }
+  }
+);
+
+/**
+ * Send test email (callable function)
+ */
+export const sendTestEmail = onCall(
+  {
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPassword,
+      smtpFromEmail, smtpFromName],
+  },
+  async (request) => {
+    if (!request.auth) {
+      throw new Error("User must be authenticated");
+    }
+
+    const userId = request.auth.uid;
+
+    try {
+      const user = await getUserData(userId);
+
+      const content = "<h2 style=\"color: #667eea;\">" +
+        "Email Setup Successful!</h2>" +
+        "<p>If you received this email, your email integration " +
+        "is working correctly.</p>" +
+        "<p style=\"margin-top: 20px; color: #10b981; " +
+        "font-weight: bold;\">✅ Your email notifications are " +
+        "ready to go!</p>";
+
+      const subject = "✅ MyHub Email Test";
+      const emailHtml = generateEmailTemplate(subject, content);
+      await sendEmail(user.email, user.name, subject, emailHtml);
+
+      return {success: true};
+    } catch (error: unknown) {
+      console.error("Error sending test email:", error);
+      const errorMessage = error instanceof Error ?
+        error.message :
+        "Unknown error";
+      throw new Error(`Failed to send email: ${errorMessage}`);
+    }
+  }
+);
+
+/**
+ * Scheduled function: Check and send daily digests
+ * Runs every hour to check if it's time to send daily digests
+ */
+export const checkDailyDigests = onSchedule(
+  {
+    schedule: "0 * * * *", // Every hour
+    timeZone: "America/Halifax",
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPassword,
+      smtpFromEmail, smtpFromName],
+  },
+  async () => {
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection("users").get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      try {
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+        const preferences = userData.preferences || {};
+
+        if (!preferences.emailNotificationsEnabled ||
+          preferences.emailDigestFrequency !== "daily") {
+          continue;
+        }
+
+        const digestTime = preferences.emailDigestTime || "09:00";
+        const [hours, minutes] = digestTime.split(":").map(Number);
+        const now = new Date();
+        const scheduledTime = new Date();
+        scheduledTime.setHours(hours, minutes, 0, 0);
+
+        // Check if current time matches scheduled time (within 1 hour)
+        const timeDiff = Math.abs(now.getTime() - scheduledTime.getTime());
+        if (timeDiff > 3600000) { // More than 1 hour difference
+          continue;
+        }
+
+        // Check if already sent today
+        const today = format(now, "yyyy-MM-dd");
+        const lastSentKey = `daily-digest-sent-${userId}`;
+        const lastSentDoc = await db.collection("emailTracking")
+          .doc(lastSentKey)
+          .get();
+
+        if (lastSentDoc.exists && lastSentDoc.data()?.date === today) {
+          continue; // Already sent today
+        }
+
+        // Send daily digest
+        const user = await getUserData(userId);
+        const {dueToday, dueThisWeek, overdue, semester} =
+          await getAllAssignmentsForDigest(userId);
+
+        let content = "<h2 style=\"color: #667eea;\">" +
+          "Your Daily Assignment Summary</h2>";
+        content += "<p>Here's what's coming up for " +
+          `<strong>${semester.name}</strong>:</p>`;
+
+        if (dueToday.length > 0) {
+          content += "<h3 style=\"color: #dc2626; margin-top: 20px;\">" +
+            `Due Today (${dueToday.length})</h3><ul>`;
+          dueToday.forEach((a) => {
+            const course = a.courseName || "Unknown Course";
+            const dueTime = format(a.dueDate, "h:mm a");
+            content += `<li><strong>${a.name}</strong> - ${course} ` +
+              `(${dueTime})</li>`;
+          });
+          content += "</ul>";
+        }
+
+        if (overdue.length > 0) {
+          content += "<h3 style=\"color: #dc2626; margin-top: 20px;\">" +
+            `Overdue (${overdue.length})</h3><ul>`;
+          overdue.forEach((a) => {
+            const course = a.courseName || "Unknown Course";
+            content += `<li><strong>${a.name}</strong> - ${course}</li>`;
+          });
+          content += "</ul>";
+        }
+
+        if (dueThisWeek.length > 0) {
+          content += "<h3 style=\"color: #3b82f6; margin-top: 20px;\">" +
+            `Due This Week (${dueThisWeek.length})</h3><ul>`;
+          dueThisWeek.forEach((a) => {
+            const course = a.courseName || "Unknown Course";
+            const dateStr = format(a.dueDate, "MMM d, h:mm a");
+            content += `<li><strong>${a.name}</strong> - ${course} ` +
+              `(${dateStr})</li>`;
+          });
+          content += "</ul>";
+        }
+
+        if (dueToday.length === 0 && overdue.length === 0 &&
+          dueThisWeek.length === 0) {
+          content += "<p style=\"color: #10b981;\">🎉 Great job! " +
+            "You have no assignments due soon.</p>";
+        }
+
+        const subject = "📚 Daily Assignment Digest - " +
+          `${format(now, "MMMM d, yyyy")}`;
+        const emailHtml = generateEmailTemplate(subject, content);
+        await sendEmail(user.email, user.name, subject, emailHtml);
+
+        // Mark as sent
+        await db.collection("emailTracking").doc(lastSentKey).set({
+          date: today,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (error) {
+        console.error("Error processing daily digest for user " +
+          `${userDoc.id}:`, error);
+        // Continue with other users
+      }
+    }
+  }
+);
+
+/**
+ * Scheduled function: Check and send weekly digests
+ * Runs every Monday at 9 AM
+ */
+export const checkWeeklyDigests = onSchedule(
+  {
+    schedule: "0 9 * * 1", // Every Monday at 9 AM
+    timeZone: "America/Halifax",
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPassword,
+      smtpFromEmail, smtpFromName],
+  },
+  async () => {
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection("users").get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      try {
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+        const preferences = userData.preferences || {};
+
+        if (!preferences.emailNotificationsEnabled ||
+          preferences.emailDigestFrequency !== "weekly") {
+          continue;
+        }
+
+        // Check if already sent this week
+        const now = new Date();
+        const weekStart = format(now, "yyyy-MM-dd");
+        const lastSentKey = `weekly-digest-sent-${userId}`;
+        const lastSentDoc = await db.collection("emailTracking")
+          .doc(lastSentKey)
+          .get();
+
+        if (lastSentDoc.exists && lastSentDoc.data()?.week === weekStart) {
+          continue; // Already sent this week
+        }
+
+        // Send weekly digest
+        const user = await getUserData(userId);
+        const {dueThisWeek, overdue, semester} =
+          await getAllAssignmentsForDigest(userId);
+
+        let content = "<h2 style=\"color: #667eea;\">" +
+          "Your Weekly Assignment Summary</h2>";
+        content += "<p>Here's what's coming up for " +
+          `<strong>${semester.name}</strong> this week:</p>`;
+
+        if (overdue.length > 0) {
+          content += "<h3 style=\"color: #dc2626; margin-top: 20px;\">" +
+            `Overdue (${overdue.length})</h3><ul>`;
+          overdue.forEach((a) => {
+            const course = a.courseName || "Unknown Course";
+            content += `<li><strong>${a.name}</strong> - ${course}</li>`;
+          });
+          content += "</ul>";
+        }
+
+        if (dueThisWeek.length > 0) {
+          content += "<h3 style=\"color: #3b82f6; margin-top: 20px;\">" +
+            `Due This Week (${dueThisWeek.length})</h3><ul>`;
+          dueThisWeek.forEach((a) => {
+            const course = a.courseName || "Unknown Course";
+            const dateStr = format(a.dueDate, "MMM d, h:mm a");
+            content += `<li><strong>${a.name}</strong> - ${course} ` +
+              `(${dateStr})</li>`;
+          });
+          content += "</ul>";
+        }
+
+        if (overdue.length === 0 && dueThisWeek.length === 0) {
+          content += "<p style=\"color: #10b981;\">🎉 Great job! " +
+            "You have no assignments due this week.</p>";
+        }
+
+        const subject = "📚 Weekly Assignment Digest - Week of " +
+          `${format(now, "MMMM d")}`;
+        const emailHtml = generateEmailTemplate(subject, content);
+        await sendEmail(user.email, user.name, subject, emailHtml);
+
+        // Mark as sent
+        await db.collection("emailTracking").doc(lastSentKey).set({
+          week: weekStart,
+          timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (error) {
+        console.error("Error processing weekly digest for user " +
+          `${userDoc.id}:`, error);
+        // Continue with other users
+      }
+    }
+  }
+);
+
+/**
+ * Scheduled function: Check and send assignment reminders
+ * Runs every 6 hours to check for due assignments
+ */
+export const checkAssignmentReminders = onSchedule(
+  {
+    schedule: "0 */6 * * *", // Every 6 hours
+    timeZone: "America/Halifax",
+    secrets: [smtpHost, smtpPort, smtpUser, smtpPassword,
+      smtpFromEmail, smtpFromName],
+  },
+  async () => {
+    const db = admin.firestore();
+    const usersSnapshot = await db.collection("users").get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      try {
+        const userId = userDoc.id;
+        const userData = userDoc.data();
+        const preferences = userData.preferences || {};
+
+        if (!preferences.emailNotificationsEnabled ||
+          !preferences.emailAssignmentReminders) {
+          continue;
+        }
+
+        const {dueToday, overdue} =
+          await getAllAssignmentsForDigest(userId);
+
+        // Check assignments due today
+        for (const assignment of dueToday) {
+          const reminderKey = `assignment-reminder-${userId}-` +
+            `${assignment.name}`;
+          const lastReminderDoc = await db.collection("emailTracking")
+            .doc(reminderKey)
+            .get();
+
+          if (lastReminderDoc.exists &&
+            lastReminderDoc.data()?.type === "due-today") {
+            continue; // Already sent
+          }
+
+          // Find assignment ID (simplified - would need proper lookup)
+          // For now, send reminder based on assignment name
+          const user = await getUserData(userId);
+          const subject = `📅 ${assignment.name} is due today!`;
+          const coursePart = assignment.courseName ?
+            ` for <strong>${assignment.courseName}</strong>` : "";
+          const message = "<h2 style=\"color: #dc2626;\">" +
+            "Assignment Due Today</h2>" +
+            `<p><strong>${assignment.name}</strong>${coursePart} ` +
+            "is due today.</p>" +
+            "<p>Make sure to submit it on time!</p>";
+
+          const emailHtml = generateEmailTemplate(subject, message);
+          await sendEmail(user.email, user.name, subject, emailHtml);
+
+          await db.collection("emailTracking").doc(reminderKey).set({
+            type: "due-today",
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+
+        // Check overdue assignments
+        for (const assignment of overdue) {
+          const reminderKey = `assignment-reminder-${userId}-` +
+            `${assignment.name}`;
+          const lastReminderDoc = await db.collection("emailTracking")
+            .doc(reminderKey)
+            .get();
+
+          if (lastReminderDoc.exists &&
+            lastReminderDoc.data()?.type === "overdue") {
+            continue; // Already sent
+          }
+
+          const user = await getUserData(userId);
+          const dueDateStr = format(assignment.dueDate, "MMMM d, yyyy");
+          const subject = `⚠️ ${assignment.name} is overdue`;
+          const coursePart = assignment.courseName ?
+            ` for <strong>${assignment.courseName}</strong>` : "";
+          const message = "<h2 style=\"color: #dc2626;\">" +
+            "Overdue Assignment</h2>" +
+            `<p><strong>${assignment.name}</strong>${coursePart} ` +
+            `was due on ${dueDateStr} and is now overdue.</p>` +
+            "<p>Please complete it as soon as possible!</p>";
+
+          const emailHtml = generateEmailTemplate(subject, message);
+          await sendEmail(user.email, user.name, subject, emailHtml);
+
+          await db.collection("emailTracking").doc(reminderKey).set({
+            type: "overdue",
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (error) {
+        console.error("Error processing reminders for user " +
+          `${userDoc.id}:`, error);
+        // Continue with other users
+      }
     }
   }
 );

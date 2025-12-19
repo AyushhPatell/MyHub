@@ -5,7 +5,7 @@ import { deleteUser, signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { accountService, semesterService } from '../services/firestore';
 import { UserPreferences, Semester } from '../types';
-import { sendTestEmail, isEmailConfigured } from '../services/email';
+import { sendTestEmail, isEmailConfigured } from '../services/emailFunctions';
 import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle, Calendar, Archive, RotateCcw, Plus, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';

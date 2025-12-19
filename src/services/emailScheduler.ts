@@ -8,7 +8,7 @@
  * For a production app, consider using a backend service or Firebase Cloud Functions.
  */
 
-import { sendDailyDigest, sendWeeklyDigest, sendAssignmentReminder } from './email';
+import { sendDailyDigest, sendWeeklyDigest, sendAssignmentReminder } from './emailFunctions';
 import { semesterService, assignmentService } from './firestore';
 import { startOfDay, differenceInDays, format } from 'date-fns';
 
