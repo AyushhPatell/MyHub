@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2, Calendar, BookOpen, AlertCircle, Sparkles } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { collection, addDoc, query, orderBy, onSnapshot, limit, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { sendChatMessage } from '../services/aiChat';
 import { createPortal } from 'react-dom';
+import { semesterService, assignmentService } from '../services/firestore';
+import { Assignment } from '../types';
+import { getTodayRange, getWeekRange } from '../utils/dateHelpers';
 
 interface Message {
   id: string;
@@ -30,10 +33,90 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
   const [error, setError] = useState<string | null>(null);
   const [typingMessage, setTypingMessage] = useState<string>('');
   const [isTyping, setIsTyping] = useState(false);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const typingMessageIdRef = useRef<string | null>(null); // Track message being typed
+
+  // Load proactive suggestions
+  useEffect(() => {
+    if (!user) return;
+
+    const loadSuggestions = async () => {
+      try {
+        setLoadingSuggestions(true);
+        const activeSemester = await semesterService.getActiveSemester(user.uid);
+        if (!activeSemester) {
+          setSuggestions([
+            "Set up your first semester to get started!",
+            "I can help you organize your academic schedule."
+          ]);
+          setLoadingSuggestions(false);
+          return;
+        }
+
+        const allAssignments = await assignmentService.getAllAssignments(
+          user.uid,
+          activeSemester.id
+        );
+
+        const todayRange = getTodayRange();
+        const weekRange = getWeekRange();
+
+        const todayAssignments = allAssignments.filter(
+          (a) => !a.completedAt &&
+            new Date(a.dueDate) >= todayRange.start &&
+            new Date(a.dueDate) <= todayRange.end
+        );
+
+        const weekAssignments = allAssignments.filter(
+          (a) => !a.completedAt &&
+            new Date(a.dueDate) >= weekRange.start &&
+            new Date(a.dueDate) <= weekRange.end
+        );
+
+        const overdueAssignments = allAssignments.filter(
+          (a) => !a.completedAt && new Date(a.dueDate) < todayRange.start
+        );
+
+        const newSuggestions: string[] = [];
+
+        if (overdueAssignments.length > 0) {
+          newSuggestions.push(
+            `⚠️ You have ${overdueAssignments.length} overdue assignment${overdueAssignments.length > 1 ? 's' : ''}. Let's get those done!`
+          );
+        }
+
+        if (todayAssignments.length > 0) {
+          newSuggestions.push(
+            `📅 You have ${todayAssignments.length} assignment${todayAssignments.length > 1 ? 's' : ''} due today. Need help prioritizing?`
+          );
+        } else if (weekAssignments.length > 0) {
+          newSuggestions.push(
+            `📚 You have ${weekAssignments.length} assignment${weekAssignments.length > 1 ? 's' : ''} due this week. Want to plan your schedule?`
+          );
+        }
+
+        if (newSuggestions.length === 0) {
+          newSuggestions.push(
+            "✨ Your schedule looks clear! How can I help you today?",
+            "Ask me about your schedule, assignments, or courses!"
+          );
+        }
+
+        setSuggestions(newSuggestions);
+      } catch (error) {
+        console.error('Error loading suggestions:', error);
+        setSuggestions(["How can I help you today?"]);
+      } finally {
+        setLoadingSuggestions(false);
+      }
+    };
+
+    loadSuggestions();
+  }, [user]);
 
   // Load chat history from Firestore
   useEffect(() => {
@@ -77,11 +160,52 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
     inputRef.current?.focus();
   }, []);
 
-  // Prevent background scroll when chat is open
+  // Prevent background scroll when chat is open (works on mobile/tablet too)
   useEffect(() => {
+    // Store original styles
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalTop = document.body.style.top;
+    const originalWidth = document.body.style.width;
+    
+    // Get current scroll position
+    const scrollY = window.scrollY;
+    
+    // Prevent scrolling on body
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    
+    // Also prevent scrolling on html element (for mobile browsers)
+    const html = document.documentElement;
+    const originalHtmlOverflow = html.style.overflow;
+    html.style.overflow = 'hidden';
+    
+    // Prevent touch scrolling on iOS
+    const preventTouchMove = (e: TouchEvent) => {
+      // Allow touch events inside the chat window
+      if (chatWindowRef.current?.contains(e.target as Node)) {
+        return;
+      }
+      e.preventDefault();
+    };
+    
+    document.addEventListener('touchmove', preventTouchMove, { passive: false });
+    
     return () => {
-      document.body.style.overflow = '';
+      // Restore original styles
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.top = originalTop;
+      document.body.style.width = originalWidth;
+      html.style.overflow = originalHtmlOverflow;
+      
+      // Restore scroll position
+      window.scrollTo(0, scrollY);
+      
+      // Remove touch event listener
+      document.removeEventListener('touchmove', preventTouchMove);
     };
   }, []);
 
@@ -274,12 +398,38 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
               <p className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">
                 Hey there! I'm DashAI 👋
               </p>
-              <p className="text-sm mb-3">
+              <p className="text-sm mb-4">
                 I'm here to help you stay on top of your schedule, assignments, and courses.
               </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500">
-                Ask me anything - from "What's my schedule tomorrow?" to just having a chat!
-              </p>
+              
+              {/* Proactive Suggestions */}
+              {!loadingSuggestions && suggestions.length > 0 && (
+                <div className="mt-6 space-y-2 max-w-md mx-auto">
+                  <p className="text-xs font-medium text-gray-400 dark:text-gray-500 mb-2 flex items-center justify-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    Quick insights
+                  </p>
+                  {suggestions.map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setInput(suggestion.replace(/[⚠️📅📚✨]/g, '').trim());
+                        inputRef.current?.focus();
+                      }}
+                      className="w-full text-left px-4 py-2.5 bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 transition-colors text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {loadingSuggestions && (
+                <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Loading insights...</span>
+                </div>
+              )}
             </div>
           )}
 
