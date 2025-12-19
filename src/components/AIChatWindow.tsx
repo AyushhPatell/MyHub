@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Loader2, Calendar, BookOpen, AlertCircle, Sparkles } from 'lucide-react';
+import { X, Send, Loader2, Sparkles } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { collection, addDoc, query, orderBy, onSnapshot, limit, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { sendChatMessage } from '../services/aiChat';
 import { createPortal } from 'react-dom';
 import { semesterService, assignmentService } from '../services/firestore';
-import { Assignment } from '../types';
 import { getTodayRange, getWeekRange } from '../utils/dateHelpers';
 
 interface Message {
