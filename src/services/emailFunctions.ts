@@ -29,7 +29,7 @@ export function isEmailConfigured(): boolean {
  * Send assignment reminder email
  */
 export async function sendAssignmentReminder(
-  userId: string,
+  _userId: string,
   assignmentId: string,
   reminderType: 'due-today' | 'due-1-day' | 'due-3-days' | 'overdue'
 ): Promise<void> {
@@ -56,7 +56,7 @@ export async function sendAssignmentReminder(
 /**
  * Send daily digest email
  */
-export async function sendDailyDigest(userId: string): Promise<void> {
+export async function sendDailyDigest(_userId: string): Promise<void> {
   try {
     const sendDigest = httpsCallable<{}, EmailResponse>(
       functions,
@@ -77,7 +77,7 @@ export async function sendDailyDigest(userId: string): Promise<void> {
 /**
  * Send weekly digest email
  */
-export async function sendWeeklyDigest(userId: string): Promise<void> {
+export async function sendWeeklyDigest(_userId: string): Promise<void> {
   try {
     const sendDigest = httpsCallable<{}, EmailResponse>(
       functions,
@@ -98,7 +98,7 @@ export async function sendWeeklyDigest(userId: string): Promise<void> {
 /**
  * Send test email
  */
-export async function sendTestEmail(userId: string): Promise<void> {
+export async function sendTestEmail(_userId: string): Promise<void> {
   try {
     const sendTest = httpsCallable<{}, EmailResponse>(
       functions,

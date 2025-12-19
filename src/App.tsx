@@ -145,14 +145,9 @@ function App() {
 
   useDarkModeSchedule(scheduleConfig, userPreferences?.theme || 'light');
 
-  // Start email scheduler when user is logged in and has preferences
-  useEffect(() => {
-    if (!user || !userPreferences) return;
-
-    // Email scheduling is handled by Firebase Cloud Functions
-    // Scheduled functions run automatically on the backend
-    return cleanup;
-  }, [user, userPreferences]);
+  // Email scheduling is handled by Firebase Cloud Functions
+  // Scheduled functions run automatically on the backend
+  // No frontend scheduler needed anymore
 
   return (
     <Router>
