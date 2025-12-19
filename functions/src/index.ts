@@ -533,12 +533,18 @@ export const chatWithAI = onCall(
 
     const userId = request.auth.uid;
     const message = request.data.message;
+    const chatHistory = request.data.chatHistory || [];
 
     if (!message || typeof message !== "string" ||
       message.trim().length === 0) {
       throw new Error(
         "Message is required and must be a non-empty string."
       );
+    }
+
+    // Validate chat history format
+    if (!Array.isArray(chatHistory)) {
+      throw new Error("Chat history must be an array.");
     }
 
     // Initialize OpenAI client with the secret
@@ -612,7 +618,11 @@ export const chatWithAI = onCall(
         "   - 'tomorrow' = the next day shown\n" +
         "   - 'next [day]' = the next occurrence of that weekday\n" +
         "   - 'in X days' = X days from today\n" +
-        "   - Relative dates are based on the Current Date Information\n\n" +
+        "   - Relative dates are based on the Current Date Information\n" +
+        "4. You have access to previous conversation history. Use it to " +
+        "understand context and continue conversations naturally. " +
+        "If the user refers to something mentioned earlier, use the " +
+        "chat history to understand what they're talking about.\n\n" +
         `Current Date (${userTimezone}):\n` +
         `- Today: ${todayStr} (${todayName})\n` +
         `- Tomorrow: ${tomorrowStr} (${tomorrowName})\n` +
@@ -623,6 +633,8 @@ export const chatWithAI = onCall(
         "general chat too.\n" +
         "- Use provided data accurately. If schedule is empty, " +
         "say so clearly.\n" +
+        "- Remember previous messages in the conversation and use them " +
+        "for context when answering follow-up questions.\n" +
         "- Don't always end with questions. Sometimes just " +
         "acknowledge or continue the conversation naturally.\n" +
         "- Keep responses concise but warm and engaging.\n" +
@@ -630,15 +642,48 @@ export const chatWithAI = onCall(
         "  * Empty schedule: 'Your schedule is free today!' or 'No classes " +
         "scheduled for tomorrow.'\n" +
         "  * With events: List them clearly with times.\n" +
-        "  * Casual chat: Respond naturally without forcing academic context.";
+        "  * Casual chat: Respond naturally without forcing academic " +
+        "context.\n" +
+        "  * Follow-up questions: Use chat history to understand what " +
+        "the user is referring to.";
 
-      // Call OpenAI
+      // Build messages array with chat history
+      type MessageRole = "system" | "user" | "assistant";
+      type Message = {role: MessageRole; content: string};
+      const messagesArray: Message[] = [
+        {role: "system", content: systemPrompt},
+      ];
+
+      // Add chat history (last 10 messages for context, but limit tokens)
+      // Filter and validate chat history
+      interface ChatHistoryItem {
+        role?: string;
+        content?: string;
+      }
+      const validHistory = chatHistory
+        .filter((msg: ChatHistoryItem) =>
+          msg &&
+          typeof msg === "object" &&
+          (msg.role === "user" || msg.role === "assistant") &&
+          typeof msg.content === "string" &&
+          msg.content.trim().length > 0
+        )
+        .slice(-10) // Only last 10 messages
+        .map((msg: ChatHistoryItem) => ({
+          role: msg.role as "user" | "assistant",
+          content: (msg.content || "").trim(),
+        }));
+
+      // Add chat history to messages
+      messagesArray.push(...validHistory);
+
+      // Add current message
+      messagesArray.push({role: "user", content: message.trim()});
+
+      // Call OpenAI with full conversation context
       const completion = await openai.chat.completions.create({
         model: GPT_MODEL,
-        messages: [
-          {role: "system", content: systemPrompt},
-          {role: "user", content: message.trim()},
-        ],
+        messages: messagesArray,
         max_tokens: MAX_TOKENS,
         temperature: 0.7,
       });
