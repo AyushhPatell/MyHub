@@ -97,7 +97,7 @@ async function trackCost(tokensUsed: number, cost: number): Promise<void> {
   const month = new Date().toISOString().slice(0, 7); // "2024-12"
 
   try {
-    // Track daily
+    // Track daily costs
     const dailyRef = admin.firestore()
       .collection("appUsage")
       .doc("costs")
@@ -117,6 +117,25 @@ async function trackCost(tokensUsed: number, cost: number): Promise<void> {
         cost: cost,
         tokens: tokensUsed,
         calls: 1,
+      });
+    }
+
+    // Track daily AI calls separately
+    const dailyCallsRef = admin.firestore()
+      .collection("appUsage")
+      .doc("aiCalls")
+      .collection("daily")
+      .doc(today);
+
+    const dailyCallsDoc = await dailyCallsRef.get();
+    if (dailyCallsDoc.exists) {
+      await dailyCallsRef.update({
+        count: admin.firestore.FieldValue.increment(1),
+      });
+    } else {
+      await dailyCallsRef.set({
+        date: today,
+        count: 1,
       });
     }
 

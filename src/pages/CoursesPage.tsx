@@ -9,9 +9,11 @@ import AddCourseModal from '../components/AddCourseModal';
 import EditCourseModal from '../components/EditCourseModal';
 import QuickAddModal from '../components/QuickAddModal';
 import ScheduleModal from '../components/ScheduleModal';
+import { useSearchParams } from 'react-router-dom';
 
 export default function CoursesPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [semester, setSemester] = useState<Semester | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +24,28 @@ export default function CoursesPage() {
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
   const [isEditingSemester, setIsEditingSemester] = useState(false);
   const [semesterName, setSemesterName] = useState('');
+
+  // Check for schedule and quickAdd query parameters
+  useEffect(() => {
+    if (searchParams.get('schedule') === 'true') {
+      setShowSchedule(true);
+      // Remove the query parameter from URL
+      setSearchParams((prev) => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('schedule');
+        return newParams;
+      }, { replace: true });
+    }
+    if (searchParams.get('quickAdd') === 'true') {
+      setShowQuickAdd(true);
+      // Remove the query parameter from URL
+      setSearchParams((prev) => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('quickAdd');
+        return newParams;
+      }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   useEffect(() => {
     if (user) {

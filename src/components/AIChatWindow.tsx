@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Loader2, Sparkles } from 'lucide-react';
+import { X, Send, Loader2, Sparkles, Calendar, BookOpen, Clock, Plus, ArrowRight } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { collection, addDoc, query, orderBy, onSnapshot, limit, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { sendChatMessage } from '../services/aiChat';
 import { createPortal } from 'react-dom';
-import { semesterService, assignmentService } from '../services/firestore';
+import { semesterService, assignmentService, courseService } from '../services/firestore';
 import { getTodayRange, getWeekRange } from '../utils/dateHelpers';
+import { useNavigate } from 'react-router-dom';
+import DashAIIcon from './DashAIIcon';
 
 interface Message {
   id: string;
@@ -26,6 +28,7 @@ interface AIChatWindowProps {
  */
 export default function AIChatWindow({ onClose }: AIChatWindowProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,6 +37,8 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(true);
+  const [quickActions, setQuickActions] = useState<Array<{label: string; action: () => void; icon: React.ReactNode}>>([]);
+  const [contextCard, setContextCard] = useState<{title: string; content: string; type: 'schedule' | 'assignments' | 'courses'} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
@@ -122,7 +127,7 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
     if (!user) return;
 
     const chatHistoryRef = collection(db, 'users', user.uid, 'aiChatHistory');
-    const q = query(chatHistoryRef, orderBy('timestamp', 'desc'), limit(100));
+    const q = query(chatHistoryRef, orderBy('timestamp', 'desc'), limit(50));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loadedMessages = snapshot.docs
@@ -262,8 +267,89 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
     }, 15); // Adjust speed here (lower = faster)
   };
 
+  // Handle quick commands (e.g., /schedule, /assignments)
+  const handleQuickCommand = async (command: string): Promise<boolean> => {
+    if (!user) return false;
+
+    const cmd = command.toLowerCase().trim();
+    
+    try {
+      const activeSemester = await semesterService.getActiveSemester(user.uid);
+      if (!activeSemester) {
+        setInput('Set up your semester first');
+        return true;
+      }
+
+      if (cmd === '/schedule' || cmd === '/sched') {
+        setInput('What is my schedule today?');
+        return true;
+      }
+
+      if (cmd === '/assignments' || cmd === '/assign' || cmd === '/hw') {
+        setInput('What assignments are due this week?');
+        return true;
+      }
+
+      if (cmd === '/courses' || cmd === '/course') {
+        setInput('What courses am I taking?');
+        return true;
+      }
+
+      if (cmd === '/today') {
+        setInput('What do I have due today?');
+        return true;
+      }
+
+      if (cmd === '/tomorrow') {
+        setInput('What is my schedule tomorrow?');
+        return true;
+      }
+
+      if (cmd === '/help' || cmd === '/?') {
+        const helpMessage = "Quick commands:\n" +
+          "/schedule - View today's schedule\n" +
+          "/assignments - View upcoming assignments\n" +
+          "/courses - View your courses\n" +
+          "/today - What's due today\n" +
+          "/tomorrow - Tomorrow's schedule\n" +
+          "/help - Show this help";
+        
+        const helpMsg: Message = {
+          id: `help-${Date.now()}`,
+          role: 'assistant',
+          content: helpMessage,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, helpMsg]);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error handling quick command:', error);
+      return false;
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || !user || loading) return;
+
+    // Check for quick commands
+    if (input.trim().startsWith('/')) {
+      const handled = await handleQuickCommand(input.trim());
+      if (handled) {
+        // If command was handled, either set new input or return
+        if (input.trim() === '/help' || input.trim() === '/?') {
+          setInput('');
+          return;
+        }
+        // For other commands, wait a moment then send
+        setTimeout(() => {
+          handleSend();
+        }, 100);
+        return;
+      }
+    }
 
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
@@ -277,6 +363,9 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
     setInput('');
     setLoading(true);
     setError(null);
+    // Clear previous quick actions and context cards
+    setQuickActions([]);
+    setContextCard(null);
 
     try {
       // Save user message to Firestore
@@ -315,8 +404,11 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
               timestamp: Timestamp.now(),
             }
           );
-          // Clear the typing message ID so Firestore listener can show it
-          typingMessageIdRef.current = null;
+      // Clear the typing message ID so Firestore listener can show it
+      typingMessageIdRef.current = null;
+      
+      // Generate quick actions and context cards based on response
+      generateQuickActionsAndContext(reply, userMessage.content);
         } catch (saveError) {
           console.error('Error saving AI message to Firestore:', saveError);
           typingMessageIdRef.current = null;
@@ -355,6 +447,196 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
     }
   };
 
+  // Generate quick actions and context cards based on AI response
+  // Only shows actions when contextually relevant
+  const generateQuickActionsAndContext = async (
+    aiResponse: string,
+    userMessage: string
+  ) => {
+    if (!user) return;
+
+    const responseLower = aiResponse.toLowerCase();
+    const messageLower = userMessage.toLowerCase();
+    const actions: Array<{label: string; action: () => void; icon: React.ReactNode}> = [];
+    let card: {title: string; content: string; type: 'schedule' | 'assignments' | 'courses'} | null = null;
+
+    // Check if this is casual conversation (no actions needed)
+    const casualKeywords = ['how are you', 'feeling', 'doing', 'bored', 'lonely',
+      'friends', 'chat', 'talk', 'just', 'sitting', 'home', 'alone'];
+    const isCasualChat = casualKeywords.some(keyword =>
+      messageLower.includes(keyword) || responseLower.includes(keyword)
+    );
+
+    // Check if AI response suggests viewing something specific
+    const suggestsViewing = responseLower.includes('view') ||
+      responseLower.includes('check') ||
+      responseLower.includes('see') ||
+      responseLower.includes('look at');
+
+    // Check if AI mentions specific data (schedule, assignments, etc.)
+    const mentionsData = responseLower.includes('schedule') ||
+      responseLower.includes('assignment') ||
+      responseLower.includes('course') ||
+      responseLower.includes('due') ||
+      responseLower.includes('class');
+
+    // Only show actions if conversation is about app features, not casual chat
+    if (isCasualChat && !mentionsData && !suggestsViewing) {
+      setQuickActions([]);
+      setContextCard(null);
+      return;
+    }
+
+    try {
+      const activeSemester = await semesterService.getActiveSemester(user.uid);
+      if (!activeSemester) {
+        setQuickActions([]);
+        setContextCard(null);
+        return;
+      }
+
+      // Detect schedule-related queries (only if contextually relevant)
+      const scheduleKeywords = ['schedule', 'class', 'lecture', 'meeting',
+        'today', 'tomorrow', 'time', 'when'];
+      const isScheduleQuery = scheduleKeywords.some(keyword =>
+        (responseLower.includes(keyword) || messageLower.includes(keyword)) &&
+        !casualKeywords.some(casual => messageLower.includes(casual))
+      );
+
+      if (isScheduleQuery && (suggestsViewing || mentionsData)) {
+        actions.push({
+          label: 'View Schedule',
+          action: () => {
+            navigate('/courses?schedule=true');
+            onClose();
+          },
+          icon: <Calendar className="w-4 h-4" />,
+        });
+
+        // Load today's assignments for context card
+        const todayRange = getTodayRange();
+        const allAssignments = await assignmentService.getAllAssignments(
+          user.uid,
+          activeSemester.id
+        );
+        const todayAssignments = allAssignments.filter((a) => {
+          if (a.completedAt) return false;
+          const dueDate = new Date(a.dueDate);
+          return dueDate >= todayRange.start && dueDate <= todayRange.end;
+        });
+
+        if (todayAssignments.length > 0) {
+          card = {
+            title: "Today's Tasks",
+            content: todayAssignments.slice(0, 3).map(a => a.name).join(', '),
+            type: 'assignments',
+          };
+        }
+      }
+
+      // Detect assignment-related queries (only if contextually relevant)
+      const assignmentKeywords = ['assignment', 'homework', 'due', 'deadline',
+        'task', 'project', 'essay', 'exam'];
+      const isAssignmentQuery = assignmentKeywords.some(keyword =>
+        (responseLower.includes(keyword) || messageLower.includes(keyword)) &&
+        !casualKeywords.some(casual => messageLower.includes(casual))
+      );
+
+      if (isAssignmentQuery && (suggestsViewing || mentionsData)) {
+        actions.push({
+          label: 'View Assignments',
+          action: () => {
+            navigate('/');
+            onClose();
+            // Scroll to assignments section after navigation
+            setTimeout(() => {
+              const assignmentsSection = document.querySelector('[data-assignments-section]') || 
+                document.querySelector('.stats-widget, [class*="assignment"]');
+              if (assignmentsSection) {
+                assignmentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+            }, 300);
+          },
+          icon: <BookOpen className="w-4 h-4" />,
+        });
+
+        // Only show "Add Assignment" if user seems to want to add one
+        if (messageLower.includes('add') || messageLower.includes('create') ||
+            messageLower.includes('new')) {
+          actions.push({
+            label: 'Add Assignment',
+            action: () => {
+              navigate('/courses?quickAdd=true');
+              onClose();
+            },
+            icon: <Plus className="w-4 h-4" />,
+          });
+        }
+
+        // Load upcoming assignments for context card
+        const weekRange = getWeekRange();
+        const allAssignments = await assignmentService.getAllAssignments(
+          user.uid,
+          activeSemester.id
+        );
+        const upcomingAssignments = allAssignments.filter((a) => {
+          if (a.completedAt) return false;
+          const dueDate = new Date(a.dueDate);
+          return dueDate >= weekRange.start && dueDate <= weekRange.end;
+        }).slice(0, 3);
+
+        if (upcomingAssignments.length > 0) {
+          card = {
+            title: 'Upcoming This Week',
+            content: upcomingAssignments.map(a => a.name).join(', '),
+            type: 'assignments',
+          };
+        }
+      }
+
+      // Detect course-related queries (only if contextually relevant)
+      const courseKeywords = ['course', 'subject', 'class'];
+      const isCourseQuery = courseKeywords.some(keyword =>
+        (responseLower.includes(keyword) || messageLower.includes(keyword)) &&
+        !casualKeywords.some(casual => messageLower.includes(casual))
+      );
+
+      if (isCourseQuery && (suggestsViewing || mentionsData)) {
+        actions.push({
+          label: 'View Courses',
+          action: () => {
+            navigate('/courses');
+            onClose();
+          },
+          icon: <BookOpen className="w-4 h-4" />,
+        });
+
+        // Load courses for context card
+        const courses = await courseService.getCourses(user.uid, activeSemester.id);
+        if (courses.length > 0) {
+          card = {
+            title: 'Your Courses',
+            content: courses.slice(0, 4).map(c => c.courseCode).join(', '),
+            type: 'courses',
+          };
+        }
+      }
+
+      // Only set actions if we found relevant ones
+      if (actions.length > 0) {
+        setQuickActions(actions);
+        setContextCard(card);
+      } else {
+        setQuickActions([]);
+        setContextCard(null);
+      }
+    } catch (error) {
+      console.error('Error generating quick actions:', error);
+      setQuickActions([]);
+      setContextCard(null);
+    }
+  };
+
   return createPortal(
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
@@ -368,8 +650,8 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-500 to-purple-600">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-2xl">🤖</span>
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+              <DashAIIcon size={24} className="text-white" />
             </div>
             <div>
               <h2 className="text-white font-semibold">DashAI</h2>
@@ -391,7 +673,7 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
             <div className="text-center text-gray-500 dark:text-gray-400 py-8 px-4">
               <div className="mb-4">
                 <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full mx-auto flex items-center justify-center mb-3">
-                  <span className="text-3xl">✨</span>
+                  <DashAIIcon size={40} className="text-white" />
                 </div>
               </div>
               <p className="text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">
@@ -479,6 +761,45 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
               <p className="text-red-800 dark:text-red-200 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Quick Actions - Show after AI response */}
+          {quickActions.length > 0 && !loading && !isTyping && messages.length > 0 && (
+            <div className="mt-4 px-4">
+              <div className="flex flex-wrap gap-2">
+                {quickActions.map((action, index) => (
+                  <button
+                    key={index}
+                    onClick={action.action}
+                    className="flex items-center gap-2 px-3 py-2 bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm font-medium transition-colors border border-indigo-200 dark:border-indigo-800"
+                  >
+                    {action.icon}
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Context Card - Show relevant info */}
+          {contextCard && !loading && !isTyping && (
+            <div className="mt-4 px-4">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-200 dark:border-indigo-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  {contextCard.type === 'schedule' && <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5" />}
+                  {contextCard.type === 'assignments' && <Clock className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5" />}
+                  {contextCard.type === 'courses' && <BookOpen className="w-5 h-5 text-indigo-600 dark:text-indigo-400 mt-0.5" />}
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">
+                      {contextCard.title}
+                    </h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">
+                      {contextCard.content}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
