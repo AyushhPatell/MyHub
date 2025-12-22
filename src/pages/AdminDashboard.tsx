@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, Zap } from 'lucide-react';
+import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, Zap, RefreshCw } from 'lucide-react';
 
 interface DailyCost {
   date: string;
@@ -51,72 +51,128 @@ export default function AdminDashboard() {
       const currentMonth = now.toISOString().slice(0, 7); // "2024-12"
       const today = now.toISOString().split("T")[0]; // "2024-12-18"
 
+      console.log('[AdminDashboard] Loading data for:', { today, currentMonth });
+
       // Load daily costs (last 30 days)
-      const dailyCostsRef = collection(db, 'appUsage', 'costs', 'daily');
-      const dailyCostsQuery = query(dailyCostsRef, orderBy('date', 'desc'), limit(30));
-      const dailyCostsSnapshot = await getDocs(dailyCostsQuery);
+      // Try with orderBy first, fallback to no orderBy if index missing
+      let dailyCostsSnapshot;
+      try {
+        const dailyCostsRef = collection(db, 'appUsage', 'costs', 'daily');
+        const dailyCostsQuery = query(dailyCostsRef, orderBy('date', 'desc'), limit(30));
+        dailyCostsSnapshot = await getDocs(dailyCostsQuery);
+      } catch (orderByError: any) {
+        console.warn('[AdminDashboard] orderBy failed, trying without:', orderByError);
+        // Fallback: get all and sort in memory
+        const dailyCostsRef = collection(db, 'appUsage', 'costs', 'daily');
+        dailyCostsSnapshot = await getDocs(dailyCostsRef);
+      }
+
       const dailyCostsData: DailyCost[] = [];
       dailyCostsSnapshot.forEach((doc) => {
         const data = doc.data();
+        const docDate = data.date || doc.id;
         dailyCostsData.push({
-          date: data.date || doc.id,
-          cost: data.cost || 0,
-          tokens: data.tokens || 0,
-          calls: data.calls || 0,
+          date: docDate,
+          cost: Number(data.cost) || 0,
+          tokens: Number(data.tokens) || 0,
+          calls: Number(data.calls) || 0,
         });
       });
-      setDailyCosts(dailyCostsData);
+      
+      // Sort by date descending if we didn't use orderBy
+      dailyCostsData.sort((a, b) => b.date.localeCompare(a.date));
+      const sortedDailyCosts = dailyCostsData.slice(0, 30);
+      
+      console.log('[AdminDashboard] Daily costs loaded:', sortedDailyCosts.length, 'documents');
+      setDailyCosts(sortedDailyCosts);
 
       // Calculate today's cost
-      const todayCostData = dailyCostsData.find((d) => d.date === today);
+      const todayCostData = sortedDailyCosts.find((d) => d.date === today);
       if (todayCostData) {
+        console.log('[AdminDashboard] Today cost:', todayCostData.cost);
         setTodayCost(todayCostData.cost);
+      } else {
+        console.log('[AdminDashboard] No data found for today:', today);
       }
 
       // Load monthly costs (last 12 months)
-      const monthlyCostsRef = collection(db, 'appUsage', 'costs', 'monthly');
-      const monthlyCostsQuery = query(monthlyCostsRef, orderBy('month', 'desc'), limit(12));
-      const monthlyCostsSnapshot = await getDocs(monthlyCostsQuery);
+      let monthlyCostsSnapshot;
+      try {
+        const monthlyCostsRef = collection(db, 'appUsage', 'costs', 'monthly');
+        const monthlyCostsQuery = query(monthlyCostsRef, orderBy('month', 'desc'), limit(12));
+        monthlyCostsSnapshot = await getDocs(monthlyCostsQuery);
+      } catch (orderByError: any) {
+        console.warn('[AdminDashboard] Monthly orderBy failed, trying without:', orderByError);
+        const monthlyCostsRef = collection(db, 'appUsage', 'costs', 'monthly');
+        monthlyCostsSnapshot = await getDocs(monthlyCostsRef);
+      }
+
       const monthlyCostsData: MonthlyCost[] = [];
       monthlyCostsSnapshot.forEach((doc) => {
         const data = doc.data();
         monthlyCostsData.push({
           month: data.month || doc.id,
-          totalCost: data.totalCost || 0,
-          totalTokens: data.totalTokens || 0,
-          callCount: data.callCount || 0,
+          totalCost: Number(data.totalCost) || 0,
+          totalTokens: Number(data.totalTokens) || 0,
+          callCount: Number(data.callCount) || 0,
         });
       });
-      setMonthlyCosts(monthlyCostsData);
+      
+      // Sort by month descending if we didn't use orderBy
+      monthlyCostsData.sort((a, b) => b.month.localeCompare(a.month));
+      const sortedMonthlyCosts = monthlyCostsData.slice(0, 12);
+      
+      console.log('[AdminDashboard] Monthly costs loaded:', sortedMonthlyCosts.length, 'documents');
+      setMonthlyCosts(sortedMonthlyCosts);
 
       // Calculate current month cost
-      const currentMonthData = monthlyCostsData.find((m) => m.month === currentMonth);
+      const currentMonthData = sortedMonthlyCosts.find((m) => m.month === currentMonth);
       if (currentMonthData) {
+        console.log('[AdminDashboard] Current month cost:', currentMonthData.totalCost, 'calls:', currentMonthData.callCount);
         setCurrentMonthCost(currentMonthData.totalCost);
         setCurrentMonthCalls(currentMonthData.callCount);
+      } else {
+        console.log('[AdminDashboard] No data found for current month:', currentMonth);
       }
 
       // Load daily usage (last 30 days)
-      const dailyUsageRef = collection(db, 'appUsage', 'aiCalls', 'daily');
-      const dailyUsageQuery = query(dailyUsageRef, orderBy('date', 'desc'), limit(30));
-      const dailyUsageSnapshot = await getDocs(dailyUsageQuery);
+      let dailyUsageSnapshot;
+      try {
+        const dailyUsageRef = collection(db, 'appUsage', 'aiCalls', 'daily');
+        const dailyUsageQuery = query(dailyUsageRef, orderBy('date', 'desc'), limit(30));
+        dailyUsageSnapshot = await getDocs(dailyUsageQuery);
+      } catch (orderByError: any) {
+        console.warn('[AdminDashboard] Daily usage orderBy failed, trying without:', orderByError);
+        const dailyUsageRef = collection(db, 'appUsage', 'aiCalls', 'daily');
+        dailyUsageSnapshot = await getDocs(dailyUsageRef);
+      }
+
       const dailyUsageData: DailyUsage[] = [];
       dailyUsageSnapshot.forEach((doc) => {
         const data = doc.data();
         dailyUsageData.push({
           date: data.date || doc.id,
-          count: data.count || 0,
+          count: Number(data.count) || 0,
         });
       });
-      setDailyUsage(dailyUsageData);
+      
+      // Sort by date descending if we didn't use orderBy
+      dailyUsageData.sort((a, b) => b.date.localeCompare(a.date));
+      const sortedDailyUsage = dailyUsageData.slice(0, 30);
+      
+      console.log('[AdminDashboard] Daily usage loaded:', sortedDailyUsage.length, 'documents');
+      setDailyUsage(sortedDailyUsage);
 
       // Calculate today's usage
-      const todayUsageData = dailyUsageData.find((d) => d.date === today);
+      const todayUsageData = sortedDailyUsage.find((d) => d.date === today);
       if (todayUsageData) {
+        console.log('[AdminDashboard] Today usage:', todayUsageData.count);
         setTodayUsage(todayUsageData.count);
+      } else {
+        console.log('[AdminDashboard] No usage data found for today:', today);
       }
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('[AdminDashboard] Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
@@ -153,13 +209,23 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Admin Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Monitor AI usage, costs, and application statistics
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Admin Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Monitor AI usage, costs, and application statistics
+            </p>
+          </div>
+          <button
+            onClick={loadDashboardData}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
         {/* Key Metrics */}
