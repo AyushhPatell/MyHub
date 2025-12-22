@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, Send, Loader2, Sparkles, Calendar, BookOpen, Clock, Plus, ArrowRight } from 'lucide-react';
+import { X, Send, Loader2, Sparkles, Calendar, BookOpen, Clock, Plus } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { collection, addDoc, query, orderBy, onSnapshot, limit, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
