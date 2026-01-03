@@ -16,6 +16,16 @@ service cloud.firestore {
       match /semesters/{semesterId} {
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
         
+        // Calendar Events (stored directly under semesters)
+        match /calendarEvents/{eventId} {
+          allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        }
+        
+        // Schedule Blocks (stored directly under semesters)
+        match /scheduleBlocks/{blockId} {
+          allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+        }
+        
         // Courses
         match /courses/{courseId} {
           allow read, write, delete: if request.auth != null && request.auth.uid == userId;
@@ -27,11 +37,6 @@ service cloud.firestore {
           
           // Recurring Templates
           match /recurringTemplates/{templateId} {
-            allow read, write, delete: if request.auth != null && request.auth.uid == userId;
-          }
-          
-          // Schedule Blocks
-          match /scheduleBlocks/{blockId} {
             allow read, write, delete: if request.auth != null && request.auth.uid == userId;
           }
         }
