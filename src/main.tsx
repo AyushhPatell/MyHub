@@ -4,11 +4,43 @@ import App from './App.tsx'
 import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 
-// Global error handler for cssRules errors (from third-party libraries)
+// Global error handler for cssRules errors and Chrome extension errors
 // This must run IMMEDIATELY, before any other code executes
 (function() {
   'use strict';
   if (typeof window === 'undefined') return;
+
+  // Helper function to check if error should be suppressed
+  const shouldSuppressError = (errorMessage: string): boolean => {
+    const lowerMessage = errorMessage.toLowerCase();
+    
+    // Suppress cssRules errors from third-party libraries
+    if (lowerMessage.includes('cssrules') || 
+        lowerMessage.includes('cannot read properties of null') ||
+        lowerMessage.includes('reading \'cssrules\'') ||
+        lowerMessage.includes('reading "cssrules"') ||
+        lowerMessage.includes('reading `cssrules`')) {
+      return true;
+    }
+
+    // Suppress PWA icon manifest errors (non-critical)
+    if (lowerMessage.includes('icon from the manifest') ||
+        lowerMessage.includes('pwa-192x192.png') ||
+        lowerMessage.includes('pwa-512x512.png')) {
+      return true;
+    }
+
+    // Suppress Chrome extension errors (not from our code)
+    if (lowerMessage.includes('chrome-extension://') ||
+        lowerMessage.includes('inject.bundle.js') ||
+        lowerMessage.includes('runtime.lasterror') ||
+        lowerMessage.includes('receiving end does not exist') ||
+        lowerMessage.includes('could not establish connection')) {
+      return true;
+    }
+
+    return false;
+  };
 
   // Store original console methods
   const originalError = console.error.bind(console);
@@ -23,19 +55,11 @@ import { registerSW } from 'virtual:pwa-register'
         if (arg?.message) return arg.message + ' ' + (arg.stack || '');
         if (arg?.stack) return arg.stack;
         return String(arg);
-      }).join(' ').toLowerCase();
+      }).join(' ');
 
-      // Suppress cssRules errors from third-party libraries
-      if (errorMessage.includes('cssrules') || 
-          errorMessage.includes('cannot read properties of null') ||
-          errorMessage.includes('reading \'cssrules\'') ||
-          errorMessage.includes('reading "cssrules"')) {
+      // Suppress known non-critical errors
+      if (shouldSuppressError(errorMessage)) {
         return; // Silently suppress
-      }
-
-      // Filter out PWA icon manifest errors (non-critical)
-      if (errorMessage.includes('icon from the manifest')) {
-        return; // Suppress this error
       }
 
       originalError.apply(console, args);
@@ -53,10 +77,10 @@ import { registerSW } from 'virtual:pwa-register'
         if (arg instanceof Error) return arg.message;
         if (arg?.message) return arg.message;
         return String(arg);
-      }).join(' ').toLowerCase();
+      }).join(' ');
 
-      // Suppress cssRules warnings
-      if (warningMessage.includes('cssrules')) {
+      // Suppress known non-critical warnings
+      if (shouldSuppressError(warningMessage)) {
         return;
       }
 
@@ -67,7 +91,8 @@ import { registerSW } from 'virtual:pwa-register'
   };
 
   // Global error event listener (catches errors before they reach console)
-  window.addEventListener('error', function(event) {
+  // Use capture phase and make it non-capturing to catch all errors
+  const errorHandler = function(event: ErrorEvent) {
     try {
       const errorMessage = (
         event.message || 
@@ -75,13 +100,10 @@ import { registerSW } from 'virtual:pwa-register'
         event.error?.stack || 
         String(event.error) || 
         ''
-      ).toLowerCase();
+      );
       
-      // Suppress cssRules errors from third-party libraries
-      if (errorMessage.includes('cssrules') || 
-          errorMessage.includes('cannot read properties of null') ||
-          errorMessage.includes('reading \'cssrules\'') ||
-          errorMessage.includes('reading "cssrules"')) {
+      // Suppress known non-critical errors
+      if (shouldSuppressError(errorMessage)) {
         event.preventDefault();
         event.stopPropagation();
         event.stopImmediatePropagation();
@@ -90,23 +112,45 @@ import { registerSW } from 'virtual:pwa-register'
     } catch {
       // If suppression fails, let error through
     }
-  }, true); // Use capture phase to catch early
+  };
+
+  // Add error listener with highest priority (capture phase)
+  window.addEventListener('error', errorHandler, true);
+
+  // Also add to window.onerror as fallback
+  const originalOnError = window.onerror;
+  window.onerror = function(message, source, lineno, colno, error) {
+    const errorMessage = (
+      String(message) || 
+      error?.message || 
+      error?.stack || 
+      ''
+    );
+    
+    if (shouldSuppressError(errorMessage)) {
+      return true; // Suppress the error
+    }
+    
+    // Call original handler if exists
+    if (originalOnError) {
+      return originalOnError.call(window, message, source, lineno, colno, error);
+    }
+    
+    return false;
+  };
 
   // Handle unhandled promise rejections
-  window.addEventListener('unhandledrejection', function(event) {
+  const rejectionHandler = function(event: PromiseRejectionEvent) {
     try {
       const errorMessage = (
         event.reason?.message || 
         event.reason?.stack || 
         String(event.reason) || 
         ''
-      ).toLowerCase();
+      );
       
-      // Suppress cssRules errors in promise rejections
-      if (errorMessage.includes('cssrules') || 
-          errorMessage.includes('cannot read properties of null') ||
-          errorMessage.includes('reading \'cssrules\'') ||
-          errorMessage.includes('reading "cssrules"')) {
+      // Suppress known non-critical errors
+      if (shouldSuppressError(errorMessage)) {
         event.preventDefault();
         event.stopPropagation();
         return false;
@@ -114,7 +158,28 @@ import { registerSW } from 'virtual:pwa-register'
     } catch {
       // If suppression fails, let rejection through
     }
-  });
+  };
+
+  window.addEventListener('unhandledrejection', rejectionHandler);
+
+  // Suppress Chrome extension runtime.lastError
+  if (typeof chrome !== 'undefined' && chrome.runtime) {
+    const originalSendMessage = chrome.runtime.sendMessage;
+    if (originalSendMessage) {
+      chrome.runtime.sendMessage = function(...args: any[]) {
+        try {
+          return originalSendMessage.apply(chrome.runtime, args);
+        } catch (error: any) {
+          // Suppress Chrome extension connection errors
+          if (error?.message?.includes('receiving end does not exist') ||
+              error?.message?.includes('could not establish connection')) {
+            return;
+          }
+          throw error;
+        }
+      };
+    }
+  }
 })();
 
 // Register service worker with update detection
@@ -188,9 +253,20 @@ if (typeof window !== 'undefined') {
   };
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+// Wrap React rendering in error boundary to catch rendering errors
+try {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  );
+} catch (error: any) {
+  // Suppress cssRules errors during initial render
+  const errorMessage = (error?.message || error?.stack || String(error) || '').toLowerCase();
+  if (!errorMessage.includes('cssrules') && 
+      !errorMessage.includes('cannot read properties of null')) {
+    // Only log if it's not a cssRules error
+    console.error('Error during React render:', error);
+  }
+}
 
