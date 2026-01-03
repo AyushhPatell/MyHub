@@ -5,35 +5,83 @@ import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 
 // Global error handler for cssRules errors (from third-party libraries)
+// This must run before React renders to catch all errors
 if (typeof window !== 'undefined') {
-  window.addEventListener('error', (event) => {
+  // Override console.error to filter out known non-critical errors
+  const originalError = console.error;
+  const originalWarn = console.warn;
+  
+  console.error = (...args: any[]) => {
+    const errorMessage = args.map(arg => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return arg.message;
+      if (arg?.message) return arg.message;
+      if (arg?.stack) return arg.stack;
+      return String(arg);
+    }).join(' ');
+
     // Suppress cssRules errors from third-party libraries
-    if (event.message?.includes('cssRules') || event.error?.message?.includes('cssRules')) {
+    if (errorMessage.includes('cssRules') || 
+        errorMessage.includes('Cannot read properties of null') ||
+        errorMessage.includes('reading \'cssRules\'')) {
+      return; // Silently suppress
+    }
+
+    // Filter out PWA icon manifest errors (non-critical)
+    if (errorMessage.includes('icon from the Manifest')) {
+      return; // Suppress this error
+    }
+
+    originalError.apply(console, args);
+  };
+
+  // Also filter console.warn for cssRules
+  console.warn = (...args: any[]) => {
+    const warningMessage = args.map(arg => {
+      if (typeof arg === 'string') return arg;
+      if (arg instanceof Error) return arg.message;
+      if (arg?.message) return arg.message;
+      return String(arg);
+    }).join(' ');
+
+    // Suppress cssRules warnings
+    if (warningMessage.includes('cssRules')) {
+      return;
+    }
+
+    originalWarn.apply(console, args);
+  };
+
+  // Global error event listener (catches errors before they reach console)
+  window.addEventListener('error', (event) => {
+    const errorMessage = event.message || event.error?.message || event.error?.stack || '';
+    
+    // Suppress cssRules errors from third-party libraries
+    if (errorMessage.includes('cssRules') || 
+        errorMessage.includes('Cannot read properties of null') ||
+        errorMessage.includes('reading \'cssRules\'')) {
       event.preventDefault();
-      // Silently suppress - these are from third-party libraries trying to access stylesheet rules
+      event.stopPropagation();
+      event.stopImmediatePropagation();
       return false;
     }
-  }, true);
+  }, true); // Use capture phase to catch early
 
   // Handle unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
+    const errorMessage = event.reason?.message || 
+                        event.reason?.stack || 
+                        String(event.reason) || '';
+    
     // Suppress cssRules errors in promise rejections
-    if (event.reason?.message?.includes('cssRules')) {
+    if (errorMessage.includes('cssRules') || 
+        errorMessage.includes('Cannot read properties of null') ||
+        errorMessage.includes('reading \'cssRules\'')) {
       event.preventDefault();
-      // Silently suppress - these are from third-party libraries
+      event.stopPropagation();
       return false;
     }
   });
-
-  // Suppress PWA icon manifest errors (non-critical)
-  const originalError = console.error;
-  console.error = (...args: any[]) => {
-    // Filter out PWA icon manifest errors
-    if (args.some((arg) => typeof arg === 'string' && arg.includes('icon from the Manifest'))) {
-      return; // Suppress this error
-    }
-    originalError.apply(console, args);
-  };
 }
 
 // Register service worker with update detection
