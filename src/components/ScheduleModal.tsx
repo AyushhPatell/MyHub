@@ -666,12 +666,22 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
   const [courseInfo, setCourseInfo] = useState({
     course: existingBlocks[0]?.courseNumber || (existingBlocks[0]?.subject && existingBlocks[0]?.courseNumber ? `${existingBlocks[0].subject} ${existingBlocks[0].courseNumber}` : '') || '',
     title: existingBlocks[0]?.title || '',
-    building: existingBlocks[0]?.location?.building || '',
-    room: existingBlocks[0]?.location?.room || '',
     instructorName: existingBlocks[0]?.instructorName || '',
     sectionNumber: existingBlocks[0]?.sectionNumber || '',
     crn: existingBlocks[0]?.crn || '',
     associatedTerm: existingBlocks[0]?.associatedTerm || '',
+  });
+
+  // Separate location for lectures and tutorials
+  // If only lectures are selected, use lectureLocation for all
+  // If both are selected, use separate locations
+  const [lectureLocation, setLectureLocation] = useState({
+    building: existingBlocks.find(b => b.type === 'lecture')?.location?.building || '',
+    room: existingBlocks.find(b => b.type === 'lecture')?.location?.room || '',
+  });
+  const [tutorialLocation, setTutorialLocation] = useState({
+    building: existingBlocks.find(b => b.type === 'tutorial')?.location?.building || '',
+    room: existingBlocks.find(b => b.type === 'tutorial')?.location?.room || '',
   });
 
   // Block-specific info (day and time)
@@ -756,7 +766,7 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
       }
     }
 
-    // Build blocks array
+    // Build blocks array with appropriate locations
     const blocks: any[] = [];
     lectureBlocks.forEach((block, _index) => {
       blocks.push({
@@ -764,6 +774,10 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
         dayOfWeek: block.day,
         startTime: block.startTime,
         endTime: block.endTime,
+        location: {
+          building: lectureLocation.building || undefined,
+          room: lectureLocation.room || undefined,
+        },
       });
     });
     tutorialBlocks.forEach((block, _index) => {
@@ -772,23 +786,29 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
         dayOfWeek: block.day,
         startTime: block.startTime,
         endTime: block.endTime,
+        location: {
+          building: tutorialLocation.building || undefined,
+          room: tutorialLocation.room || undefined,
+        },
       });
     });
 
+    // For courseInfo, use lecture location as default (for backward compatibility)
     onSave({
       courseId: useCustomCourse ? customCourseName : selectedCourseId,
       courseInfo: {
         courseNumber: courseInfo.course, // Store as courseNumber for backward compatibility
         title: courseInfo.title,
-        building: courseInfo.building || undefined,
-        room: courseInfo.room || undefined,
         instructorName: courseInfo.instructorName,
         sectionNumber: courseInfo.sectionNumber,
         crn: courseInfo.crn,
         associatedTerm: courseInfo.associatedTerm,
+        // Store lecture location as default for backward compatibility
+        building: lectureLocation.building || undefined,
+        room: lectureLocation.room || undefined,
         location: {
-          building: courseInfo.building || undefined,
-          room: courseInfo.room || undefined,
+          building: lectureLocation.building || undefined,
+          room: lectureLocation.room || undefined,
         },
       },
       blocks,
@@ -932,32 +952,125 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Building
-                  </label>
-                  <input
-                    type="text"
-                    value={courseInfo.building}
-                    onChange={(e) => setCourseInfo(prev => ({ ...prev, building: e.target.value }))}
-                    placeholder="e.g., COLLABORATIVE HEALTH EDUC BLDG"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                  />
+              {/* Location fields - show separate fields if both lecture and tutorial are selected */}
+              {numLectures > 0 && numTutorials > 0 ? (
+                <>
+                  {/* Lecture Location */}
+                  <div className="border-l-2 border-indigo-500 pl-4">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Lecture Location</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Building
+                        </label>
+                        <input
+                          type="text"
+                          value={lectureLocation.building}
+                          onChange={(e) => setLectureLocation(prev => ({ ...prev, building: e.target.value }))}
+                          placeholder="e.g., COLLABORATIVE HEALTH EDUC BLDG"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Room
+                        </label>
+                        <input
+                          type="text"
+                          value={lectureLocation.room}
+                          onChange={(e) => setLectureLocation(prev => ({ ...prev, room: e.target.value }))}
+                          placeholder="e.g., Room C170"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Tutorial Location */}
+                  <div className="border-l-2 border-purple-500 pl-4">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Tutorial Location</h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Building
+                        </label>
+                        <input
+                          type="text"
+                          value={tutorialLocation.building}
+                          onChange={(e) => setTutorialLocation(prev => ({ ...prev, building: e.target.value }))}
+                          placeholder="e.g., COLLABORATIVE HEALTH EDUC BLDG"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Room
+                        </label>
+                        <input
+                          type="text"
+                          value={tutorialLocation.room}
+                          onChange={(e) => setTutorialLocation(prev => ({ ...prev, room: e.target.value }))}
+                          placeholder="e.g., Room C170"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : numLectures > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Building
+                    </label>
+                    <input
+                      type="text"
+                      value={lectureLocation.building}
+                      onChange={(e) => setLectureLocation(prev => ({ ...prev, building: e.target.value }))}
+                      placeholder="e.g., COLLABORATIVE HEALTH EDUC BLDG"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Room
+                    </label>
+                    <input
+                      type="text"
+                      value={lectureLocation.room}
+                      onChange={(e) => setLectureLocation(prev => ({ ...prev, room: e.target.value }))}
+                      placeholder="e.g., Room C170"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Room
-                  </label>
-                  <input
-                    type="text"
-                    value={courseInfo.room}
-                    onChange={(e) => setCourseInfo(prev => ({ ...prev, room: e.target.value }))}
-                    placeholder="e.g., Room C170"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
-                  />
+              ) : numTutorials > 0 ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Building
+                    </label>
+                    <input
+                      type="text"
+                      value={tutorialLocation.building}
+                      onChange={(e) => setTutorialLocation(prev => ({ ...prev, building: e.target.value }))}
+                      placeholder="e.g., COLLABORATIVE HEALTH EDUC BLDG"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Room
+                    </label>
+                    <input
+                      type="text"
+                      value={tutorialLocation.room}
+                      onChange={(e) => setTutorialLocation(prev => ({ ...prev, room: e.target.value }))}
+                      placeholder="e.g., Room C170"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500"
+                    />
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">

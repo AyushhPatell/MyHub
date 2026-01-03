@@ -119,8 +119,8 @@ export const semesterService = {
   },
 
   async switchToSemester(userId: string, semesterId: string): Promise<void> {
-    // Get all semesters
-    const allSemesters = await this.getSemesters(userId);
+    // Get all semesters including archived ones
+    const allSemesters = await this.getSemesters(userId, true);
     const targetSemester = allSemesters.find(s => s.id === semesterId);
     
     if (!targetSemester) {

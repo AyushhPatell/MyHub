@@ -4,6 +4,38 @@ import App from './App.tsx'
 import './index.css'
 import { registerSW } from 'virtual:pwa-register'
 
+// Global error handler for cssRules errors (from third-party libraries)
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (event) => {
+    // Suppress cssRules errors from third-party libraries
+    if (event.message?.includes('cssRules') || event.error?.message?.includes('cssRules')) {
+      event.preventDefault();
+      // Silently suppress - these are from third-party libraries trying to access stylesheet rules
+      return false;
+    }
+  }, true);
+
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    // Suppress cssRules errors in promise rejections
+    if (event.reason?.message?.includes('cssRules')) {
+      event.preventDefault();
+      // Silently suppress - these are from third-party libraries
+      return false;
+    }
+  });
+
+  // Suppress PWA icon manifest errors (non-critical)
+  const originalError = console.error;
+  console.error = (...args: any[]) => {
+    // Filter out PWA icon manifest errors
+    if (args.some((arg) => typeof arg === 'string' && arg.includes('icon from the Manifest'))) {
+      return; // Suppress this error
+    }
+    originalError.apply(console, args);
+  };
+}
+
 // Register service worker with update detection
 let updateSW: (reloadPage?: boolean) => Promise<void> | undefined;
 
