@@ -109,6 +109,33 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
     return eventDate.getTime() < today.getTime();
   };
 
+  // Check if an event is over (considering end time if provided)
+  const isEventOver = (event: CalendarEvent) => {
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    const todayStart = startOfDay(today);
+    const eventDateStart = startOfDay(eventDate);
+    
+    // If event date is before today, it's definitely over
+    if (eventDateStart.getTime() < todayStart.getTime()) {
+      return true;
+    }
+    
+    // If event date is today and has an end time, check if current time is past end time
+    if (eventDateStart.getTime() === todayStart.getTime() && event.endTime) {
+      const [hours, minutes] = event.endTime.split(':').map(Number);
+      const endDateTime = new Date(eventDate);
+      endDateTime.setHours(hours, minutes, 0, 0);
+      
+      // Only mark as over if current time is past the end time
+      return today.getTime() > endDateTime.getTime();
+    }
+    
+    // If event is today but no end time, it's not over
+    // If event is in the future, it's not over
+    return false;
+  };
+
   const handleDayClick = (day: Date) => {
     setSelectedDate(day);
     setShowAddEventForm(false);
@@ -236,9 +263,9 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
         const isToday = isSameDay(day, new Date());
         const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
         const isPastDate = isDatePast(day);
-        const hasPastItems = isPastDate && (
+        const hasPastItems = (
           dayAssignments.some(a => isDatePast(new Date(a.dueDate))) ||
-          dayEvents.some(e => isDatePast(new Date(e.date)))
+          dayEvents.some(e => isEventOver(e))
         );
         return (
           <button
@@ -287,9 +314,9 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
         const isToday = isSameDay(day, new Date());
         const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
         const isPastDate = isDatePast(day);
-        const hasPastItems = isPastDate && (
+        const hasPastItems = (
           dayAssignments.some(a => isDatePast(new Date(a.dueDate))) ||
-          dayEvents.some(e => isDatePast(new Date(e.date)))
+          dayEvents.some(e => isEventOver(e))
         );
         return (
           <button
@@ -494,8 +521,7 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
                   {getEventsForDate(selectedDate).length > 0 && (
                     <div className={`space-y-4 ${getAssignmentsForDate(selectedDate).length > 0 ? 'mt-6' : ''}`}>
                       {getEventsForDate(selectedDate).map((evt) => {
-                        const eventDate = new Date(evt.date);
-                        const isPastEvent = isDatePast(eventDate);
+                        const isPastEvent = isEventOver(evt);
                         return (
                         <div
                           key={evt.id}

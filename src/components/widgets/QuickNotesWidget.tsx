@@ -94,8 +94,7 @@ export default function QuickNotesWidget({ size, userId }: QuickNotesWidgetProps
     );
   }
 
-  const displayNotes = size === 'small' ? notes.slice(0, 2) : size === 'medium' ? notes.slice(0, 4) : notes;
-
+  // Show all notes with scrolling if needed
   return (
     <div className="space-y-4">
       {showAddForm ? (
@@ -137,11 +136,11 @@ export default function QuickNotesWidget({ size, userId }: QuickNotesWidgetProps
         </button>
       )}
 
-      <div className="space-y-3 max-h-96 overflow-y-auto">
-        {displayNotes.length === 0 ? (
+      <div className="space-y-3 max-h-96 overflow-y-auto scrollbar-hide">
+        {notes.length === 0 ? (
           <p className="text-sm text-gray-400 dark:text-gray-500 text-center py-10 font-semibold">No notes yet</p>
         ) : (
-          displayNotes.map((note) => {
+          notes.map((note) => {
             const colorClass = noteColors.find((c) => c.name.toLowerCase() === note.color) || noteColors[0];
             
             if (editingId === note.id) {
