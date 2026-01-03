@@ -163,12 +163,14 @@ import { registerSW } from 'virtual:pwa-register'
   window.addEventListener('unhandledrejection', rejectionHandler);
 
   // Suppress Chrome extension runtime.lastError
-  if (typeof chrome !== 'undefined' && chrome.runtime) {
-    const originalSendMessage = chrome.runtime.sendMessage;
+  // Check for chrome API safely (only available in Chrome extension context)
+  if (typeof window !== 'undefined' && (window as any).chrome && (window as any).chrome.runtime) {
+    const chromeRuntime = (window as any).chrome.runtime;
+    const originalSendMessage = chromeRuntime.sendMessage;
     if (originalSendMessage) {
-      chrome.runtime.sendMessage = function(...args: any[]) {
+      chromeRuntime.sendMessage = function(...args: any[]) {
         try {
-          return originalSendMessage.apply(chrome.runtime, args);
+          return originalSendMessage.apply(chromeRuntime, args);
         } catch (error: any) {
           // Suppress Chrome extension connection errors
           if (error?.message?.includes('receiving end does not exist') ||
