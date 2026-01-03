@@ -13,7 +13,6 @@ import { registerSW } from 'virtual:pwa-register'
   // Store original console methods
   const originalError = console.error.bind(console);
   const originalWarn = console.warn.bind(console);
-  const originalLog = console.log.bind(console);
   
   // Override console.error - must catch ALL error logging
   console.error = function(...args: any[]) {
