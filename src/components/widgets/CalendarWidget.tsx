@@ -262,7 +262,6 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
         const dayEvents = getEventsForDate(day);
         const isToday = isSameDay(day, new Date());
         const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
-        const isPastDate = isDatePast(day);
         const hasPastItems = (
           dayAssignments.some(a => isDatePast(new Date(a.dueDate))) ||
           dayEvents.some(e => isEventOver(e))
@@ -313,7 +312,6 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
         const dayEvents = getEventsForDate(day);
         const isToday = isSameDay(day, new Date());
         const hasItems = dayAssignments.length > 0 || dayEvents.length > 0;
-        const isPastDate = isDatePast(day);
         const hasPastItems = (
           dayAssignments.some(a => isDatePast(new Date(a.dueDate))) ||
           dayEvents.some(e => isEventOver(e))

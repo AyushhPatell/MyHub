@@ -16,7 +16,7 @@ const noteColors = [
   { name: 'Purple', bg: 'bg-purple-100 dark:bg-purple-900/20', border: 'border-purple-300 dark:border-purple-800' },
 ];
 
-export default function QuickNotesWidget({ size, userId }: QuickNotesWidgetProps) {
+export default function QuickNotesWidget({ size: _size, userId }: QuickNotesWidgetProps) {
   const [notes, setNotes] = useState<QuickNote[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
