@@ -263,10 +263,8 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
 
         {/* Compact Schedule Grid - Use remaining space with even distribution */}
         <div className="relative flex-1 min-h-0 overflow-auto scrollbar-hide border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-          <div className="grid grid-cols-8 gap-0.5 min-w-full" style={{ 
-            gridTemplateRows: `${dayHeaderHeight} repeat(${COMPACT_TIME_SLOTS.length}, minmax(0, 1fr))`,
-            height: '100%',
-            alignContent: 'start',
+          <div className="grid grid-cols-8 gap-0.5 min-w-full h-full" style={{ 
+            gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
           }}>
             {/* Time column */}
             <div 
@@ -274,7 +272,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
               style={{ 
                 gridRow: '1 / -1', 
                 display: 'grid', 
-                gridTemplateRows: `${dayHeaderHeight} repeat(${COMPACT_TIME_SLOTS.length}, minmax(0, 1fr))`,
+                gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
               }}
             >
               <div className={`${dayHeaderHeight} bg-white dark:bg-gray-900`}></div>
@@ -282,7 +280,6 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                 <div
                   key={idx}
                   className={`border-r pr-1 ${fontSize} text-gray-500 dark:text-gray-400 text-right flex items-center justify-end`}
-                  style={{ minHeight: 0, overflow: 'hidden' }}
                 >
                   {idx % 2 === 0 && (
                     <span className="leading-none">{formatTime(hour)}</span>
@@ -298,7 +295,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                 className="relative border-r border-gray-300 dark:border-gray-600" 
                 style={{ 
                   display: 'grid', 
-                  gridTemplateRows: `${dayHeaderHeight} repeat(${COMPACT_TIME_SLOTS.length}, minmax(0, 1fr))`,
+                  gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
                 }}
               >
                 {/* Day header */}
@@ -306,7 +303,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                   {DAY_ABBREVIATIONS[dayIndex]}
                 </div>
                 {/* Time slots container - evenly distributed with CSS Grid */}
-                <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}`, minHeight: 0 }}>
+                <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}` }}>
                   {/* Grid lines - evenly distributed */}
                   {COMPACT_TIME_SLOTS.map((_hour, idx) => {
                     const isHour = idx % 2 === 0;
