@@ -192,32 +192,25 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
     const startMinutes = timeToMinutes(block.startTime);
     const endMinutes = timeToMinutes(block.endTime);
     
-    // Find the closest time slot indices
-    const startSlot = COMPACT_TIME_SLOTS.findIndex(hour => {
-      const slotMinutes = hour * 60;
-      return slotMinutes >= startMinutes;
-    });
-    const endSlot = COMPACT_TIME_SLOTS.findIndex(hour => {
-      const slotMinutes = hour * 60;
-      return slotMinutes >= endMinutes;
-    });
-
-    if (startSlot === -1) {
-      // Block starts before 7am, position at top
-      const top = 0;
-      const height = endSlot === -1 ? 100 : ((endSlot / COMPACT_TIME_SLOTS.length) * 100);
-      return { top, height };
+    // Calculate position based on actual time within the 7am-9pm range (15 hours = 900 minutes)
+    const firstSlotMinutes = COMPACT_TIME_SLOTS[0] * 60; // 7am = 420 minutes
+    const lastSlotMinutes = COMPACT_TIME_SLOTS[COMPACT_TIME_SLOTS.length - 1] * 60; // 9pm = 1260 minutes
+    const totalRangeMinutes = lastSlotMinutes - firstSlotMinutes; // 840 minutes (14 hours)
+    
+    // Calculate relative position (0-100%)
+    let top = ((startMinutes - firstSlotMinutes) / totalRangeMinutes) * 100;
+    let height = ((endMinutes - startMinutes) / totalRangeMinutes) * 100;
+    
+    // Clamp values to stay within bounds
+    if (top < 0) {
+      height = height + top; // Adjust height if top is negative
+      top = 0;
     }
-
-    if (endSlot === -1) {
-      // Block ends after 9pm, extend to bottom
-      const top = (startSlot / COMPACT_TIME_SLOTS.length) * 100;
-      const height = 100 - top;
-      return { top, height };
+    if (top + height > 100) {
+      height = 100 - top;
     }
-
-    const top = (startSlot / COMPACT_TIME_SLOTS.length) * 100;
-    const height = ((endSlot - startSlot) / COMPACT_TIME_SLOTS.length) * 100;
+    if (height < 0) height = 0;
+    
     return { top, height };
   };
 
@@ -270,16 +263,27 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
 
         {/* Compact Schedule Grid - Use remaining space with even distribution */}
         <div className="relative flex-1 min-h-0 overflow-auto scrollbar-hide border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-          <div className="grid grid-cols-8 gap-0.5 min-w-full h-full" style={{ 
+          <div className="grid grid-cols-8 gap-0.5 min-w-full" style={{ 
             gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
+            height: '100%',
+            minHeight: '100%'
           }}>
             {/* Time column */}
-            <div className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`} style={{ gridRow: '1 / -1', display: 'grid', gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)` }}>
-              <div className={`${dayHeaderHeight} bg-white dark:bg-gray-900`}></div>
+            <div 
+              className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`} 
+              style={{ 
+                gridRow: '1 / -1', 
+                display: 'grid', 
+                gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
+                height: '100%'
+              }}
+            >
+              <div className={`${dayHeaderHeight} bg-white dark:bg-gray-900 flex-shrink-0`}></div>
               {COMPACT_TIME_SLOTS.map((hour, idx) => (
                 <div
                   key={idx}
                   className={`border-r pr-1 ${fontSize} text-gray-500 dark:text-gray-400 text-right flex items-center justify-end`}
+                  style={{ minHeight: 0 }}
                 >
                   {idx % 2 === 0 && (
                     <span className="leading-none">{formatTime(hour)}</span>
@@ -290,13 +294,21 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
 
             {/* Day columns */}
             {DAYS_OF_WEEK.map((day, dayIndex) => (
-              <div key={day} className="relative border-r border-gray-300 dark:border-gray-600" style={{ display: 'grid', gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)` }}>
+              <div 
+                key={day} 
+                className="relative border-r border-gray-300 dark:border-gray-600" 
+                style={{ 
+                  display: 'grid', 
+                  gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
+                  height: '100%'
+                }}
+              >
                 {/* Day header */}
-                <div className={`${dayHeaderHeight} border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold ${fontSize} text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-10`}>
+                <div className={`${dayHeaderHeight} border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold ${fontSize} text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-10 flex-shrink-0`}>
                   {DAY_ABBREVIATIONS[dayIndex]}
                 </div>
                 {/* Time slots container - evenly distributed with CSS Grid */}
-                <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}` }}>
+                <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}`, height: '100%' }}>
                   {/* Grid lines - evenly distributed */}
                   {COMPACT_TIME_SLOTS.map((_hour, idx) => {
                     const isHour = idx % 2 === 0;
