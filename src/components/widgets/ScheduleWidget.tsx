@@ -302,11 +302,12 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                 
                 {/* Time slots container */}
                 <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}` }}>
-                  {/* Grid lines - aligned with time slots */}
-                  {COMPACT_TIME_SLOTS.map((_hour, idx) => {
-                    const isMajorHour = idx % 2 === 0;
-                    // Position grid line at the start of each hour slot
+                  {/* Grid lines - one for each row boundary, aligned with time labels */}
+                  {Array.from({ length: COMPACT_TIME_SLOTS.length + 1 }, (_, idx) => {
+                    // Each of the 15 time slots gets equal space, so lines are at idx/15
                     const topPercent = (idx / COMPACT_TIME_SLOTS.length) * 100;
+                    // Major lines at even indices (where time labels are shown)
+                    const isMajorHour = idx % 2 === 0;
                     return (
                       <div
                         key={`grid-${idx}`}
