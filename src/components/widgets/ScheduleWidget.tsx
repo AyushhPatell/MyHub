@@ -252,7 +252,6 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
   // Determine grid dimensions based on size
   const timeColumnWidth = size === 'small' ? 'w-14' : 'w-16';
   const dayHeaderHeight = size === 'small' ? 'h-7' : 'h-8';
-  const timeSlotHeight = size === 'small' ? 'h-5' : size === 'medium' ? 'h-6' : 'h-7';
   const fontSize = size === 'small' ? 'text-[9px]' : size === 'medium' ? 'text-[10px]' : 'text-[11px]';
   const blockPadding = size === 'small' ? 'p-1.5' : 'p-2';
 
