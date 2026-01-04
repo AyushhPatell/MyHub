@@ -179,27 +179,22 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
     const startMinutes = timeToMinutes(block.startTime);
     const endMinutes = timeToMinutes(block.endTime);
     
-    // Calculate position based on actual time within the 7am-9pm range
-    // TIME_SLOTS has 28 slots (7am to 9pm in 30-min intervals = 14 hours = 28 slots)
-    const firstSlotMinutes = 7 * 60; // 7am = 420 minutes
-    const lastSlotMinutes = 21 * 60; // 9pm = 1260 minutes (end of 9pm slot)
-    const totalRangeMinutes = lastSlotMinutes - firstSlotMinutes; // 840 minutes (14 hours)
+    // Time range: 7am (420 min) to 9pm (1260 min) = 840 minutes total
+    const startHour = 7;
+    const endHour = 21;
+    const totalMinutes = (endHour - startHour) * 60; // 840 minutes
     
-    // Calculate relative position (0-100%) - this matches the grid's visual distribution
-    let top = ((startMinutes - firstSlotMinutes) / totalRangeMinutes) * 100;
-    let height = ((endMinutes - startMinutes) / totalRangeMinutes) * 100;
+    // Calculate position as percentage - aligned with grid
+    const startOffset = startMinutes - (startHour * 60);
+    const duration = endMinutes - startMinutes;
     
-    // Clamp values to stay within bounds
-    if (top < 0) {
-      height = Math.max(0, height + top); // Adjust height if top is negative
-      top = 0;
-    }
-    if (top + height > 100) {
-      height = Math.max(0, 100 - top);
-    }
-    if (height < 0) height = 0;
+    const top = (startOffset / totalMinutes) * 100;
+    const height = (duration / totalMinutes) * 100;
     
-    return { top, height };
+    return {
+      top: Math.max(0, Math.min(100, top)),
+      height: Math.max(0, Math.min(100 - top, height))
+    };
   };
 
   const getCourseColor = (courseId: string): string => {
@@ -337,20 +332,20 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                       </div>
                       {/* Time slots - Evenly distributed with CSS Grid */}
                       <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}` }}>
-                        {/* Grid lines - Hour and half-hour marks - evenly distributed */}
-                        {TIME_SLOTS.map((_hour, idx) => {
-                          const isHour = idx % 2 === 0;
-                          const slotHeight = 100 / TIME_SLOTS.length;
-                          const top = idx * slotHeight;
+                        {/* Grid lines - aligned with time slots */}
+                        {TIME_SLOTS.map((hour, idx) => {
+                          const isMajorHour = idx % 2 === 0;
+                          // Position grid line at the start of each time slot
+                          const topPercent = (idx / TIME_SLOTS.length) * 100;
                           return (
                             <div
                               key={`grid-${idx}`}
                               className="absolute left-0 right-0 border-t"
                               style={{
-                                top: `${top}%`,
-                                borderTopWidth: isHour ? '1px' : '0.5px',
-                                borderColor: isHour 
-                                  ? 'rgba(75, 85, 99, 0.5)' // gray-600 with higher opacity for better visibility in light mode
+                                top: `${topPercent}%`,
+                                borderTopWidth: isMajorHour ? '1px' : '0.5px',
+                                borderColor: isMajorHour 
+                                  ? 'rgba(75, 85, 99, 0.5)'
                                   : 'rgba(75, 85, 99, 0.3)',
                                 zIndex: 1,
                               }}

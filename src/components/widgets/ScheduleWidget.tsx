@@ -188,30 +188,27 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
     return scheduleBlocks.filter(block => block.dayOfWeek === day);
   };
 
+  // Calculate block position based on time - aligned with grid
   const getBlockPosition = (block: ScheduleBlock): { top: number; height: number } => {
     const startMinutes = timeToMinutes(block.startTime);
     const endMinutes = timeToMinutes(block.endTime);
     
-    // Calculate position based on actual time within the 7am-9pm range
-    const firstSlotMinutes = COMPACT_TIME_SLOTS[0] * 60; // 7am = 420 minutes
-    const lastSlotMinutes = (COMPACT_TIME_SLOTS[COMPACT_TIME_SLOTS.length - 1] + 1) * 60; // 9pm = 1260 minutes (end of 9pm slot)
-    const totalRangeMinutes = lastSlotMinutes - firstSlotMinutes; // 900 minutes (15 hours)
+    // Time range: 7am (420 min) to 9pm (1260 min) = 840 minutes total
+    const startHour = 7;
+    const endHour = 21;
+    const totalMinutes = (endHour - startHour) * 60; // 840 minutes
     
-    // Calculate relative position (0-100%) - this matches the grid's visual distribution
-    let top = ((startMinutes - firstSlotMinutes) / totalRangeMinutes) * 100;
-    let height = ((endMinutes - startMinutes) / totalRangeMinutes) * 100;
+    // Calculate position as percentage
+    const startOffset = startMinutes - (startHour * 60);
+    const duration = endMinutes - startMinutes;
     
-    // Clamp values to stay within bounds
-    if (top < 0) {
-      height = Math.max(0, height + top); // Adjust height if top is negative
-      top = 0;
-    }
-    if (top + height > 100) {
-      height = Math.max(0, 100 - top);
-    }
-    if (height < 0) height = 0;
+    const top = (startOffset / totalMinutes) * 100;
+    const height = (duration / totalMinutes) * 100;
     
-    return { top, height };
+    return {
+      top: Math.max(0, Math.min(100, top)),
+      height: Math.max(0, Math.min(100 - top, height))
+    };
   };
 
   const handleBlockClick = (block: ScheduleBlock) => {
@@ -248,6 +245,11 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
   const fontSize = size === 'small' ? 'text-[9px]' : size === 'medium' ? 'text-[10px]' : 'text-[11px]';
   const blockPadding = size === 'small' ? 'p-1.5' : 'p-2';
 
+  // Calculate time range for grid
+  const startHour = 7;
+  const endHour = 21;
+  const totalHours = endHour - startHour; // 14 hours
+
   return (
     <>
       <div className="h-full flex flex-col space-y-3">
@@ -261,17 +263,17 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
           )}
         </div>
 
-        {/* Compact Schedule Grid - Use remaining space with even distribution */}
+        {/* Schedule Grid */}
         <div className="relative flex-1 min-h-0 overflow-auto scrollbar-hide border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-          <div className="grid grid-cols-8 gap-0.5 min-w-full h-full" style={{ 
+          <div className="grid grid-cols-8 gap-0.5 min-w-full h-full" style={{
             gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
           }}>
             {/* Time column */}
             <div 
-              className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`} 
-              style={{ 
-                gridRow: '1 / -1', 
-                display: 'grid', 
+              className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`}
+              style={{
+                gridRow: '1 / -1',
+                display: 'grid',
                 gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
               }}
             >
@@ -290,11 +292,11 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
 
             {/* Day columns */}
             {DAYS_OF_WEEK.map((day, dayIndex) => (
-              <div 
-                key={day} 
-                className="relative border-r border-gray-300 dark:border-gray-600" 
-                style={{ 
-                  display: 'grid', 
+              <div
+                key={day}
+                className="relative border-r border-gray-300 dark:border-gray-600"
+                style={{
+                  display: 'grid',
                   gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
                 }}
               >
@@ -302,21 +304,22 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                 <div className={`${dayHeaderHeight} border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold ${fontSize} text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-10`}>
                   {DAY_ABBREVIATIONS[dayIndex]}
                 </div>
-                {/* Time slots container - evenly distributed with CSS Grid */}
+                
+                {/* Time slots container */}
                 <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}` }}>
-                  {/* Grid lines - evenly distributed */}
-                  {COMPACT_TIME_SLOTS.map((_hour, idx) => {
-                    const isHour = idx % 2 === 0;
-                    const slotHeight = 100 / COMPACT_TIME_SLOTS.length;
-                    const top = idx * slotHeight;
+                  {/* Grid lines - aligned with time slots */}
+                  {COMPACT_TIME_SLOTS.map((hour, idx) => {
+                    const isMajorHour = idx % 2 === 0;
+                    // Position grid line at the start of each hour slot
+                    const topPercent = (idx / COMPACT_TIME_SLOTS.length) * 100;
                     return (
                       <div
                         key={`grid-${idx}`}
                         className="absolute left-0 right-0 border-t"
                         style={{
-                          top: `${top}%`,
-                          borderTopWidth: isHour ? '1px' : '0.5px',
-                          borderColor: isHour
+                          top: `${topPercent}%`,
+                          borderTopWidth: isMajorHour ? '1px' : '0.5px',
+                          borderColor: isMajorHour
                             ? 'rgba(75, 85, 99, 0.3)'
                             : 'rgba(75, 85, 99, 0.15)',
                           zIndex: 1,
@@ -324,6 +327,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                       />
                     );
                   })}
+                  
                   {/* Schedule Blocks */}
                   {getBlocksForDay(day).map((block) => {
                     const { top, height } = getBlockPosition(block);
@@ -342,12 +346,12 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                           zIndex: 10,
                         }}
                       >
-                        {/* Solid background to cover grid lines */}
+                        {/* Solid background */}
                         <div 
                           className="absolute inset-0 rounded bg-white dark:bg-gray-900"
                           style={{ zIndex: 0 }}
                         />
-                        {/* Colored background layer */}
+                        {/* Colored background */}
                         <div 
                           className="absolute inset-0 rounded"
                           style={{
@@ -355,7 +359,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                             zIndex: 1,
                           }}
                         />
-                        {/* Content - Only course name */}
+                        {/* Content */}
                         <div className={`relative z-10 ${fontSize} font-bold text-gray-900 dark:text-white truncate leading-tight`}>
                           {course?.courseCode || block.courseNumber || block.title || 'Course'}
                         </div>
@@ -380,4 +384,3 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
     </>
   );
 }
-
