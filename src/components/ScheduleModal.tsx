@@ -287,26 +287,21 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                 </div>
               </div>
             ) : (
-              <div className="relative h-full w-full">
-                {/* Grid - Responsive width for day columns with even distribution */}
-                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px] h-full" style={{ 
-                  gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
-                }}>
+              <div className="relative">
+                {/* Grid - Simple fixed height approach */}
+                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px]">
                   {/* Time column */}
                   <div className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-16 sm:w-24" style={{ 
                     boxShadow: '2px 0 4px -1px rgba(0, 0, 0, 0.1)', 
                     marginLeft: '-0.75rem', 
                     paddingLeft: '0.75rem', 
-                    overflow: 'visible',
-                    gridRow: '1 / -1',
-                    display: 'grid',
-                    gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
+                    overflow: 'visible'
                   }}>
                     <div className="h-8 sm:h-12 bg-white dark:bg-gray-900 sticky top-0 z-30" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)' }}></div>
                     {TIME_SLOTS.map((hour, idx) => (
                       <div
                         key={idx}
-                        className="border-r pr-1 sm:pr-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right bg-white dark:bg-gray-900 flex items-center justify-end"
+                        className="h-6 sm:h-8 border-r pr-1 sm:pr-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right bg-white dark:bg-gray-900"
                         style={{ borderColor: 'rgba(75, 85, 99, 0.4)' }}
                       >
                         {idx % 2 === 0 && formatTime(hour)}
@@ -314,38 +309,34 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                     ))}
                   </div>
 
-                  {/* Day columns - Wider */}
+                  {/* Day columns */}
                   {DAYS_OF_WEEK.map((day, dayIndex) => (
                     <div 
                       key={day} 
                       className="relative border-r" 
                       style={{ 
                         borderRightWidth: dayIndex === DAYS_OF_WEEK.length - 1 ? '0px' : '1px', 
-                        borderColor: 'rgba(75, 85, 99, 0.4)',
-                        display: 'grid',
-                        gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
+                        borderColor: 'rgba(75, 85, 99, 0.4)'
                       }}
                     >
                       {/* Day header */}
                       <div className="h-8 sm:h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-20" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)', marginTop: '-0.75rem', paddingTop: '0.75rem' }}>
                         {day.substring(0, 3)}
                       </div>
-                      {/* Time slots - Evenly distributed with CSS Grid */}
-                      <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}` }}>
-                        {/* Grid lines - one for each row boundary, aligned with time labels */}
-                        {Array.from({ length: TIME_SLOTS.length + 1 }, (_, idx) => {
-                          // Each of the 28 time slots gets equal space, so lines are at idx/28
-                          const topPercent = (idx / TIME_SLOTS.length) * 100;
-                          // Major lines at even indices (where time labels are shown)
-                          const isMajorHour = idx % 2 === 0;
+                      {/* Time slots container */}
+                      <div className="relative" style={{ height: `calc(${TIME_SLOTS.length} * 1.5rem)` }}>
+                        {/* Grid lines */}
+                        {TIME_SLOTS.map((_hour, idx) => {
+                          const isHour = idx % 2 === 0;
+                          const top = idx * 24; // 1.5rem = 24px
                           return (
                             <div
                               key={`grid-${idx}`}
                               className="absolute left-0 right-0 border-t"
                               style={{
-                                top: `${topPercent}%`,
-                                borderTopWidth: isMajorHour ? '1px' : '0.5px',
-                                borderColor: isMajorHour 
+                                top: `${top}px`,
+                                borderTopWidth: isHour ? '1px' : '0.5px',
+                                borderColor: isHour 
                                   ? 'rgba(75, 85, 99, 0.5)'
                                   : 'rgba(75, 85, 99, 0.3)',
                                 zIndex: 1,
@@ -356,19 +347,20 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                         {getBlocksForDay(day).map((block) => {
                           const { top, height } = getBlockPosition(block);
                           const course = courses.find(c => c.id === block.courseId);
+                          const containerHeight = TIME_SLOTS.length * 24; // 1.5rem = 24px per slot
                           return (
                             <div
                               key={block.id}
                               onClick={(e) => handleBlockClick(block, e)}
                               className="absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-md sm:rounded-lg p-1.5 sm:p-2.5 cursor-pointer hover:opacity-90 transition-opacity shadow-sm border-l-4 group"
                                 style={{
-                                top: `${top}%`,
-                                height: `${height}%`,
+                                top: `${(top / 100) * containerHeight}px`,
+                                height: `${(height / 100) * containerHeight}px`,
                                 borderLeftColor: getCourseColor(block.courseId),
                                 borderLeftWidth: '3px',
                                 minHeight: '24px',
-                                zIndex: 10, // Higher z-index to ensure blocks are above grid lines but below time column
-                                position: 'relative', // Ensure proper stacking context
+                                zIndex: 10,
+                                position: 'relative',
                               }}
                             >
                               {/* Solid background to completely cover grid lines */}

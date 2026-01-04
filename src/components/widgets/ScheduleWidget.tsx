@@ -188,22 +188,17 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
     return scheduleBlocks.filter(block => block.dayOfWeek === day);
   };
 
-  // Calculate block position based on time - aligned with grid
+  // Simple block position calculation
   const getBlockPosition = (block: ScheduleBlock): { top: number; height: number } => {
     const startMinutes = timeToMinutes(block.startTime);
     const endMinutes = timeToMinutes(block.endTime);
     
-    // Time range: 7am (420 min) to 9pm (1260 min) = 840 minutes total
-    const startHour = 7;
-    const endHour = 21;
-    const totalMinutes = (endHour - startHour) * 60; // 840 minutes
+    // 7am = 420 minutes, 9pm = 1260 minutes, total = 840 minutes
+    const startHourMinutes = 7 * 60;
+    const totalMinutes = 14 * 60; // 14 hours
     
-    // Calculate position as percentage
-    const startOffset = startMinutes - (startHour * 60);
-    const duration = endMinutes - startMinutes;
-    
-    const top = (startOffset / totalMinutes) * 100;
-    const height = (duration / totalMinutes) * 100;
+    const top = ((startMinutes - startHourMinutes) / totalMinutes) * 100;
+    const height = ((endMinutes - startMinutes) / totalMinutes) * 100;
     
     return {
       top: Math.max(0, Math.min(100, top)),
@@ -244,6 +239,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
   const dayHeaderHeight = size === 'small' ? 'h-7' : 'h-8';
   const fontSize = size === 'small' ? 'text-[9px]' : size === 'medium' ? 'text-[10px]' : 'text-[11px]';
   const blockPadding = size === 'small' ? 'p-1.5' : 'p-2';
+  const timeSlotHeight = size === 'small' ? 'h-6' : size === 'medium' ? 'h-7' : 'h-8';
 
   return (
     <>
@@ -260,23 +256,14 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
 
         {/* Schedule Grid */}
         <div className="relative flex-1 min-h-0 overflow-auto scrollbar-hide border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-          <div className="grid grid-cols-8 gap-0.5 min-w-full h-full" style={{
-            gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
-          }}>
+          <div className="grid grid-cols-8 gap-0.5 min-w-full">
             {/* Time column */}
-            <div 
-              className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`}
-              style={{
-                gridRow: '1 / -1',
-                display: 'grid',
-                gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
-              }}
-            >
+            <div className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`}>
               <div className={`${dayHeaderHeight} bg-white dark:bg-gray-900`}></div>
               {COMPACT_TIME_SLOTS.map((hour, idx) => (
                 <div
                   key={idx}
-                  className={`border-r pr-1 ${fontSize} text-gray-500 dark:text-gray-400 text-right flex items-center justify-end`}
+                  className={`${timeSlotHeight} border-r pr-1 ${fontSize} text-gray-500 dark:text-gray-400 text-right flex items-center justify-end`}
                 >
                   {idx % 2 === 0 && (
                     <span className="leading-none">{formatTime(hour)}</span>
@@ -287,33 +274,24 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
 
             {/* Day columns */}
             {DAYS_OF_WEEK.map((day, dayIndex) => (
-              <div
-                key={day}
-                className="relative border-r border-gray-300 dark:border-gray-600"
-                style={{
-                  display: 'grid',
-                  gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
-                }}
-              >
+              <div key={day} className="relative border-r border-gray-300 dark:border-gray-600">
                 {/* Day header */}
                 <div className={`${dayHeaderHeight} border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold ${fontSize} text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-10`}>
                   {DAY_ABBREVIATIONS[dayIndex]}
                 </div>
                 
                 {/* Time slots container */}
-                <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}` }}>
-                  {/* Grid lines - one for each row boundary, aligned with time labels */}
-                  {Array.from({ length: COMPACT_TIME_SLOTS.length + 1 }, (_, idx) => {
-                    // Each of the 15 time slots gets equal space, so lines are at idx/15
-                    const topPercent = (idx / COMPACT_TIME_SLOTS.length) * 100;
-                    // Major lines at even indices (where time labels are shown)
+                <div className="relative" style={{ height: `${COMPACT_TIME_SLOTS.length * (size === 'small' ? 24 : size === 'medium' ? 28 : 32)}px` }}>
+                  {/* Grid lines */}
+                  {COMPACT_TIME_SLOTS.map((_hour, idx) => {
                     const isMajorHour = idx % 2 === 0;
+                    const top = idx * (size === 'small' ? 24 : size === 'medium' ? 28 : 32);
                     return (
                       <div
                         key={`grid-${idx}`}
                         className="absolute left-0 right-0 border-t"
                         style={{
-                          top: `${topPercent}%`,
+                          top: `${top}px`,
                           borderTopWidth: isMajorHour ? '1px' : '0.5px',
                           borderColor: isMajorHour
                             ? 'rgba(75, 85, 99, 0.3)'
@@ -328,14 +306,15 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                   {getBlocksForDay(day).map((block) => {
                     const { top, height } = getBlockPosition(block);
                     const course = courses.find(c => c.id === block.courseId);
+                    const containerHeight = COMPACT_TIME_SLOTS.length * (size === 'small' ? 24 : size === 'medium' ? 28 : 32);
                     return (
                       <div
                         key={block.id}
                         onClick={() => handleBlockClick(block)}
                         className={`absolute left-0.5 right-0.5 rounded ${blockPadding} cursor-pointer hover:opacity-90 transition-opacity border-l-2`}
                         style={{
-                          top: `${top}%`,
-                          height: `${height}%`,
+                          top: `${(top / 100) * containerHeight}px`,
+                          height: `${(height / 100) * containerHeight}px`,
                           borderLeftColor: getCourseColor(block.courseId),
                           borderLeftWidth: '3px',
                           minHeight: size === 'small' ? '16px' : '20px',
