@@ -192,22 +192,22 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
     const startMinutes = timeToMinutes(block.startTime);
     const endMinutes = timeToMinutes(block.endTime);
     
-    // Calculate position based on actual time within the 7am-9pm range (15 hours = 900 minutes)
+    // Calculate position based on actual time within the 7am-9pm range
     const firstSlotMinutes = COMPACT_TIME_SLOTS[0] * 60; // 7am = 420 minutes
-    const lastSlotMinutes = COMPACT_TIME_SLOTS[COMPACT_TIME_SLOTS.length - 1] * 60; // 9pm = 1260 minutes
-    const totalRangeMinutes = lastSlotMinutes - firstSlotMinutes; // 840 minutes (14 hours)
+    const lastSlotMinutes = (COMPACT_TIME_SLOTS[COMPACT_TIME_SLOTS.length - 1] + 1) * 60; // 9pm = 1260 minutes (end of 9pm slot)
+    const totalRangeMinutes = lastSlotMinutes - firstSlotMinutes; // 900 minutes (15 hours)
     
-    // Calculate relative position (0-100%)
+    // Calculate relative position (0-100%) - this matches the grid's visual distribution
     let top = ((startMinutes - firstSlotMinutes) / totalRangeMinutes) * 100;
     let height = ((endMinutes - startMinutes) / totalRangeMinutes) * 100;
     
     // Clamp values to stay within bounds
     if (top < 0) {
-      height = height + top; // Adjust height if top is negative
+      height = Math.max(0, height + top); // Adjust height if top is negative
       top = 0;
     }
     if (top + height > 100) {
-      height = 100 - top;
+      height = Math.max(0, 100 - top);
     }
     if (height < 0) height = 0;
     
@@ -263,11 +263,10 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
 
         {/* Compact Schedule Grid - Use remaining space with even distribution */}
         <div className="relative flex-1 min-h-0 overflow-auto scrollbar-hide border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-          <div className="grid grid-cols-8 gap-0.5 min-w-full" style={{ 
-            gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
-            height: '100%',
-            minHeight: '100%'
-          }}>
+          <div className="h-full w-full">
+            <div className="grid grid-cols-8 gap-0.5 min-w-full h-full" style={{ 
+              gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, 1fr)`,
+            }}>
             {/* Time column */}
             <div 
               className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`} 
@@ -308,7 +307,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                   {DAY_ABBREVIATIONS[dayIndex]}
                 </div>
                 {/* Time slots container - evenly distributed with CSS Grid */}
-                <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}`, height: '100%' }}>
+                <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}`, height: '100%', minHeight: 0 }}>
                   {/* Grid lines - evenly distributed */}
                   {COMPACT_TIME_SLOTS.map((_hour, idx) => {
                     const isHour = idx % 2 === 0;
@@ -370,6 +369,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         </div>
       </div>

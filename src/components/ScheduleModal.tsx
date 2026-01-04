@@ -179,22 +179,23 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
     const startMinutes = timeToMinutes(block.startTime);
     const endMinutes = timeToMinutes(block.endTime);
     
-    // Calculate position based on actual time within the 7am-9pm range (14 hours = 840 minutes)
+    // Calculate position based on actual time within the 7am-9pm range
+    // TIME_SLOTS has 28 slots (7am to 9pm in 30-min intervals = 14 hours = 28 slots)
     const firstSlotMinutes = 7 * 60; // 7am = 420 minutes
-    const lastSlotMinutes = 21 * 60; // 9pm = 1260 minutes
+    const lastSlotMinutes = 21 * 60; // 9pm = 1260 minutes (end of 9pm slot)
     const totalRangeMinutes = lastSlotMinutes - firstSlotMinutes; // 840 minutes (14 hours)
     
-    // Calculate relative position (0-100%)
+    // Calculate relative position (0-100%) - this matches the grid's visual distribution
     let top = ((startMinutes - firstSlotMinutes) / totalRangeMinutes) * 100;
     let height = ((endMinutes - startMinutes) / totalRangeMinutes) * 100;
     
     // Clamp values to stay within bounds
     if (top < 0) {
-      height = height + top; // Adjust height if top is negative
+      height = Math.max(0, height + top); // Adjust height if top is negative
       top = 0;
     }
     if (top + height > 100) {
-      height = 100 - top;
+      height = Math.max(0, 100 - top);
     }
     if (height < 0) height = 0;
     
@@ -291,12 +292,10 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                 </div>
               </div>
             ) : (
-              <div className="relative h-full">
+              <div className="relative h-full w-full">
                 {/* Grid - Responsive width for day columns with even distribution */}
-                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px]" style={{ 
+                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px] h-full" style={{ 
                   gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
-                  height: '100%',
-                  minHeight: '100%'
                 }}>
                   {/* Time column */}
                   <div className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-16 sm:w-24" style={{ 
@@ -339,7 +338,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                         {day.substring(0, 3)}
                       </div>
                       {/* Time slots - Evenly distributed with CSS Grid */}
-                      <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}`, height: '100%' }}>
+                      <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}`, height: '100%', minHeight: 0 }}>
                         {/* Grid lines - Hour and half-hour marks - evenly distributed */}
                         {TIME_SLOTS.map((_hour, idx) => {
                           const isHour = idx % 2 === 0;

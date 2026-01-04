@@ -34,8 +34,18 @@ import { registerSW } from 'virtual:pwa-register'
     if (lowerMessage.includes('chrome-extension://') ||
         lowerMessage.includes('inject.bundle.js') ||
         lowerMessage.includes('runtime.lasterror') ||
+        lowerMessage.includes('runtime.lasterror') ||
         lowerMessage.includes('receiving end does not exist') ||
-        lowerMessage.includes('could not establish connection')) {
+        lowerMessage.includes('could not establish connection') ||
+        lowerMessage.includes('unchecked runtime.lasterror') ||
+        lowerMessage.includes('cannot read properties of undefined') && (
+          lowerMessage.includes("reading 'enable'") ||
+          lowerMessage.includes("reading 'id'") ||
+          lowerMessage.includes("reading 'features'") ||
+          lowerMessage.includes("reading 'referrallinks'") ||
+          lowerMessage.includes("reading 'token'") ||
+          lowerMessage.includes("reading 'iskarmabuttonshown'")
+        )) {
       return true;
     }
 
