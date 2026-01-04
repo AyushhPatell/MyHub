@@ -245,11 +245,6 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
   const fontSize = size === 'small' ? 'text-[9px]' : size === 'medium' ? 'text-[10px]' : 'text-[11px]';
   const blockPadding = size === 'small' ? 'p-1.5' : 'p-2';
 
-  // Calculate time range for grid
-  const startHour = 7;
-  const endHour = 21;
-  const totalHours = endHour - startHour; // 14 hours
-
   return (
     <>
       <div className="h-full flex flex-col space-y-3">
@@ -308,7 +303,7 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                 {/* Time slots container */}
                 <div className="relative" style={{ gridRow: `2 / ${COMPACT_TIME_SLOTS.length + 2}` }}>
                   {/* Grid lines - aligned with time slots */}
-                  {COMPACT_TIME_SLOTS.map((hour, idx) => {
+                  {COMPACT_TIME_SLOTS.map((_hour, idx) => {
                     const isMajorHour = idx % 2 === 0;
                     // Position grid line at the start of each hour slot
                     const topPercent = (idx / COMPACT_TIME_SLOTS.length) * 100;

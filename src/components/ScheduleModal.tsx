@@ -333,7 +333,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                       {/* Time slots - Evenly distributed with CSS Grid */}
                       <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}` }}>
                         {/* Grid lines - aligned with time slots */}
-                        {TIME_SLOTS.map((hour, idx) => {
+                        {TIME_SLOTS.map((_hour, idx) => {
                           const isMajorHour = idx % 2 === 0;
                           // Position grid line at the start of each time slot
                           const topPercent = (idx / TIME_SLOTS.length) * 100;
