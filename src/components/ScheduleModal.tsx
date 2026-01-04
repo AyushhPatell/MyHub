@@ -294,8 +294,9 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
             ) : (
               <div className="relative h-full w-full">
                 {/* Grid - Responsive width for day columns with even distribution */}
-                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px] h-full" style={{ 
-                  gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
+                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px]" style={{ 
+                  gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, minmax(0, 1fr))`,
+                  height: '100%',
                 }}>
                   {/* Time column */}
                   <div className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-16 sm:w-24" style={{ 
@@ -305,15 +306,14 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                     overflow: 'visible',
                     gridRow: '1 / -1',
                     display: 'grid',
-                    gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
-                    height: '100%'
+                    gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, minmax(0, 1fr))`,
                   }}>
-                    <div className="h-8 sm:h-12 bg-white dark:bg-gray-900 sticky top-0 z-30 flex-shrink-0" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)' }}></div>
+                    <div className="h-8 sm:h-12 bg-white dark:bg-gray-900 sticky top-0 z-30" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)' }}></div>
                     {TIME_SLOTS.map((hour, idx) => (
                       <div
                         key={idx}
                         className="border-r pr-1 sm:pr-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right bg-white dark:bg-gray-900 flex items-center justify-end"
-                        style={{ borderColor: 'rgba(75, 85, 99, 0.4)', minHeight: 0 }}
+                        style={{ borderColor: 'rgba(75, 85, 99, 0.4)', minHeight: 0, overflow: 'hidden' }}
                       >
                         {idx % 2 === 0 && formatTime(hour)}
                       </div>
@@ -329,16 +329,15 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                         borderRightWidth: dayIndex === DAYS_OF_WEEK.length - 1 ? '0px' : '1px', 
                         borderColor: 'rgba(75, 85, 99, 0.4)',
                         display: 'grid',
-                        gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
-                        height: '100%'
+                        gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, minmax(0, 1fr))`,
                       }}
                     >
                       {/* Day header */}
-                      <div className="h-8 sm:h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-20 flex-shrink-0" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)', marginTop: '-0.75rem', paddingTop: '0.75rem' }}>
+                      <div className="h-8 sm:h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-20" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)', marginTop: '-0.75rem', paddingTop: '0.75rem' }}>
                         {day.substring(0, 3)}
                       </div>
                       {/* Time slots - Evenly distributed with CSS Grid */}
-                      <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}`, height: '100%', minHeight: 0 }}>
+                      <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}`, minHeight: 0 }}>
                         {/* Grid lines - Hour and half-hour marks - evenly distributed */}
                         {TIME_SLOTS.map((_hour, idx) => {
                           const isHour = idx % 2 === 0;
