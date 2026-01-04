@@ -56,6 +56,11 @@ service cloud.firestore {
       match /quickNotes/{noteId} {
         allow read, write, delete: if request.auth != null && request.auth.uid == userId;
       }
+      
+      // AI Chat History
+      match /aiChatHistory/{messageId} {
+        allow read, write, delete: if request.auth != null && request.auth.uid == userId;
+      }
     }
 
     // Admin-only access to app usage statistics

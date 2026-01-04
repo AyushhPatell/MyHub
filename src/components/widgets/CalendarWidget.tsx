@@ -111,7 +111,10 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
 
   // Check if an event is over (considering end time if provided)
   const isEventOver = (event: CalendarEvent) => {
-    const eventDate = new Date(event.date);
+    // Parse the date string (format: "YYYY-MM-DD") - use local timezone
+    const [year, month, day] = event.date.split('-').map(Number);
+    // Create date in local timezone to avoid UTC issues
+    const eventDate = new Date(year, month - 1, day); // month is 0-indexed, local timezone
     const today = new Date();
     const todayStart = startOfDay(today);
     const eventDateStart = startOfDay(eventDate);
@@ -124,15 +127,15 @@ export default function CalendarWidget({ size, assignments, courses, onDateClick
     // If event date is today and has an end time, check if current time is past end time
     if (eventDateStart.getTime() === todayStart.getTime() && event.endTime) {
       const [hours, minutes] = event.endTime.split(':').map(Number);
-      const endDateTime = new Date(eventDate);
-      endDateTime.setHours(hours, minutes, 0, 0);
+      // Create end datetime in local timezone
+      const endDateTime = new Date(year, month - 1, day, hours, minutes, 0, 0);
       
       // Only mark as over if current time is past the end time
       return today.getTime() > endDateTime.getTime();
     }
     
-    // If event is today but no end time, it's not over
-    // If event is in the future, it's not over
+    // If event is today but no end time, it's NOT over
+    // If event is in the future, it's NOT over
     return false;
   };
 

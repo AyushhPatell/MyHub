@@ -269,37 +269,43 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
           )}
         </div>
 
-        {/* Compact Schedule Grid - Use remaining space */}
+        {/* Compact Schedule Grid - Use remaining space with even distribution */}
         <div className="relative flex-1 min-h-0 overflow-auto scrollbar-hide border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900">
-          <div className="grid grid-cols-8 gap-0.5 min-w-full h-full">
+          <div className="grid grid-cols-8 gap-0.5 min-w-full" style={{ 
+            gridTemplateRows: `auto repeat(${COMPACT_TIME_SLOTS.length}, minmax(0, 1fr))`,
+            height: '100%'
+          }}>
             {/* Time column */}
-            <div className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600`}>
-              <div className={`${dayHeaderHeight} bg-white dark:bg-gray-900`}></div>
-              {COMPACT_TIME_SLOTS.map((hour, idx) => (
-                <div
-                  key={idx}
-                  className={`${timeSlotHeight} border-r pr-1 ${fontSize} text-gray-500 dark:text-gray-400 text-right flex items-center justify-end`}
-                >
-                  {idx % 2 === 0 && (
-                    <span className="leading-none">{formatTime(hour)}</span>
-                  )}
-                </div>
-              ))}
+            <div className={`sticky left-0 z-20 bg-white dark:bg-gray-900 ${timeColumnWidth} border-r border-gray-300 dark:border-gray-600 flex flex-col`} style={{ gridRow: '1 / -1' }}>
+              <div className={`${dayHeaderHeight} bg-white dark:bg-gray-900 flex-shrink-0`}></div>
+              <div className="flex-1 flex flex-col">
+                {COMPACT_TIME_SLOTS.map((hour, idx) => (
+                  <div
+                    key={idx}
+                    className={`border-r pr-1 ${fontSize} text-gray-500 dark:text-gray-400 text-right flex items-center justify-end flex-1 min-h-0`}
+                  >
+                    {idx % 2 === 0 && (
+                      <span className="leading-none">{formatTime(hour)}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Day columns */}
             {DAYS_OF_WEEK.map((day, dayIndex) => (
-              <div key={day} className="relative border-r border-gray-300 dark:border-gray-600">
+              <div key={day} className="relative border-r border-gray-300 dark:border-gray-600 flex flex-col">
                 {/* Day header */}
-                <div className={`${dayHeaderHeight} border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold ${fontSize} text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-10`}>
+                <div className={`${dayHeaderHeight} border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold ${fontSize} text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-10 flex-shrink-0`}>
                   {DAY_ABBREVIATIONS[dayIndex]}
                 </div>
-                {/* Time slots with blocks */}
-                <div className="relative" style={{ height: `${COMPACT_TIME_SLOTS.length * (size === 'small' ? 20 : size === 'medium' ? 24 : 28)}px` }}>
-                  {/* Grid lines */}
+                {/* Time slots with blocks - Use flex to distribute evenly */}
+                <div className="relative flex-1" style={{ minHeight: '0', position: 'relative' }}>
+                  {/* Grid lines - evenly distributed */}
                   {COMPACT_TIME_SLOTS.map((_hour, idx) => {
                     const isHour = idx % 2 === 0;
-                    const top = (idx / COMPACT_TIME_SLOTS.length) * 100;
+                    const slotHeight = 100 / COMPACT_TIME_SLOTS.length;
+                    const top = idx * slotHeight;
                     return (
                       <div
                         key={`grid-${idx}`}
