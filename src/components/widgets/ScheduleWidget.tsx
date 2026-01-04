@@ -368,7 +368,6 @@ export default function ScheduleWidget({ size }: ScheduleWidgetProps) {
                 </div>
               </div>
             ))}
-            </div>
           </div>
         </div>
       </div>
