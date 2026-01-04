@@ -259,8 +259,8 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
           </div>
 
           {/* Schedule Grid - Full Width */}
-          <div className="flex-1 overflow-auto scrollbar-hide" style={{ padding: '0' }}>
-            <div className="p-3 sm:p-6">
+          <div className="flex-1 overflow-auto scrollbar-hide min-h-0" style={{ padding: '0' }}>
+            <div className="p-3 sm:p-6 h-full min-h-[600px]">
             {scheduleBlocks.length === 0 && !showAddForm ? (
               <div className="h-full flex items-center justify-center">
                 <div className="text-center max-w-md">
@@ -279,16 +279,26 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
                 </div>
               </div>
             ) : (
-              <div className="relative">
-                {/* Grid - Responsive width for day columns */}
-                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px]">
+              <div className="relative h-full">
+                {/* Grid - Responsive width for day columns with even distribution */}
+                <div className="grid grid-cols-8 gap-2 sm:gap-4 min-w-[800px] sm:min-w-[1200px] h-full" style={{ 
+                  gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`,
+                }}>
                   {/* Time column */}
-                  <div className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-16 sm:w-24" style={{ boxShadow: '2px 0 4px -1px rgba(0, 0, 0, 0.1)', marginLeft: '-0.75rem', paddingLeft: '0.75rem', overflow: 'visible' }}>
+                  <div className="sticky left-0 z-30 bg-white dark:bg-gray-900 w-16 sm:w-24" style={{ 
+                    boxShadow: '2px 0 4px -1px rgba(0, 0, 0, 0.1)', 
+                    marginLeft: '-0.75rem', 
+                    paddingLeft: '0.75rem', 
+                    overflow: 'visible',
+                    gridRow: '1 / -1',
+                    display: 'grid',
+                    gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`
+                  }}>
                     <div className="h-8 sm:h-12 bg-white dark:bg-gray-900 sticky top-0 z-30" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)' }}></div>
                     {TIME_SLOTS.map((hour, idx) => (
                       <div
                         key={idx}
-                        className="h-6 sm:h-8 border-r pr-1 sm:pr-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right bg-white dark:bg-gray-900"
+                        className="border-r pr-1 sm:pr-2 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 text-right bg-white dark:bg-gray-900 flex items-center justify-end"
                         style={{ borderColor: 'rgba(75, 85, 99, 0.4)' }}
                       >
                         {idx % 2 === 0 && formatTime(hour)}
@@ -298,17 +308,27 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
 
                   {/* Day columns - Wider */}
                   {DAYS_OF_WEEK.map((day, dayIndex) => (
-                    <div key={day} className="relative border-r" style={{ borderRightWidth: dayIndex === DAYS_OF_WEEK.length - 1 ? '0px' : '1px', borderColor: 'rgba(75, 85, 99, 0.4)' }}>
+                    <div 
+                      key={day} 
+                      className="relative border-r" 
+                      style={{ 
+                        borderRightWidth: dayIndex === DAYS_OF_WEEK.length - 1 ? '0px' : '1px', 
+                        borderColor: 'rgba(75, 85, 99, 0.4)',
+                        display: 'grid',
+                        gridTemplateRows: `auto repeat(${TIME_SLOTS.length}, 1fr)`
+                      }}
+                    >
                       {/* Day header */}
                       <div className="h-8 sm:h-12 border-b border-gray-200 dark:border-gray-700 flex items-center justify-center font-semibold text-xs sm:text-sm text-gray-700 dark:text-gray-300 sticky top-0 bg-white dark:bg-gray-900 z-20" style={{ boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1)', marginTop: '-0.75rem', paddingTop: '0.75rem' }}>
                         {day.substring(0, 3)}
                       </div>
-                      {/* Time slots - Reduced height with grid lines */}
-                      <div className="relative" style={{ height: `calc(${TIME_SLOTS.length} * 1.5rem)` }}>
-                        {/* Grid lines - Hour and half-hour marks */}
+                      {/* Time slots - Evenly distributed with CSS Grid */}
+                      <div className="relative" style={{ gridRow: `2 / ${TIME_SLOTS.length + 2}` }}>
+                        {/* Grid lines - Hour and half-hour marks - evenly distributed */}
                         {TIME_SLOTS.map((_hour, idx) => {
                           const isHour = idx % 2 === 0;
-                          const top = (idx / TIME_SLOTS.length) * 100;
+                          const slotHeight = 100 / TIME_SLOTS.length;
+                          const top = idx * slotHeight;
                           return (
                             <div
                               key={`grid-${idx}`}
