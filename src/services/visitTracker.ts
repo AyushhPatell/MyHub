@@ -13,20 +13,24 @@ export async function trackVisit(_userId: string, isAdmin: boolean): Promise<voi
 
     if (!visitsDoc.exists()) {
       // Initialize the document
+      // IMPORTANT: If user is admin, only increment admin visits, NOT user visits
       await setDoc(visitsRef, {
         totalUserVisits: isAdmin ? 0 : 1,
         totalAdminVisits: isAdmin ? 1 : 0,
         lastUpdated: serverTimestamp(),
       });
     } else {
-      // Increment the appropriate counter
+      // Increment ONLY the appropriate counter
+      // IMPORTANT: Admin visits should NOT also increment user visits
       const updates: any = {
         lastUpdated: serverTimestamp(),
       };
 
       if (isAdmin) {
+        // Admin visit - only increment admin counter
         updates.totalAdminVisits = increment(1);
       } else {
+        // Regular user visit - only increment user counter
         updates.totalUserVisits = increment(1);
       }
 

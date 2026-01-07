@@ -55,7 +55,7 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
 
   if (size === 'small') {
     return (
-      <div className="space-y-2.5">
+      <div className="space-y-2.5" data-assignments-section>
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
@@ -86,7 +86,7 @@ export default function StatsWidget({ size, assignments, onStatClick }: StatsWid
 
   // Medium and Large - Compact horizontal layout optimized for all screens
   return (
-    <div className="grid grid-cols-3 gap-2 sm:gap-3">
+    <div className="grid grid-cols-3 gap-2 sm:gap-3" data-assignments-section>
       {stats.map((stat) => {
         const Icon = stat.icon;
         return (

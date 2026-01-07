@@ -16,11 +16,14 @@ import AdminRoute from './components/AdminRoute';
 import { useDarkModeSchedule } from './hooks/useDarkModeSchedule';
 import { UserPreferences } from './types';
 import { applySmoothThemeTransition } from './utils/themeTransition';
+import { trackVisit } from './services/visitTracker';
+import { useIsAdmin } from './hooks/useIsAdmin';
 // Email scheduling is now handled by Firebase Cloud Functions (backend)
 // No need for frontend scheduler - emails are sent automatically even when app is closed
 
 function App() {
   const { user, loading } = useAuth();
+  const { isAdmin, loading: loadingAdmin } = useIsAdmin();
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
 
   // Initialize theme immediately on app load (before user check)
@@ -144,6 +147,22 @@ function App() {
     : null;
 
   useDarkModeSchedule(scheduleConfig, userPreferences?.theme || 'light');
+
+  // Track visit once per session when user logs in
+  useEffect(() => {
+    if (user && !loadingAdmin) {
+      // Check if we've already tracked a visit this session
+      const sessionKey = `visit_tracked_${user.uid}`;
+      if (!sessionStorage.getItem(sessionKey)) {
+        // Track visit (admin status is now available)
+        trackVisit(user.uid, isAdmin).catch((error) => {
+          console.error('Error tracking visit:', error);
+        });
+        // Mark as tracked for this session
+        sessionStorage.setItem(sessionKey, 'true');
+      }
+    }
+  }, [user, isAdmin, loadingAdmin]);
 
   // Email scheduling is handled by Firebase Cloud Functions
   // Scheduled functions run automatically on the backend

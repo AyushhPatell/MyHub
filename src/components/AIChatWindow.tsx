@@ -550,12 +550,14 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
             onClose();
             // Scroll to assignments section after navigation
             setTimeout(() => {
-              const assignmentsSection = document.querySelector('[data-assignments-section]') || 
-                document.querySelector('.stats-widget, [class*="assignment"]');
+              const assignmentsSection = document.querySelector('[data-assignments-section]');
               if (assignmentsSection) {
                 assignmentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              } else {
+                // Fallback: scroll to top of page
+                window.scrollTo({ top: 0, behavior: 'smooth' });
               }
-            }, 300);
+            }, 500);
           },
           icon: <BookOpen className="w-4 h-4" />,
         });
