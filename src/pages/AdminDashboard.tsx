@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, Zap, RefreshCw } from 'lucide-react';
+import { DollarSign, TrendingUp, Activity, AlertTriangle, Calendar, Zap, RefreshCw, Users, User } from 'lucide-react';
+import { getVisitStats } from '../services/visitTracker';
 
 interface DailyCost {
   date: string;
@@ -37,6 +38,8 @@ export default function AdminDashboard() {
   const [currentMonthCalls, setCurrentMonthCalls] = useState(0);
   const [todayUsage, setTodayUsage] = useState(0);
   const [todayCost, setTodayCost] = useState(0);
+  const [totalUserVisits, setTotalUserVisits] = useState(0);
+  const [totalAdminVisits, setTotalAdminVisits] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -171,6 +174,12 @@ export default function AdminDashboard() {
       } else {
         console.log('[AdminDashboard] No usage data found for today:', today);
       }
+
+      // Load visit statistics
+      const visitStats = await getVisitStats();
+      console.log('[AdminDashboard] Visit stats:', visitStats);
+      setTotalUserVisits(visitStats.totalUserVisits);
+      setTotalAdminVisits(visitStats.totalAdminVisits);
     } catch (error) {
       console.error('[AdminDashboard] Error loading dashboard data:', error);
     } finally {
@@ -229,7 +238,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           {/* Today's Cost */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <div className="flex items-center justify-between">
@@ -294,6 +303,40 @@ export default function AdminDashboard() {
               </div>
               <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
                 <Zap className="w-6 h-6 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* User Visits */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  User Visits
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {formatNumber(totalUserVisits)}
+                </p>
+              </div>
+              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-full">
+                <Users className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Admin Visits */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  My Visits
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {formatNumber(totalAdminVisits)}
+                </p>
+              </div>
+              <div className="p-3 bg-pink-100 dark:bg-pink-900/20 rounded-full">
+                <User className="w-6 h-6 text-pink-600 dark:text-pink-400" />
               </div>
             </div>
           </div>

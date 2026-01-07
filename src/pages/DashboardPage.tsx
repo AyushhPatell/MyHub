@@ -10,9 +10,12 @@ import AssignmentFilterModal from '../components/AssignmentFilterModal';
 import { courseService } from '../services/firestore';
 import { Course } from '../types';
 import WidgetGrid from '../components/WidgetGrid';
+import { trackVisit } from '../services/visitTracker';
+import { useIsAdmin } from '../hooks/useIsAdmin';
 
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { isAdmin } = useIsAdmin();
   const [searchParams] = useSearchParams();
   const [semester, setSemester] = useState<Semester | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
@@ -21,6 +24,15 @@ export default function DashboardPage() {
   const [showFilterModal, setShowFilterModal] = useState<'today' | 'week' | 'overdue' | null>(null);
   const [showCalendarModal, setShowCalendarModal] = useState<{ date: Date; assignments: Array<{ assignment: Assignment; course: Course }> } | null>(null);
   const initialEditMode = searchParams.get('edit') === 'true';
+
+  // Track visit when user loads dashboard
+  useEffect(() => {
+    if (user) {
+      trackVisit(user.uid, isAdmin).catch((error) => {
+        console.error('Error tracking visit:', error);
+      });
+    }
+  }, [user, isAdmin]);
 
   // All hooks must be called before any early returns
   const today = useMemo(() => new Date(), []);

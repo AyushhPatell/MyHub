@@ -63,7 +63,13 @@ service cloud.firestore {
       }
     }
 
-    // Admin-only access to app usage statistics
+    // Visit tracking - allow authenticated users to write, admins to read
+    match /appUsage/visits {
+      allow read: if isAdmin();
+      allow write: if request.auth != null;
+    }
+    
+    // Admin-only access to other app usage statistics
     match /appUsage/{document=**} {
       allow read: if isAdmin();
       // Only Cloud Functions can write to appUsage (server-side only)
