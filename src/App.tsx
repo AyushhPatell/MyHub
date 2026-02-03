@@ -17,13 +17,11 @@ import { useDarkModeSchedule } from './hooks/useDarkModeSchedule';
 import { UserPreferences } from './types';
 import { applySmoothThemeTransition } from './utils/themeTransition';
 import { trackVisit } from './services/visitTracker';
-import { useIsAdmin } from './hooks/useIsAdmin';
 // Email scheduling is now handled by Firebase Cloud Functions (backend)
 // No need for frontend scheduler - emails are sent automatically even when app is closed
 
 function App() {
   const { user, loading } = useAuth();
-  const { isAdmin, loading: loadingAdmin } = useIsAdmin();
   const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
 
   // Initialize theme immediately on app load (before user check)
