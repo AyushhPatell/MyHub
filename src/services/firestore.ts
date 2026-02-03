@@ -130,12 +130,12 @@ export const semesterService = {
     // Deactivate current active semester and archive it if it's not already archived
     const currentActive = allSemesters.find(s => s.isActive && !s.archived);
     if (currentActive && currentActive.id !== semesterId) {
-      // If there's already an archived semester, delete it (we only keep 1)
-      const existingArchived = allSemesters.find(s => s.archived);
+      // If there's another archived semester (not the one we're switching to), delete it so we only keep 1 archived
+      const existingArchived = allSemesters.find(s => s.archived && s.id !== semesterId);
       if (existingArchived) {
         await deleteDoc(doc(db, 'users', userId, 'semesters', existingArchived.id));
       }
-      
+
       await updateDoc(doc(db, 'users', userId, 'semesters', currentActive.id), {
         isActive: false,
         archived: true
