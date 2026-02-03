@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState } from 'react';
 import { db } from './config/firebase';
 import { useAuth } from './hooks/useAuth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import Layout from './components/Layout';
 import PageTransition from './components/PageTransition';
 import LoginPage from './pages/LoginPage';
@@ -148,21 +148,29 @@ function App() {
 
   useDarkModeSchedule(scheduleConfig, userPreferences?.theme || 'light');
 
-  // Track visit once per session when user logs in
+  // Track visit once per session when user logs in.
+  // Read admin status from Firestore at track time so admin visits count as "My Visits" only.
   useEffect(() => {
-    if (user && !loadingAdmin) {
-      // Check if we've already tracked a visit this session
-      const sessionKey = `visit_tracked_${user.uid}`;
-      if (!sessionStorage.getItem(sessionKey)) {
-        // Track visit (admin status is now available)
-        trackVisit(user.uid, isAdmin).catch((error) => {
-          console.error('Error tracking visit:', error);
-        });
-        // Mark as tracked for this session
-        sessionStorage.setItem(sessionKey, 'true');
+    if (!user) return;
+
+    const sessionKey = `visit_tracked_${user.uid}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const isAdminActual = !cancelled && userDoc.exists() && userDoc.data()?.isAdmin === true;
+        if (!cancelled) {
+          await trackVisit(user.uid, isAdminActual);
+          sessionStorage.setItem(sessionKey, 'true');
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error tracking visit:', error);
       }
-    }
-  }, [user, isAdmin, loadingAdmin]);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
 
   // Email scheduling is handled by Firebase Cloud Functions
   // Scheduled functions run automatically on the backend
