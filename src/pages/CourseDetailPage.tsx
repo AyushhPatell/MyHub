@@ -109,7 +109,7 @@ export default function CourseDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen w-full pb-safe">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
           <div className="h-8 bg-gray-200 dark:bg-white/10 rounded w-48 mb-6 animate-pulse" />
           <div className="space-y-4">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -156,7 +156,7 @@ export default function CourseDetailPage() {
         style={{ backgroundColor: course.color }}
         aria-hidden
       />
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-8">
         {/* Sticky header: course name + desktop actions */}
         <div className="sticky top-16 z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 py-3 -mt-3 mb-4 bg-gradient-to-b from-gray-50/95 to-transparent dark:from-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-white/5 sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:py-0 sm:mt-0 sm:mb-6 sm:static">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

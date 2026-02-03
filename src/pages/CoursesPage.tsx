@@ -97,7 +97,7 @@ export default function CoursesPage() {
   if (loading) {
     return (
       <div className="min-h-screen w-full pb-safe">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
           <div className="h-8 bg-gray-200 dark:bg-white/10 rounded w-48 mb-6 animate-pulse" />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -147,7 +147,7 @@ export default function CoursesPage() {
 
   return (
     <div className="min-h-screen w-full pb-safe">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div className="flex-1">
             <h1 className="text-page-title sm:text-3xl font-bold text-gray-900 dark:text-white mb-3 bg-gradient-to-r from-primary-600 to-purple-600 dark:from-white dark:via-primary-200 dark:to-purple-200 bg-clip-text text-transparent">
