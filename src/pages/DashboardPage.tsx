@@ -7,6 +7,7 @@ import { calculatePriority } from '../utils/priority';
 import { Plus, LayoutGrid, BookOpen, Calendar, TrendingUp } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import AssignmentFilterModal from '../components/AssignmentFilterModal';
+import QuickAddModal from '../components/QuickAddModal';
 import { courseService } from '../services/firestore';
 import { Course } from '../types';
 import WidgetGrid from '../components/WidgetGrid';
@@ -19,6 +20,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [showFilterModal, setShowFilterModal] = useState<'today' | 'week' | 'overdue' | null>(null);
   const [showCalendarModal, setShowCalendarModal] = useState<{ date: Date; assignments: Array<{ assignment: Assignment; course: Course }> } | null>(null);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const initialEditMode = searchParams.get('edit') === 'true';
 
   // All hooks must be called before any early returns
@@ -216,6 +218,16 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen w-full pb-safe">
+      {/* Hidden trigger for FAB / keyboard shortcut */}
+      {semester && (
+        <button
+          type="button"
+          data-quick-add="true"
+          onClick={() => setShowQuickAdd(true)}
+          className="sr-only"
+          aria-hidden
+        />
+      )}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
         <div className="mb-4 sm:mb-6">
           <h1 className="text-page-title sm:text-3xl font-bold text-gray-900 dark:text-white mb-2 bg-gradient-to-r from-primary-600 to-purple-600 dark:from-white dark:via-primary-200 dark:to-purple-200 bg-clip-text text-transparent">
@@ -254,6 +266,18 @@ export default function DashboardPage() {
           onClose={() => setShowCalendarModal(null)}
           onToggleComplete={handleMarkComplete}
           title={`Assignments for ${formatDate(showCalendarModal.date)}`}
+        />
+      )}
+
+      {showQuickAdd && user && semester && (
+        <QuickAddModal
+          userId={user.uid}
+          semesterId={semester.id}
+          onClose={() => setShowQuickAdd(false)}
+          onSuccess={() => {
+            setShowQuickAdd(false);
+            loadData();
+          }}
         />
       )}
     </div>

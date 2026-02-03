@@ -40,7 +40,7 @@ export default function CourseCard({ course, semesterId: _semesterId, onEdit }: 
   return (
     <div className="group relative">
       <div 
-        className="relative overflow-hidden bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-xl sm:rounded-2xl border border-gray-200 dark:border-white/10 p-3 sm:p-4 hover:border-indigo-300 dark:hover:border-indigo-500/30 transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
+        className="relative overflow-hidden glass-card rounded-card p-4 hover:border-primary-300 dark:hover:border-primary-500/30 transition-all hover:scale-[1.01] hover:shadow-xl cursor-pointer"
         onClick={handleCardClick}
       >
         {/* Color accent bar */}

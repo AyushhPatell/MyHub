@@ -4,6 +4,7 @@ import { semesterService, courseService } from '../services/firestore';
 import { Semester, Course } from '../types';
 import { Plus, Calendar, Edit2, Check, X } from 'lucide-react';
 import CourseCard from '../components/CourseCard';
+import SkeletonCard from '../components/SkeletonCard';
 import SemesterSetupModal from '../components/SemesterSetupModal';
 import AddCourseModal from '../components/AddCourseModal';
 import EditCourseModal from '../components/EditCourseModal';
@@ -95,8 +96,15 @@ export default function CoursesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+      <div className="min-h-screen w-full pb-safe">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="h-8 bg-gray-200 dark:bg-white/10 rounded w-48 mb-6 animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <SkeletonCard key={i} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }

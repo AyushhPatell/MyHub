@@ -442,9 +442,9 @@ export default function SettingsPage() {
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-semibold">Manage your preferences</p>
         </div>
 
-        <div className="max-w-3xl mx-auto space-y-4 sm:space-y-6 mb-8">
+        <div className="max-w-3xl mx-auto space-y-6 mb-8">
           {/* Semester Management */}
-          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Semester Management</h2>
@@ -512,7 +512,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Dashboard Widgets */}
-          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard Widgets</h2>
@@ -536,7 +536,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Theme Settings */}
-          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
             <div className="flex items-center space-x-3 mb-4">
               {preferences.theme === 'dark' ? (
                 <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -704,7 +704,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Notifications (Combined) */}
-          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
             <div className="flex items-center space-x-3 mb-4">
               <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>

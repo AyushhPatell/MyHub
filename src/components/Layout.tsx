@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
-import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Shield } from 'lucide-react';
+import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Shield, Plus } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
 import { useKeyboardShortcuts, isMac } from '../hooks/useKeyboardShortcuts';
@@ -316,6 +316,20 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main Content - Full Width */}
       <main className="w-full">{children}</main>
+
+      {/* Floating Quick Add (mobile only, on Dashboard / Courses / Course detail) */}
+      {user && (location.pathname === '/' || location.pathname === '/courses' || location.pathname.startsWith('/courses/')) && (
+        <div className="fixed bottom-20 right-4 z-30 md:hidden pb-safe">
+          <button
+            type="button"
+            onClick={handleQuickAdd}
+            className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-r from-primary-500 to-purple-500 text-white shadow-xl hover:scale-105 active:scale-95 transition-transform touch-manipulation"
+            aria-label="Quick Add Assignment"
+          >
+            <Plus className="w-7 h-7" />
+          </button>
+        </div>
+      )}
 
       {/* Keyboard Shortcuts Modal */}
       {showShortcutsModal && (

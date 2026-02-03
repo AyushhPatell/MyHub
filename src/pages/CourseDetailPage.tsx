@@ -9,6 +9,7 @@ import { ArrowLeft, Plus, Check, ExternalLink, Edit, Trash2, Calendar, Repeat, P
 import QuickAddModal from '../components/QuickAddModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
 import RecurringTemplateModal from '../components/RecurringTemplateModal';
+import SkeletonAssignmentRow from '../components/SkeletonAssignmentRow';
 
 export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -23,6 +24,7 @@ export default function CourseDetailPage() {
   const [templates, setTemplates] = useState<RecurringTemplate[]>([]);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<RecurringTemplate | null>(null);
+  const [celebratingId, setCelebratingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && courseId) {
@@ -93,6 +95,10 @@ export default function CourseDetailPage() {
       const semester = await semesterService.getActiveSemester(user.uid);
       if (semester) {
         await assignmentService.markComplete(user.uid, semester.id, courseId, assignmentId, completed);
+        if (completed) {
+          setCelebratingId(assignmentId);
+          setTimeout(() => setCelebratingId(null), 500);
+        }
         loadData();
       }
     } catch (error) {
@@ -102,8 +108,15 @@ export default function CourseDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-indigo-500 border-t-transparent"></div>
+      <div className="min-h-screen w-full pb-safe">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+          <div className="h-8 bg-gray-200 dark:bg-white/10 rounded w-48 mb-6 animate-pulse" />
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <SkeletonAssignmentRow key={i} />
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
@@ -137,27 +150,35 @@ export default function CourseDetailPage() {
 
   return (
     <div className="min-h-screen w-full pb-safe">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
-          <div className="flex items-center gap-3 sm:gap-4">
-            <Link
-              to="/courses"
-              className="p-2 hover:bg-white/5 rounded-xl transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label="Back to courses"
-            >
-              <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
-            </Link>
-            <div>
-              <h1 className="text-page-title sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 bg-gradient-to-r from-primary-600 to-purple-600 dark:from-white dark:via-primary-200 dark:to-purple-200 bg-clip-text text-transparent">
-                {course.courseCode}
-              </h1>
-              <p className="text-sm sm:text-base text-gray-900 dark:text-gray-300 font-semibold">
-                {course.courseName}
-              </p>
+      {/* Course color bar at top for context */}
+      <div
+        className="h-1 w-full flex-shrink-0"
+        style={{ backgroundColor: course.color }}
+        aria-hidden
+      />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-24 sm:pb-8">
+        {/* Sticky header: course name + desktop actions */}
+        <div className="sticky top-16 z-30 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 py-3 -mt-3 mb-4 bg-gradient-to-b from-gray-50/95 to-transparent dark:from-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-white/5 sm:border-0 sm:bg-transparent sm:backdrop-blur-none sm:py-0 sm:mt-0 sm:mb-6 sm:static">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <Link
+                to="/courses"
+                className="p-2 hover:bg-white/5 rounded-card transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+                aria-label="Back to courses"
+              >
+                <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
+              </Link>
+              <div>
+                <h1 className="text-page-title sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 bg-gradient-to-r from-primary-600 to-purple-600 dark:from-white dark:via-primary-200 dark:to-purple-200 bg-clip-text text-transparent">
+                  {course.courseCode}
+                </h1>
+                <p className="text-sm sm:text-base text-gray-900 dark:text-gray-300 font-semibold">
+                  {course.courseName}
+                </p>
+              </div>
             </div>
-          </div>
-          {/* Desktop/Tablet: Add Assignment and Create Recurring Template side by side */}
-          <div className="hidden md:flex items-center gap-3">
+            {/* Desktop/Tablet: Add Assignment and Create Recurring Template side by side */}
+            <div className="hidden md:flex items-center gap-3">
             <button
               onClick={() => {
                 setEditingTemplate(null);
@@ -171,13 +192,14 @@ export default function CourseDetailPage() {
             <button
               onClick={() => setShowQuickAdd(true)}
               data-quick-add="true"
-              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-bold rounded-xl hover:scale-105 transition-transform shadow-lg text-base touch-manipulation"
+              className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary-500 to-purple-500 text-white font-bold rounded-card hover:scale-105 transition-transform shadow-lg text-base touch-manipulation"
               style={{ minHeight: '44px' }}
               title={`Quick Add Assignment (${navigator.platform.toUpperCase().indexOf('MAC') >= 0 ? '⌘' : 'Ctrl'}+N)`}
             >
               <Plus className="w-5 h-5" />
               <span>Add Assignment</span>
             </button>
+          </div>
           </div>
         </div>
 
@@ -376,9 +398,9 @@ export default function CourseDetailPage() {
                         onClick={() => handleMarkComplete(assignment.id, !assignment.completedAt)}
                         className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all cursor-pointer flex-shrink-0 mt-0.5 ${
                           assignment.completedAt
-                            ? 'bg-green-500 border-green-500 text-white hover:bg-red-500 hover:border-red-500'
+                            ? 'bg-done border-done text-white hover:bg-red-500 hover:border-red-500'
                             : 'border-gray-300 dark:border-gray-400 hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-500/20'
-                        }`}
+                        } ${celebratingId === assignment.id ? 'animate-checkmark-pop' : ''}`}
                       >
                         {assignment.completedAt && <Check size={12} />}
                       </button>
@@ -432,8 +454,12 @@ export default function CourseDetailPage() {
                               </span>
                             )}
                             {!isOverdueAssignment && !assignment.completedAt && daysUntil > 0 && (
-                              <span className="px-2 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold text-[10px] border border-blue-200 dark:border-blue-500/30">
-                                {daysUntil} days away
+                              <span className={`px-2 py-0.5 rounded-lg font-bold text-[10px] border ${
+                                daysUntil <= 3
+                                  ? 'bg-accent-coral/15 dark:bg-accent-coral/20 text-accent-coral-dark dark:text-accent-coral-light border-accent-coral/30 dark:border-accent-coral/40'
+                                  : 'bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-500/30'
+                              }`}>
+                                {daysUntil} day{daysUntil !== 1 ? 's' : ''} away
                               </span>
                             )}
                           </div>

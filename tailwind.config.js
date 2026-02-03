@@ -24,6 +24,27 @@ export default {
         success: '#10B981',
         warning: '#F59E0B',
         danger: '#EF4444',
+        accent: {
+          coral: '#F97316',
+          'coral-light': '#FDBA74',
+          'coral-dark': '#EA580C',
+        },
+        /* Green for "done" / completed state */
+        done: {
+          DEFAULT: '#10B981',
+          light: '#D1FAE5',
+          dark: '#059669',
+        },
+      },
+      borderRadius: {
+        card: '0.75rem',
+        modal: '1rem',
+        input: '0.5rem',
+      },
+      spacing: {
+        18: '4.5rem',
+        22: '5.5rem',
+        30: '7.5rem',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
