@@ -60,7 +60,7 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         <div className="text-center mb-7 sm:mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-primary-100 dark:bg-primary-900/20 rounded-2xl mb-3 sm:mb-4">
-            <LayoutGrid className="w-7 h-7 sm:w-8 sm:h-8 text-primary-600 dark:text-primary-400" />
+            <LayoutGrid className="w-7 h-7 sm:w-8 sm:h-8 text-primary-600 dark:text-primary-400" aria-hidden />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1.5 sm:mb-2">MyHub</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Sign in to your personal dashboard</p>

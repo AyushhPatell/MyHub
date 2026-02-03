@@ -64,7 +64,8 @@ export default function AssignmentFilterModal({ assignments, filterType, onClose
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="p-2 -m-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-xl focus:outline-none min-w-[44px] min-h-[44px] flex items-center justify-center"
+            aria-label="Close"
           >
             <X size={24} />
           </button>
@@ -85,13 +86,14 @@ export default function AssignmentFilterModal({ assignments, filterType, onClose
                 return (
                   <div
                     key={assignment.id}
-                    className={`bg-white dark:bg-gray-800 rounded-xl border ${
+                    className={`relative bg-white dark:bg-gray-800 rounded-xl border-l-4 ${
                       assignment.completedAt
                         ? 'border-gray-200 dark:border-gray-700 opacity-60'
                         : isOverdueAssignment
                         ? 'border-red-200 dark:border-red-800'
                         : 'border-gray-200 dark:border-gray-700'
-                    } hover:border-primary-300 dark:hover:border-primary-600 hover:shadow-md transition-all cursor-pointer`}
+                    } hover:shadow-md transition-all cursor-pointer`}
+                    style={{ borderLeftColor: assignment.completedAt ? undefined : course.color }}
                     onClick={() => handleAssignmentClick(course.id)}
                   >
                     <div className="p-3">

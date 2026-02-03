@@ -137,19 +137,18 @@ export default function CourseDetailPage() {
 
   return (
     <div className="min-h-screen w-full pb-safe">
-      {/* Page Header - Full Width */}
-      <div className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 pb-20 sm:pb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
           <div className="flex items-center gap-3 sm:gap-4">
             <Link
               to="/courses"
-              className="p-2 hover:bg-white/5 rounded-xl transition-colors touch-manipulation"
-              style={{ minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              className="p-2 hover:bg-white/5 rounded-xl transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Back to courses"
             >
               <ArrowLeft size={20} className="text-gray-600 dark:text-gray-300" />
             </Link>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-white dark:via-indigo-200 dark:to-purple-200 bg-clip-text text-transparent">
+              <h1 className="text-page-title sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 bg-gradient-to-r from-primary-600 to-purple-600 dark:from-white dark:via-primary-200 dark:to-purple-200 bg-clip-text text-transparent">
                 {course.courseCode}
               </h1>
               <p className="text-sm sm:text-base text-gray-900 dark:text-gray-300 font-semibold">
@@ -362,13 +361,14 @@ export default function CourseDetailPage() {
               return (
                 <div
                   key={assignment.id}
-                  className={`bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border transition-all hover:scale-[1.01] hover:shadow-xl ${
+                  className={`bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl border-l-4 border transition-all hover:scale-[1.01] hover:shadow-xl ${
                     assignment.completedAt
                       ? 'border-gray-200 dark:border-white/10 opacity-60'
                       : isOverdueAssignment
                       ? 'border-red-300 dark:border-red-500/30'
                       : 'border-gray-200 dark:border-white/10'
                   }`}
+                  style={{ borderLeftColor: assignment.completedAt ? undefined : course?.color }}
                 >
                   <div className="p-4">
                     <div className="flex items-start gap-3">

@@ -48,7 +48,7 @@ export default function ModalContainer({ children, onClose, backdropClassName = 
       <div 
         ref={contentRef}
         onClick={(e) => e.stopPropagation()}
-        className="my-auto modal-content"
+        className="my-auto modal-content max-h-[90vh] overflow-y-auto w-full"
       >
         {children}
       </div>

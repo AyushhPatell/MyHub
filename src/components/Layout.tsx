@@ -133,7 +133,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex items-center gap-8">
               {/* Logo */}
               <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
-                <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-br from-primary-500 via-purple-500 to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                   <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">MyHub</span>
@@ -151,7 +151,7 @@ export default function Layout({ children }: LayoutProps) {
                       to={item.path}
                       className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all ${
                         isActive
-                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg'
+                          ? 'bg-gradient-to-r from-primary-500 to-purple-500 text-white shadow-lg'
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5'
                       }`}
                       title={shortcut ? `${item.label} (${mac ? '⌘' : 'Ctrl'}+${shortcut})` : item.label}
@@ -184,7 +184,7 @@ export default function Layout({ children }: LayoutProps) {
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2 rounded-xl hover:bg-gray-100 dark:hover:bg-white/5 transition-all group"
                 >
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg">
                     {getUserInitials()}
                   </div>
                   <div className="hidden sm:flex flex-col items-start">
@@ -261,7 +261,7 @@ export default function Layout({ children }: LayoutProps) {
               <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 px-6 py-5 pt-safe">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg">
                       <LayoutGrid className="w-5 h-5" />
                     </div>
                     <span className="text-lg font-bold text-gray-900 dark:text-white">MyHub</span>
@@ -288,16 +288,16 @@ export default function Layout({ children }: LayoutProps) {
                       onClick={() => setMobileMenuOpen(false)}
                       className={`flex items-center gap-4 px-5 py-4 rounded-2xl font-semibold text-base transition-all ${
                         isActive
-                          ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-xl'
+                          ? 'bg-gradient-to-r from-primary-500 to-purple-500 text-white shadow-xl'
                           : 'bg-white/60 dark:bg-white/5 backdrop-blur-xl text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-white/10 border border-gray-200 dark:border-white/10'
                       }`}
                     >
                       <div className={`p-2.5 rounded-xl transition-all ${
                         isActive 
                           ? 'bg-white/20' 
-                          : 'bg-indigo-100 dark:bg-indigo-900/30'
+                          : 'bg-primary-100 dark:bg-primary-900/30'
                       }`}>
-                        <Icon size={20} className={isActive ? 'text-white' : 'text-indigo-600 dark:text-indigo-400'} />
+                        <Icon size={20} className={isActive ? 'text-white' : 'text-primary-600 dark:text-primary-400'} />
                       </div>
                       <span className="flex-1">{item.label}</span>
                       {isActive && (

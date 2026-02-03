@@ -41,8 +41,29 @@
   body {
     @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-50;
     font-family: 'Inter', system-ui, sans-serif;
-    transition: background-color 600ms cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: background-color 600ms cubic-bezier(0.4, 0, 0.2, 1),
                 color 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* Typography hierarchy */
+  h1 {
+    @apply text-page-title tracking-tight text-gray-900 dark:text-white;
+  }
+  h2 {
+    @apply text-section-title text-gray-800 dark:text-gray-100;
+  }
+  h3 {
+    @apply text-card-title text-gray-800 dark:text-gray-100;
+  }
+
+  /* Accessibility: visible focus for keyboard users */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  [tabindex]:focus-visible {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-gray-50 dark:ring-primary-400 dark:ring-offset-gray-900;
   }
 
   /* Smooth transitions for common elements */
@@ -65,10 +86,22 @@
   input,
   select,
   textarea {
-    transition: background-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-                border-color 300ms cubic-bezier(0.4, 0, 0.2, 1),
-                color 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    transition: background-color 250ms cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 250ms cubic-bezier(0.4, 0, 0.2, 1),
+                color 250ms cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 200ms ease;
   }
+}
+
+/* Dark mode: better contrast for secondary text and borders */
+.dark .text-gray-500 {
+  color: rgb(156 163 175);
+}
+.dark .text-gray-400 {
+  color: rgb(209 213 219);
+}
+.dark .border-gray-200 {
+  border-color: rgba(255 255 255 / 0.12);
 }
 
 @layer utilities {
@@ -128,11 +161,39 @@
       transform: translateY(0);
     }
   }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
   
   .animate-fade-in {
     animation: fadeIn 0.3s ease-in-out;
   }
-  
+
+  /* Stagger children - subtle motion on list load */
+  .stagger-children > * {
+    animation: fadeInUp 0.4s ease-out forwards;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 40ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+  .stagger-children > *:nth-child(7) { animation-delay: 240ms; }
+  .stagger-children > *:nth-child(8) { animation-delay: 280ms; }
+  .stagger-children > *:nth-child(9) { animation-delay: 320ms; }
+  .stagger-children > *:nth-child(10) { animation-delay: 360ms; }
+  .stagger-children > *:nth-child(n+11) { animation-delay: 400ms; }
+}
+
   /* Toast animations */
   @keyframes slideDown {
     from {
