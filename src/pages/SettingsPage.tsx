@@ -748,7 +748,7 @@ export default function SettingsPage() {
                   <label className="flex items-center justify-between cursor-pointer">
                     <div>
                       <span className="text-gray-700 dark:text-gray-300">Assignment Reminders</span>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Get emails for due today, 1 day, 3 days, and overdue</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Get emails for due in 1 day, 3 days, and 3 hours before deadline</p>
                     </div>
                     <input
                       type="checkbox"

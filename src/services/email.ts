@@ -223,7 +223,7 @@ async function sendEmail(templateParams: Record<string, any>): Promise<void> {
 export async function sendAssignmentReminder(
   userId: string,
   assignmentId: string,
-  reminderType: 'due-today' | 'due-1-day' | 'due-3-days' | 'overdue'
+  reminderType: 'due-1-day' | 'due-3-days' | 'due-3-hours'
 ): Promise<void> {
   try {
     const user = await getUserData(userId);
@@ -243,17 +243,12 @@ export async function sendAssignmentReminder(
     const dueDate = assignment.dueDate?.toDate ? assignment.dueDate.toDate() : new Date(assignment.dueDate);
     const { format } = await import('date-fns');
     const dueDateStr = format(dueDate, 'MMMM d, yyyy');
+    const dueDateTimeStr = format(dueDate, 'MMMM d, yyyy \'at\' h:mm a');
     
     let subject = '';
     let message = '';
     
     switch (reminderType) {
-      case 'due-today':
-        subject = `📅 ${assignment.name} is due today!`;
-        message = `<h2 style="color: #dc2626;">Assignment Due Today</h2>
-          <p><strong>${assignment.name}</strong> for <strong>${course.courseName}</strong> is due today (${dueDateStr}).</p>
-          <p>Make sure to submit it on time!</p>`;
-        break;
       case 'due-1-day':
         subject = `⏰ ${assignment.name} is due tomorrow`;
         message = `<h2 style="color: #f59e0b;">Assignment Due Tomorrow</h2>
@@ -266,11 +261,11 @@ export async function sendAssignmentReminder(
           <p><strong>${assignment.name}</strong> for <strong>${course.courseName}</strong> is due in 3 days (${dueDateStr}).</p>
           <p>Start working on it soon!</p>`;
         break;
-      case 'overdue':
-        subject = `⚠️ ${assignment.name} is overdue`;
-        message = `<h2 style="color: #dc2626;">Overdue Assignment</h2>
-          <p><strong>${assignment.name}</strong> for <strong>${course.courseName}</strong> was due on ${dueDateStr} and is now overdue.</p>
-          <p>Please complete it as soon as possible!</p>`;
+      case 'due-3-hours':
+        subject = `🔔 ${assignment.name} is due in 3 hours`;
+        message = `<h2 style="color: #dc2626;">Deadline in 3 Hours</h2>
+          <p><strong>${assignment.name}</strong> for <strong>${course.courseName}</strong> is due at <strong>${dueDateTimeStr}</strong>.</p>
+          <p>Make sure to submit it on time!</p>`;
         break;
     }
 

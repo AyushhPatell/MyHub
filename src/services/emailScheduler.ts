@@ -10,7 +10,7 @@
 
 import { sendDailyDigest, sendWeeklyDigest, sendAssignmentReminder } from './emailFunctions';
 import { semesterService, assignmentService } from './firestore';
-import { startOfDay, differenceInDays, format } from 'date-fns';
+import { startOfDay, differenceInDays, differenceInHours, differenceInMinutes, format } from 'date-fns';
 
 interface EmailCheckResult {
   sent: boolean;
@@ -108,32 +108,37 @@ async function checkAssignmentReminders(userId: string, preferences: any): Promi
       if (assignment.completedAt) continue;
 
       // Handle Firestore Timestamp or Date
-      const dueDate = (assignment.dueDate as any)?.toDate 
-        ? (assignment.dueDate as any).toDate() 
+      const dueDate = (assignment.dueDate as any)?.toDate
+        ? (assignment.dueDate as any).toDate()
         : new Date(assignment.dueDate as Date | string);
       const dueDateStart = startOfDay(dueDate);
       const daysUntilDue = differenceInDays(dueDateStart, today);
+      const hoursUntilDue = differenceInHours(dueDate, now);
+      const minutesUntilDue = differenceInMinutes(dueDate, now);
 
-      // Check which reminder to send
+      // Reminders: Due in 3 days, Due in 1 day, Due in 3 hours (no overdue or due-today)
       const reminderKey = `assignment-reminder-${assignment.id}`;
       const lastReminder = localStorage.getItem(reminderKey);
 
-      if (daysUntilDue === 0 && lastReminder !== 'due-today') {
-        // Due today
-        await sendAssignmentReminder(userId, assignment.id, 'due-today');
-        localStorage.setItem(reminderKey, 'due-today');
-      } else if (daysUntilDue === 1 && lastReminder !== 'due-1-day') {
-        // Due tomorrow
-        await sendAssignmentReminder(userId, assignment.id, 'due-1-day');
-        localStorage.setItem(reminderKey, 'due-1-day');
-      } else if (daysUntilDue === 3 && lastReminder !== 'due-3-days') {
-        // Due in 3 days
+      if (daysUntilDue === 3 && lastReminder !== 'due-3-days') {
         await sendAssignmentReminder(userId, assignment.id, 'due-3-days');
         localStorage.setItem(reminderKey, 'due-3-days');
-      } else if (daysUntilDue < 0 && lastReminder !== 'overdue') {
-        // Overdue
-        await sendAssignmentReminder(userId, assignment.id, 'overdue');
-        localStorage.setItem(reminderKey, 'overdue');
+      } else if (
+        hoursUntilDue >= 20 &&
+        hoursUntilDue <= 28 &&
+        lastReminder !== 'due-1-day'
+      ) {
+        // Due in ~1 day (20–28 hours before)
+        await sendAssignmentReminder(userId, assignment.id, 'due-1-day');
+        localStorage.setItem(reminderKey, 'due-1-day');
+      } else if (
+        minutesUntilDue >= 150 &&
+        minutesUntilDue <= 210 &&
+        lastReminder !== 'due-3-hours'
+      ) {
+        // Due in ~3 hours (2.5–3.5 hour window)
+        await sendAssignmentReminder(userId, assignment.id, 'due-3-hours');
+        localStorage.setItem(reminderKey, 'due-3-hours');
       }
     }
   } catch (error) {

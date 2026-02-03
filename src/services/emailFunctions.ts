@@ -31,7 +31,7 @@ export function isEmailConfigured(): boolean {
 export async function sendAssignmentReminder(
   _userId: string,
   assignmentId: string,
-  reminderType: 'due-today' | 'due-1-day' | 'due-3-days' | 'overdue'
+  reminderType: 'due-1-day' | 'due-3-days' | 'due-3-hours'
 ): Promise<void> {
   try {
     const sendReminder = httpsCallable<{

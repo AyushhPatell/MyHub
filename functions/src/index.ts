@@ -16,7 +16,8 @@ import * as admin from "firebase-admin";
 import OpenAI from "openai";
 import {defineSecret} from "firebase-functions/params";
 import * as nodemailer from "nodemailer";
-import {format, startOfDay, differenceInDays} from "date-fns";
+import {format, startOfDay, differenceInDays, differenceInHours,
+  differenceInMinutes} from "date-fns";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -1124,6 +1125,86 @@ async function getAllAssignmentsForDigest(userId: string): Promise<{
 }
 
 /**
+ * Get all assignments with IDs for reminder scheduling (incomplete only)
+ * @param {string} userId - User ID
+ * @return {Promise<Array>} Assignments with id, courseId, name, dueDate,
+ *   courseName
+ */
+async function getAssignmentsWithIdsForReminders(userId: string): Promise<
+  Array<{
+    assignmentId: string;
+    courseId: string;
+    name: string;
+    dueDate: Date;
+    courseName: string;
+  }>
+> {
+  const semesterSnapshot = await admin.firestore()
+    .collection("users")
+    .doc(userId)
+    .collection("semesters")
+    .where("isActive", "==", true)
+    .limit(1)
+    .get();
+
+  if (semesterSnapshot.empty) {
+    return [];
+  }
+
+  const semesterId = semesterSnapshot.docs[0].id;
+  const coursesSnapshot = await admin.firestore()
+    .collection("users")
+    .doc(userId)
+    .collection("semesters")
+    .doc(semesterId)
+    .collection("courses")
+    .get();
+
+  const courseMap = new Map<string, string>();
+  coursesSnapshot.docs.forEach((doc) => {
+    const data = doc.data();
+    courseMap.set(doc.id, data.courseName || "Unknown Course");
+  });
+
+  const result: Array<{
+    assignmentId: string;
+    courseId: string;
+    name: string;
+    dueDate: Date;
+    courseName: string;
+  }> = [];
+
+  for (const courseDoc of coursesSnapshot.docs) {
+    const assignmentsSnapshot = await admin.firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("semesters")
+      .doc(semesterId)
+      .collection("courses")
+      .doc(courseDoc.id)
+      .collection("assignments")
+      .get();
+
+    assignmentsSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
+      if (data.completedAt) return;
+      const dueDate = data.dueDate?.toDate ?
+        data.dueDate.toDate() :
+        new Date(data.dueDate);
+      result.push({
+        assignmentId: doc.id,
+        courseId: courseDoc.id,
+        name: data.name || "",
+        dueDate: dueDate,
+        courseName: courseMap.get(courseDoc.id) || "Unknown Course",
+      });
+    });
+  }
+
+  return result;
+}
+
+/**
  * Send assignment reminder email (callable function)
  */
 export const sendAssignmentReminderEmail = onCall(
@@ -1163,18 +1244,12 @@ export const sendAssignmentReminderEmail = onCall(
       }
 
       const dueDateStr = format(assignment.dueDate, "MMMM d, yyyy");
+      const dueDateTimeStr = format(assignment.dueDate,
+        "MMMM d, yyyy 'at' h:mm a");
       let subject = "";
       let message = "";
 
       switch (reminderType) {
-      case "due-today":
-        subject = `📅 ${assignment.name} is due today!`;
-        message = `<h2 style="color: #dc2626;">Assignment Due Today</h2>
-          <p><strong>${assignment.name}</strong> for ` +
-          `<strong>${course.courseName}</strong> is due today ` +
-          `(${dueDateStr}).</p>
-          <p>Make sure to submit it on time!</p>`;
-        break;
       case "due-1-day":
         subject = `⏰ ${assignment.name} is due tomorrow`;
         message = `<h2 style="color: #f59e0b;">Assignment Due Tomorrow</h2>
@@ -1191,13 +1266,13 @@ export const sendAssignmentReminderEmail = onCall(
           `(${dueDateStr}).</p>
           <p>Start working on it soon!</p>`;
         break;
-      case "overdue":
-        subject = `⚠️ ${assignment.name} is overdue`;
-        message = `<h2 style="color: #dc2626;">Overdue Assignment</h2>
+      case "due-3-hours":
+        subject = `🔔 ${assignment.name} is due in 3 hours`;
+        message = `<h2 style="color: #dc2626;">Deadline in 3 Hours</h2>
           <p><strong>${assignment.name}</strong> for ` +
-          `<strong>${course.courseName}</strong> was due on ` +
-          `${dueDateStr} and is now overdue.</p>
-          <p>Please complete it as soon as possible!</p>`;
+          `<strong>${course.courseName}</strong> is due at ` +
+          `<strong>${dueDateTimeStr}</strong>.</p>
+          <p>Make sure to submit it on time!</p>`;
         break;
       default:
         throw new Error("Invalid reminder type");
@@ -1637,7 +1712,7 @@ export const checkWeeklyDigests = onSchedule(
 
 /**
  * Scheduled function: Check and send assignment reminders
- * Runs every 6 hours to check for due assignments
+ * Sends: Due in 3 days, Due in 1 day, Due in 3 hours (no overdue or due-today)
  */
 export const checkAssignmentReminders = onSchedule(
   {
@@ -1649,6 +1724,8 @@ export const checkAssignmentReminders = onSchedule(
   async () => {
     const db = admin.firestore();
     const usersSnapshot = await db.collection("users").get();
+    const now = new Date();
+    const today = startOfDay(now);
 
     for (const userDoc of usersSnapshot.docs) {
       try {
@@ -1661,74 +1738,72 @@ export const checkAssignmentReminders = onSchedule(
           continue;
         }
 
-        const {dueToday, overdue} =
-          await getAllAssignmentsForDigest(userId);
+        const assignments = await getAssignmentsWithIdsForReminders(userId);
+        if (assignments.length === 0) continue;
 
-        // Check assignments due today
-        for (const assignment of dueToday) {
-          const reminderKey = `assignment-reminder-${userId}-` +
-            `${assignment.name}`;
+        const user = await getUserData(userId);
+
+        for (const a of assignments) {
+          const dueDateStart = startOfDay(a.dueDate);
+          const daysUntilDue = differenceInDays(dueDateStart, today);
+          const hoursUntilDue = differenceInHours(a.dueDate, now);
+          const minutesUntilDue = differenceInMinutes(a.dueDate, now);
+          const reminderKey = `assignment-reminder-${userId}-${a.assignmentId}`;
           const lastReminderDoc = await db.collection("emailTracking")
             .doc(reminderKey)
             .get();
+          const lastType = lastReminderDoc.exists ?
+            lastReminderDoc.data()?.type : null;
+          const dueDateStr = format(a.dueDate, "MMMM d, yyyy");
+          const dueDateTimeStr = format(a.dueDate,
+            "MMMM d, yyyy 'at' h:mm a");
+          const coursePart = a.courseName ?
+            ` for <strong>${a.courseName}</strong>` : "";
 
-          if (lastReminderDoc.exists &&
-            lastReminderDoc.data()?.type === "due-today") {
-            continue; // Already sent
+          let typeToSend: string | null = null;
+          let subject = "";
+          let message = "";
+
+          if (daysUntilDue === 3 && lastType !== "due-3-days") {
+            typeToSend = "due-3-days";
+            subject = `📝 ${a.name} is due in 3 days`;
+            message = "<h2 style=\"color: #3b82f6;\">Upcoming Assignment</h2>" +
+              `<p><strong>${a.name}</strong>${coursePart} ` +
+              `is due in 3 days (${dueDateStr}).</p>` +
+              "<p>Start working on it soon!</p>";
+          } else if (
+            hoursUntilDue >= 20 &&
+            hoursUntilDue <= 28 &&
+            lastType !== "due-1-day"
+          ) {
+            typeToSend = "due-1-day";
+            subject = `⏰ ${a.name} is due tomorrow`;
+            message =
+              "<h2 style=\"color: #f59e0b;\">Assignment Due Tomorrow</h2>" +
+              `<p><strong>${a.name}</strong>${coursePart} ` +
+              `is due tomorrow (${dueDateStr}).</p>` +
+              "<p>Don't forget to complete it!</p>";
+          } else if (
+            minutesUntilDue >= 150 &&
+            minutesUntilDue <= 210 &&
+            lastType !== "due-3-hours"
+          ) {
+            typeToSend = "due-3-hours";
+            subject = `🔔 ${a.name} is due in 3 hours`;
+            message = "<h2 style=\"color: #dc2626;\">Deadline in 3 Hours</h2>" +
+              `<p><strong>${a.name}</strong>${coursePart} ` +
+              `is due at <strong>${dueDateTimeStr}</strong>.</p>` +
+              "<p>Make sure to submit it on time!</p>";
           }
 
-          // Find assignment ID (simplified - would need proper lookup)
-          // For now, send reminder based on assignment name
-          const user = await getUserData(userId);
-          const subject = `📅 ${assignment.name} is due today!`;
-          const coursePart = assignment.courseName ?
-            ` for <strong>${assignment.courseName}</strong>` : "";
-          const message = "<h2 style=\"color: #dc2626;\">" +
-            "Assignment Due Today</h2>" +
-            `<p><strong>${assignment.name}</strong>${coursePart} ` +
-            "is due today.</p>" +
-            "<p>Make sure to submit it on time!</p>";
-
-          const emailHtml = generateEmailTemplate(subject, message);
-          await sendEmail(user.email, user.name, subject, emailHtml);
-
-          await db.collection("emailTracking").doc(reminderKey).set({
-            type: "due-today",
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          });
-        }
-
-        // Check overdue assignments
-        for (const assignment of overdue) {
-          const reminderKey = `assignment-reminder-${userId}-` +
-            `${assignment.name}`;
-          const lastReminderDoc = await db.collection("emailTracking")
-            .doc(reminderKey)
-            .get();
-
-          if (lastReminderDoc.exists &&
-            lastReminderDoc.data()?.type === "overdue") {
-            continue; // Already sent
+          if (typeToSend && subject && message) {
+            const emailHtml = generateEmailTemplate(subject, message);
+            await sendEmail(user.email, user.name, subject, emailHtml);
+            await db.collection("emailTracking").doc(reminderKey).set({
+              type: typeToSend,
+              timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            });
           }
-
-          const user = await getUserData(userId);
-          const dueDateStr = format(assignment.dueDate, "MMMM d, yyyy");
-          const subject = `⚠️ ${assignment.name} is overdue`;
-          const coursePart = assignment.courseName ?
-            ` for <strong>${assignment.courseName}</strong>` : "";
-          const message = "<h2 style=\"color: #dc2626;\">" +
-            "Overdue Assignment</h2>" +
-            `<p><strong>${assignment.name}</strong>${coursePart} ` +
-            `was due on ${dueDateStr} and is now overdue.</p>` +
-            "<p>Please complete it as soon as possible!</p>";
-
-          const emailHtml = generateEmailTemplate(subject, message);
-          await sendEmail(user.email, user.name, subject, emailHtml);
-
-          await db.collection("emailTracking").doc(reminderKey).set({
-            type: "overdue",
-            timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          });
         }
       } catch (error) {
         console.error("Error processing reminders for user " +
