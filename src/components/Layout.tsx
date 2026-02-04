@@ -171,9 +171,9 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Right: Search + Notifications + User */}
-            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 min-w-0 flex-1 justify-end">
-              {/* Search - Now visible on all screen sizes */}
-              <div className="flex items-center min-w-0 w-full max-w-[180px] sm:max-w-[220px] lg:max-w-[280px]">
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3">
+              {/* Search - visible on all screen sizes */}
+              <div className="flex items-center">
                 <SearchBar />
               </div>
 
