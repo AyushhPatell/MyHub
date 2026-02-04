@@ -442,13 +442,13 @@ export default function SettingsPage() {
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-semibold">Manage your preferences</p>
         </div>
 
-        {/* Section nav: laptop only, single line, with gap below main nav */}
+        {/* Section nav: laptop only, single line, spread across full width */}
         <nav
           className="hidden lg:block sticky z-20 -mx-4 px-4 lg:mx-0 lg:px-0 mb-6 mt-3 lg:top-[5.5rem]"
           aria-label="Settings sections"
         >
           <div className="max-w-3xl mx-auto">
-            <div className="glass-card rounded-2xl lg:rounded-3xl px-3 py-2 flex flex-nowrap gap-0.5 items-center min-w-0">
+            <div className="glass-card rounded-2xl lg:rounded-3xl px-4 py-3 flex flex-nowrap justify-evenly items-center gap-2 min-w-0">
               {[
                 { id: 'settings-semester', label: 'Semester', icon: Calendar },
                 { id: 'settings-widgets', label: 'Widgets', icon: Settings },
@@ -464,9 +464,9 @@ export default function SettingsPage() {
                     e.preventDefault();
                     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-semibold text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-colors whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-colors whitespace-nowrap flex-shrink-0"
                 >
-                  <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                  <Icon className="w-4 h-4 flex-shrink-0" />
                   {label}
                 </a>
               ))}
