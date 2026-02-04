@@ -443,31 +443,33 @@ export default function SettingsPage() {
         </div>
 
         <nav
-          className="sticky top-16 sm:top-20 z-20 -mx-4 px-4 py-3 mb-4 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-white/5 sm:rounded-xl sm:border sm:mb-6 overflow-x-auto scrollbar-hide"
+          className="sticky top-16 sm:top-20 z-20 -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 overflow-x-auto scrollbar-hide"
           aria-label="Settings sections"
         >
-          <div className="flex gap-2 min-w-max pb-1 sm:pb-0">
-            {[
-              { id: 'settings-semester', label: 'Semester', icon: Calendar },
-              { id: 'settings-widgets', label: 'Widgets', icon: Settings },
-              { id: 'settings-appearance', label: 'Appearance', icon: Sun },
-              { id: 'settings-notifications', label: 'Notifications', icon: Bell },
-              { id: 'settings-time', label: 'Time & Date', icon: Clock },
-              { id: 'settings-account', label: 'Account', icon: AlertTriangle },
-            ].map(({ id, label, icon: Icon }) => (
-              <a
-                key={id}
-                href={`#${id}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors whitespace-nowrap"
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                {label}
-              </a>
-            ))}
+          <div className="max-w-3xl mx-auto">
+            <div className="glass-card rounded-2xl sm:rounded-3xl p-2.5 flex gap-1.5 overflow-x-auto scrollbar-hide min-w-0">
+              {[
+                { id: 'settings-semester', label: 'Semester', icon: Calendar },
+                { id: 'settings-widgets', label: 'Widgets', icon: Settings },
+                { id: 'settings-appearance', label: 'Appearance', icon: Sun },
+                { id: 'settings-notifications', label: 'Notifications', icon: Bell },
+                { id: 'settings-time', label: 'Time & Date', icon: Clock },
+                { id: 'settings-account', label: 'Account', icon: AlertTriangle },
+              ].map(({ id, label, icon: Icon }) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }}
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-colors whitespace-nowrap flex-shrink-0"
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {label}
+                </a>
+              ))}
+            </div>
           </div>
         </nav>
 

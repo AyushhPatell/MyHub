@@ -6,6 +6,7 @@ import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { ToastProvider } from './contexts/ToastContext';
 import Layout from './components/Layout';
 import PageTransition from './components/PageTransition';
+import ScrollToTop from './components/ScrollToTop';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
@@ -178,6 +179,7 @@ function App() {
   return (
     <ToastProvider>
       <Router>
+        <ScrollToTop />
         {loading ? (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center">
