@@ -11,9 +11,11 @@ import EditCourseModal from '../components/EditCourseModal';
 import QuickAddModal from '../components/QuickAddModal';
 import ScheduleModal from '../components/ScheduleModal';
 import { useSearchParams } from 'react-router-dom';
+import { useToast } from '../contexts/ToastContext';
 
 export default function CoursesPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [semester, setSemester] = useState<Semester | null>(null);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -88,7 +90,7 @@ export default function CoursesPage() {
       setIsEditingSemester(false);
     } catch (error) {
       console.error('Error updating semester name:', error);
-      alert('Failed to update semester name. Please try again.');
+      toast.error('Failed to update semester name. Please try again.');
       setSemesterName(semester.name);
       setIsEditingSemester(false);
     }

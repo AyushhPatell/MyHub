@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { semesterService, courseService, scheduleService } from '../services/firestore';
 import { Course, ScheduleBlock, DayOfWeek, ScheduleBlockType } from '../types';
 import ModalContainer from './ModalContainer';
+import { useToast } from '../contexts/ToastContext';
 
 interface ScheduleModalProps {
   onClose: () => void;
@@ -27,6 +28,7 @@ const timeToMinutes = (time: string): number => {
 
 export default function ScheduleModal({ onClose }: ScheduleModalProps) {
   const { user } = useAuth();
+  const toast = useToast();
   const [semester, setSemester] = useState<any>(null);
   const [courses, setCourses] = useState<Course[]>([]);
   const [scheduleBlocks, setScheduleBlocks] = useState<ScheduleBlock[]>([]);
@@ -92,7 +94,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
           setConfirmDialog({ show: false, message: '', onConfirm: () => {} });
         } catch (error) {
           console.error('Error deleting course schedule:', error);
-          alert('Failed to delete course schedule. Please try again.');
+          toast.error('Failed to delete course schedule. Please try again.');
           setConfirmDialog({ show: false, message: '', onConfirm: () => {} });
         }
       },
@@ -116,7 +118,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
           setConfirmDialog({ show: false, message: '', onConfirm: () => {} });
         } catch (error) {
           console.error('Error deleting schedule block:', error);
-          alert('Failed to delete schedule block. Please try again.');
+          toast.error('Failed to delete schedule block. Please try again.');
           setConfirmDialog({ show: false, message: '', onConfirm: () => {} });
         }
       },
@@ -150,7 +152,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
       setShowAddForm(false);
     } catch (error) {
       console.error('Error saving course schedule:', error);
-      alert('Failed to save course schedule. Please try again.');
+      toast.error('Failed to save course schedule. Please try again.');
     }
   };
 
@@ -167,7 +169,7 @@ export default function ScheduleModal({ onClose }: ScheduleModalProps) {
       setSelectedBlock(null);
     } catch (error) {
       console.error('Error updating block:', error);
-      alert('Failed to update block. Please try again.');
+      toast.error('Failed to update block. Please try again.');
     }
   };
 
@@ -765,12 +767,12 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
     
     const finalCourseId = useCustomCourse ? customCourseName : selectedCourseId;
     if (!finalCourseId) {
-      alert('Please select or enter a course');
+      toast.warning('Please select or enter a course');
       return;
     }
 
     if (numLectures === 0 && numTutorials === 0) {
-      alert('Please add at least one lecture or tutorial');
+      toast.warning('Please add at least one lecture or tutorial');
       return;
     }
 
@@ -778,11 +780,11 @@ function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, 
     const allBlocks = [...lectureBlocks, ...tutorialBlocks];
     for (const block of allBlocks) {
       if (!block.day || !block.startTime || !block.endTime) {
-        alert('Please fill in all day and time fields');
+        toast.warning('Please fill in all day and time fields');
         return;
       }
       if (block.startTime >= block.endTime) {
-        alert('End time must be after start time');
+        toast.warning('End time must be after start time');
         return;
       }
     }
@@ -1334,6 +1336,7 @@ interface EditSingleBlockModalProps {
 }
 
 function EditSingleBlockModal({ block, onSave, onClose }: EditSingleBlockModalProps) {
+  const toast = useToast();
   const [day, setDay] = useState<DayOfWeek>(block.dayOfWeek);
   const [startTime, setStartTime] = useState(block.startTime);
   const [endTime, setEndTime] = useState(block.endTime);
@@ -1341,7 +1344,7 @@ function EditSingleBlockModal({ block, onSave, onClose }: EditSingleBlockModalPr
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (startTime >= endTime) {
-      alert('End time must be after start time');
+      toast.warning('End time must be after start time');
       return;
     }
     onSave(block.id, day, startTime, endTime);

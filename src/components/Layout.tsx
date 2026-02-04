@@ -123,6 +123,12 @@ export default function Layout({ children }: LayoutProps) {
     enabled: !!user, // Only enable when user is logged in
   });
 
+  useEffect(() => {
+    const onOpenQuickAdd = () => handleQuickAdd();
+    window.addEventListener('myhub-open-quick-add', onOpenQuickAdd);
+    return () => window.removeEventListener('myhub-open-quick-add', onOpenQuickAdd);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
       {/* Top Navigation Bar */}

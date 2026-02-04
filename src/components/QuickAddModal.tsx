@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { courseService, assignmentService } from '../services/firestore';
 import { Course, AssignmentType } from '../types';
 import ModalContainer from './ModalContainer';
+import { useToast } from '../contexts/ToastContext';
 
 interface QuickAddModalProps {
   userId: string;
@@ -35,6 +36,7 @@ const assignmentTypes: AssignmentType[] = [
 ];
 
 export default function QuickAddModal({ userId, semesterId, onClose, onSuccess }: QuickAddModalProps) {
+  const toast = useToast();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -100,7 +102,7 @@ export default function QuickAddModal({ userId, semesterId, onClose, onSuccess }
       onSuccess();
     } catch (error) {
       console.error('Error creating assignment:', error);
-      alert('Failed to create assignment. Please try again.');
+      toast.error('Failed to create assignment. Please try again.');
     } finally {
       setSubmitting(false);
     }

@@ -5,11 +5,13 @@ import { semesterService, courseService, assignmentService, recurringTemplateSer
 import { Course, Assignment, RecurringTemplate } from '../types';
 import { formatDate, formatTime, isOverdue, getDaysUntilDue } from '../utils/dateHelpers';
 import { calculatePriority, getPriorityColor } from '../utils/priority';
-import { ArrowLeft, Plus, Check, ExternalLink, Edit, Trash2, Calendar, Repeat, Play } from 'lucide-react';
+import { ArrowLeft, Plus, Check, ExternalLink, Edit, Trash2, Calendar, Repeat, Play, ArrowUpDown } from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
 import RecurringTemplateModal from '../components/RecurringTemplateModal';
 import SkeletonAssignmentRow from '../components/SkeletonAssignmentRow';
+import ConfirmModal from '../components/ConfirmModal';
+import { useToast } from '../contexts/ToastContext';
 
 export default function CourseDetailPage() {
   const { courseId } = useParams<{ courseId: string }>();
@@ -25,6 +27,9 @@ export default function CourseDetailPage() {
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<RecurringTemplate | null>(null);
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<'dueDate' | 'name' | 'priority'>('dueDate');
+  const [confirmDeleteTemplate, setConfirmDeleteTemplate] = useState<RecurringTemplate | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (user && courseId) {
@@ -70,22 +75,23 @@ export default function CourseDetailPage() {
     try {
       await recurringTemplateService.generateAssignmentsFromTemplate(user.uid, semesterId, courseId, templateId);
       loadData();
-      alert('Assignments generated successfully!');
+      toast.success('Assignments generated successfully!');
     } catch (error) {
       console.error('Error generating assignments:', error);
-      alert('Failed to generate assignments. Please try again.');
+      toast.error('Failed to generate assignments. Please try again.');
     }
   };
 
   const handleDeleteTemplate = async (templateId: string) => {
     if (!user || !courseId || !semesterId) return;
-    if (!confirm('Are you sure you want to delete this template?')) return;
     try {
       await recurringTemplateService.deleteTemplate(user.uid, semesterId, courseId, templateId);
+      setConfirmDeleteTemplate(null);
       loadData();
+      toast.success('Template deleted.');
     } catch (error) {
       console.error('Error deleting template:', error);
-      alert('Failed to delete template. Please try again.');
+      toast.error('Failed to delete template. Please try again.');
     }
   };
 
@@ -134,16 +140,29 @@ export default function CourseDetailPage() {
     );
   }
 
-  const filteredAssignments = assignments.filter((a) => {
-    if (filter === 'completed') return !!a.completedAt;
-    if (filter === 'upcoming') return !a.completedAt;
-    return true;
-  }).sort((a, b) => {
-    if (a.completedAt && b.completedAt) {
-      return b.completedAt.getTime() - a.completedAt.getTime();
-    }
-    return a.dueDate.getTime() - b.dueDate.getTime();
-  });
+  const filteredAssignments = assignments
+    .filter((a) => {
+      if (filter === 'completed') return !!a.completedAt;
+      if (filter === 'upcoming') return !a.completedAt;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      }
+      if (sortBy === 'priority') {
+        const order = { urgent: 0, high: 1, medium: 2, low: 3 };
+        const pa = order[(a as Assignment & { priority?: string }).priority as keyof typeof order] ?? 2;
+        const pb = order[(b as Assignment & { priority?: string }).priority as keyof typeof order] ?? 2;
+        if (pa !== pb) return pa - pb;
+        return a.dueDate.getTime() - b.dueDate.getTime();
+      }
+      // dueDate (default)
+      if (a.completedAt && b.completedAt) {
+        return b.completedAt.getTime() - a.completedAt.getTime();
+      }
+      return a.dueDate.getTime() - b.dueDate.getTime();
+    });
 
   const upcomingCount = assignments.filter((a) => !a.completedAt).length;
   const completedCount = assignments.filter((a) => !!a.completedAt).length;
@@ -314,9 +333,9 @@ export default function CourseDetailPage() {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteTemplate(template.id)}
+                      onClick={() => setConfirmDeleteTemplate(template)}
                       className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors touch-manipulation"
-                      style={{ minWidth: '36px', minHeight: '36px' }}
+                      style={{ minWidth: '44px', minHeight: '44px' }}
                       title="Delete template"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -328,12 +347,13 @@ export default function CourseDetailPage() {
           </div>
         )}
 
-        {/* Filters - Stack on mobile, horizontal on larger screens */}
-        <div className="md:mt-0 mt-8 mb-6">
+        {/* Filters + Sort - Sticky on scroll */}
+        <div className="sticky top-16 z-20 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 py-3 -mt-2 mb-4 bg-gradient-to-b from-gray-50/98 to-transparent dark:from-gray-900/98 backdrop-blur-sm border-b border-gray-200/50 dark:border-white/5 sm:static sm:bg-transparent sm:backdrop-blur-none md:mt-0 mt-6 mb-6">
           <div className="md:hidden mb-3">
             <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Filter Assignments</h3>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => setFilter('upcoming')}
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
@@ -364,6 +384,23 @@ export default function CourseDetailPage() {
           >
             All ({assignments.length})
           </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" aria-hidden />
+            <label htmlFor="sort-assignments" className="text-xs font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
+              Sort by
+            </label>
+            <select
+              id="sort-assignments"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'dueDate' | 'name' | 'priority')}
+              className="px-3 py-2 rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="dueDate">Due date</option>
+              <option value="name">Name</option>
+              <option value="priority">Priority</option>
+            </select>
+          </div>
           </div>
         </div>
 

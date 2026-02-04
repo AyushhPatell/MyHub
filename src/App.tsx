@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { db } from './config/firebase';
 import { useAuth } from './hooks/useAuth';
 import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { ToastProvider } from './contexts/ToastContext';
 import Layout from './components/Layout';
 import PageTransition from './components/PageTransition';
 import LoginPage from './pages/LoginPage';
@@ -175,8 +176,9 @@ function App() {
   // No frontend scheduler needed anymore
 
   return (
-    <Router>
-      {loading ? (
+    <ToastProvider>
+      <Router>
+        {loading ? (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
@@ -282,8 +284,9 @@ function App() {
             }
           />
         </Routes>
-      )}
-    </Router>
+        )}
+      </Router>
+    </ToastProvider>
   );
 }
 

@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { semesterService, courseService } from '../services/firestore';
 import ModalContainer from './ModalContainer';
+import { useToast } from '../contexts/ToastContext';
 
 interface AddCourseModalProps {
   userId: string;
@@ -35,6 +36,7 @@ const defaultColors = [
 export default function AddCourseModal({ userId, onClose, onSuccess }: AddCourseModalProps) {
   const [semesterId, setSemesterId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const toast = useToast();
 
   const {
     register,
@@ -60,19 +62,19 @@ export default function AddCourseModal({ userId, onClose, onSuccess }: AddCourse
       if (semester) {
         setSemesterId(semester.id);
       } else {
-        alert('No active semester found. Please set up a semester first.');
+        toast.warning('No active semester found. Please set up a semester first.');
         onClose();
       }
     } catch (error) {
       console.error('Error loading semester:', error);
-      alert('Failed to load semester. Please try again.');
+      toast.error('Failed to load semester. Please try again.');
       onClose();
     }
   };
 
   const onSubmit = async (data: FormData) => {
     if (!semesterId) {
-      alert('No active semester found.');
+      toast.warning('No active semester found.');
       return;
     }
 
@@ -88,7 +90,7 @@ export default function AddCourseModal({ userId, onClose, onSuccess }: AddCourse
       onSuccess();
     } catch (error) {
       console.error('Error creating course:', error);
-      alert('Failed to create course. Please try again.');
+      toast.error('Failed to create course. Please try again.');
     } finally {
       setSubmitting(false);
     }

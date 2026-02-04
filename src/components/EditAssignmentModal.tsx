@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { assignmentService } from '../services/firestore';
 import { Assignment, AssignmentType } from '../types';
 import ModalContainer from './ModalContainer';
+import { useToast } from '../contexts/ToastContext';
 
 interface EditAssignmentModalProps {
   userId: string;
@@ -47,6 +48,7 @@ export default function EditAssignmentModal({
 }: EditAssignmentModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const toast = useToast();
 
   const {
     register,
@@ -93,7 +95,7 @@ export default function EditAssignmentModal({
       onSuccess();
     } catch (error) {
       console.error('Error updating assignment:', error);
-      alert('Failed to update assignment. Please try again.');
+      toast.error('Failed to update assignment. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -106,7 +108,7 @@ export default function EditAssignmentModal({
       onDelete();
     } catch (error) {
       console.error('Error deleting assignment:', error);
-      alert('Failed to delete assignment. Please try again.');
+      toast.error('Failed to delete assignment. Please try again.');
     } finally {
       setSubmitting(false);
     }

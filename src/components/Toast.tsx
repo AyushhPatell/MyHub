@@ -59,6 +59,8 @@ export default function Toast({ toast, onClose }: ToastProps) {
         isClosing ? 'animate-slide-up' : 'animate-slide-down'
       }`}
       role="alert"
+      aria-live="polite"
+      aria-atomic="true"
       style={{ 
         position: 'fixed',
         top: 'max(1rem, env(safe-area-inset-top, 1rem))',

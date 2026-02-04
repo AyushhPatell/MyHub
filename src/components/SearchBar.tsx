@@ -538,9 +538,31 @@ export default function SearchBar() {
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
                   </div>
-                ) : results.length === 0 && query ? (
-                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                    No results found
+                ) : results.length === 0 && query.trim() ? (
+                  <div className="p-6 sm:p-8 flex flex-col items-center justify-center text-center">
+                    <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                      <Search className="w-7 h-7 text-gray-400 dark:text-gray-500" />
+                    </div>
+                    <p className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                      No results found
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 max-w-xs">
+                      Try a different keyword or add a new assignment.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false);
+                        setQuery('');
+                        setResults([]);
+                        setShowFilters(false);
+                        window.dispatchEvent(new CustomEvent('myhub-open-quick-add'));
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold text-sm bg-primary-600 hover:bg-primary-700 text-white transition-colors"
+                    >
+                      <FileText className="w-4 h-4" />
+                      Quick Add assignment
+                    </button>
                   </div>
                 ) : results.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400">

@@ -597,6 +597,15 @@ export const notificationService = {
     await deleteDoc(doc(db, 'users', userId, 'notifications', notificationId));
   },
 
+  async clearAllNotifications(userId: string): Promise<void> {
+    const notifications = await this.getNotifications(userId);
+    if (notifications.length === 0) return;
+    const batch = notifications.map((n) =>
+      deleteDoc(doc(db, 'users', userId, 'notifications', n.id))
+    );
+    await Promise.all(batch);
+  },
+
   async checkAndCreateNotifications(userId: string, semesterId: string): Promise<void> {
     try {
       const assignments = await assignmentService.getAllAssignments(userId, semesterId);

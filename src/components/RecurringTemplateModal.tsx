@@ -4,6 +4,7 @@ import { X, Repeat } from 'lucide-react';
 import ModalContainer from './ModalContainer';
 import { recurringTemplateService } from '../services/firestore';
 import { RecurringTemplate, AssignmentType, RecurrencePattern } from '../types';
+import { useToast } from '../contexts/ToastContext';
 
 interface RecurringTemplateModalProps {
   userId: string;
@@ -61,6 +62,7 @@ export default function RecurringTemplateModal({
   onSuccess,
   template,
 }: RecurringTemplateModalProps) {
+  const toast = useToast();
   const [submitting, setSubmitting] = useState(false);
   const {
     register,
@@ -138,7 +140,7 @@ export default function RecurringTemplateModal({
       onClose();
     } catch (error) {
       console.error('Error saving template:', error);
-      alert('Failed to save template. Please try again.');
+      toast.error('Failed to save template. Please try again.');
     } finally {
       setSubmitting(false);
     }

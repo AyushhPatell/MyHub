@@ -3,6 +3,7 @@ import { X, Info } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { semesterService, courseService } from '../services/firestore';
 import ModalContainer from './ModalContainer';
+import { useToast } from '../contexts/ToastContext';
 
 interface SemesterSetupModalProps {
   userId: string;
@@ -44,6 +45,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
   const [courses, setCourses] = useState<CourseFormData[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [hasExistingSemester, setHasExistingSemester] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     const checkExistingSemester = async () => {
@@ -73,7 +75,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
       console.log('Parsed dates:', { startDate, endDate });
       
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        alert('Invalid dates. Please check your date inputs.');
+        toast.warning('Invalid dates. Please check your date inputs.');
         setSubmitting(false);
         return;
       }
@@ -90,7 +92,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
       setStep('courses');
     } catch (error) {
       console.error('Error creating semester:', error);
-      alert(`Failed to create semester: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to create semester: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }
@@ -120,12 +122,12 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
 
   const handleFinish = async () => {
     if (!semesterId) {
-      alert('Semester ID is missing. Please try again.');
+      toast.error('Semester ID is missing. Please try again.');
       return;
     }
 
     if (courses.length === 0) {
-      alert('Please add at least one course.');
+      toast.warning('Please add at least one course.');
       return;
     }
 
@@ -134,7 +136,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
       (course) => !course.courseCode || !course.courseName
     );
     if (invalidCourses.length > 0) {
-      alert('Please fill in all required fields for all courses.');
+      toast.warning('Please fill in all required fields for all courses.');
       return;
     }
 
@@ -160,7 +162,7 @@ export default function SemesterSetupModal({ userId, onClose, onSuccess }: Semes
       onSuccess();
     } catch (error) {
       console.error('Error creating courses:', error);
-      alert(`Failed to create courses: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(`Failed to create courses: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setSubmitting(false);
     }

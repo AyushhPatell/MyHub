@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';
 import SemesterSetupModal from '../components/SemesterSetupModal';
 import { applySmoothThemeTransition } from '../utils/themeTransition';
-import Toast, { Toast as ToastType } from '../components/Toast';
+import { useToast } from '../contexts/ToastContext';
 
 // Compact Scrollable Time Picker Component
 function TimePicker({ value, onChange }: { value: string; onChange: (time: string) => void }) {
@@ -187,7 +187,7 @@ export default function SettingsPage() {
   const [switching, setSwitching] = useState(false);
   const [showSemesterSetup, setShowSemesterSetup] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
-  const [toast, setToast] = useState<ToastType | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (user) {
@@ -262,7 +262,7 @@ export default function SettingsPage() {
       window.location.reload();
     } catch (error) {
       console.error('Error switching semester:', error);
-      alert('Failed to switch semester. Please try again.');
+      toast.error('Failed to switch semester. Please try again.');
     } finally {
       setSwitching(false);
     }
@@ -333,7 +333,7 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error updating preferences:', error);
-      alert('Failed to update preferences. Please try again.');
+      toast.error('Failed to update preferences. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -409,11 +409,11 @@ export default function SettingsPage() {
     } catch (error: any) {
       console.error('Error deleting account:', error);
       if (error.code === 'auth/requires-recent-login') {
-        alert('For security, please sign out and sign back in, then try deleting your account again.');
+        toast.warning('For security, please sign out and sign back in, then try deleting your account again.');
       } else if (error.code === 'permission-denied' || error.message?.includes('permission') || error.message?.includes('Permission')) {
-        alert('Permission denied. Please ensure:\n1. You are logged in\n2. Firestore security rules include "delete" permissions\n3. Rules have been published in Firebase Console\n\nSee UPDATED_FIRESTORE_RULES.txt for the correct rules.');
+        toast.error('Permission denied. Check Firestore rules and UPDATED_FIRESTORE_RULES.txt.');
       } else {
-        alert(`Failed to delete account: ${error.message || 'Unknown error'}. Please try again or contact support.`);
+        toast.error(`Failed to delete account: ${error.message || 'Unknown error'}. Please try again or contact support.`);
       }
     } finally {
       setDeleting(false);
@@ -442,9 +442,38 @@ export default function SettingsPage() {
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-semibold">Manage your preferences</p>
         </div>
 
+        <nav
+          className="sticky top-16 sm:top-20 z-20 -mx-4 px-4 py-3 mb-4 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-gray-200/50 dark:border-white/5 sm:rounded-xl sm:border sm:mb-6 overflow-x-auto scrollbar-hide"
+          aria-label="Settings sections"
+        >
+          <div className="flex gap-2 min-w-max pb-1 sm:pb-0">
+            {[
+              { id: 'settings-semester', label: 'Semester', icon: Calendar },
+              { id: 'settings-widgets', label: 'Widgets', icon: Settings },
+              { id: 'settings-appearance', label: 'Appearance', icon: Sun },
+              { id: 'settings-notifications', label: 'Notifications', icon: Bell },
+              { id: 'settings-time', label: 'Time & Date', icon: Clock },
+              { id: 'settings-account', label: 'Account', icon: AlertTriangle },
+            ].map(({ id, label, icon: Icon }) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white transition-colors whitespace-nowrap"
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {label}
+              </a>
+            ))}
+          </div>
+        </nav>
+
         <div className="max-w-3xl mx-auto space-y-6 mb-8">
           {/* Semester Management */}
-          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+          <div id="settings-semester" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
             <div className="flex items-center space-x-3 mb-4">
               <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Semester Management</h2>
@@ -512,7 +541,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Dashboard Widgets */}
-          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+          <div id="settings-widgets" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
             <div className="flex items-center space-x-3 mb-4">
               <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard Widgets</h2>
@@ -536,7 +565,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Theme Settings */}
-          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+          <div id="settings-appearance" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
             <div className="flex items-center space-x-3 mb-4">
               {preferences.theme === 'dark' ? (
                 <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -648,12 +677,12 @@ export default function SettingsPage() {
                                         });
                                       },
                                       (error) => {
-                                        alert('Failed to get location. Please enable location permissions.');
+                                        toast.error('Failed to get location. Please enable location permissions.');
                                         console.error('Geolocation error:', error);
                                       }
                                     );
                                   } else {
-                                    alert('Geolocation is not supported by your browser.');
+                                    toast.warning('Geolocation is not supported by your browser.');
                                   }
                                 }}
                                 className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -675,12 +704,12 @@ export default function SettingsPage() {
                                       });
                                     },
                                     (error) => {
-                                      alert('Failed to get location. Please enable location permissions.');
+                                      toast.error('Failed to get location. Please enable location permissions.');
                                       console.error('Geolocation error:', error);
                                     }
                                   );
                                 } else {
-                                  alert('Geolocation is not supported by your browser.');
+                                  toast.warning('Geolocation is not supported by your browser.');
                                 }
                               }}
                               className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg transition-colors text-sm"
@@ -704,7 +733,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Notifications (Combined) */}
-          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6">
+          <div id="settings-notifications" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
             <div className="flex items-center space-x-3 mb-4">
               <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
@@ -840,35 +869,25 @@ export default function SettingsPage() {
                       onClick={async () => {
                         if (!user) return;
                         if (!isEmailConfigured()) {
-                          setToast({
-                            id: Date.now().toString(),
-                            message: 'Email service not configured. Add EmailJS credentials to .env file and rebuild. See DEPLOYMENT_GUIDE.md for deployment instructions.',
-                            type: 'warning'
-                          });
+                          toast.warning(
+                            'Email service not configured. Add EmailJS credentials to .env and rebuild. See DEPLOYMENT_GUIDE.md.'
+                          );
                           return;
                         }
                         setTestingEmail(true);
                         try {
                           await sendTestEmail(user.uid);
-                          setToast({
-                            id: Date.now().toString(),
-                            message: 'Test email sent! Check your inbox (and spam folder).',
-                            type: 'success'
-                          });
+                          toast.success('Test email sent! Check your inbox (and spam folder).');
                         } catch (error: any) {
                           console.error('Error sending test email:', error);
                           if (error.message?.includes('not configured')) {
-                            setToast({
-                              id: Date.now().toString(),
-                              message: 'Email service not configured. Please set up EmailJS first. See EMAIL_SETUP_FREE.md for instructions.',
-                              type: 'warning'
-                            });
+                            toast.warning(
+                              'Email service not configured. See EMAIL_SETUP_FREE.md for instructions.'
+                            );
                           } else {
-                            setToast({
-                              id: Date.now().toString(),
-                              message: `Failed to send test email: ${error.message || 'Unknown error'}. Check EmailJS dashboard logs for details.`,
-                              type: 'error'
-                            });
+                            toast.error(
+                              `Failed to send test email: ${error.message || 'Unknown error'}. Check EmailJS dashboard logs.`
+                            );
                           }
                         } finally {
                           setTestingEmail(false);
@@ -887,7 +906,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Time Settings */}
-          <div className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-200 dark:border-white/10">
+          <div id="settings-time" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
             <div className="flex items-center space-x-3 mb-4">
               <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Time & Date</h2>
@@ -955,12 +974,28 @@ export default function SettingsPage() {
                   className="w-full max-w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}
                 />
+                <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  Current time in your timezone:{' '}
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {(() => {
+                      try {
+                        return new Intl.DateTimeFormat('en-CA', {
+                          timeZone: preferences.timezone || 'UTC',
+                          timeStyle: 'short',
+                          hour12: true,
+                        }).format(new Date());
+                      } catch {
+                        return '—';
+                      }
+                    })()}
+                  </span>
+                </p>
               </div>
             </div>
           </div>
 
           {/* Account Deletion */}
-          <div className="bg-red-50 dark:bg-red-950/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-2 border-red-200 dark:border-red-900/50">
+          <div id="settings-account" className="bg-red-50 dark:bg-red-950/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-2 border-red-200 dark:border-red-900/50 scroll-mt-24">
             <div className="flex items-center space-x-3 mb-4">
               <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               <h2 className="text-xl font-bold text-red-900 dark:text-red-200">Danger Zone</h2>
@@ -1033,12 +1068,6 @@ export default function SettingsPage() {
         />
       )}
 
-      {toast && (
-        <Toast
-          toast={toast}
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
   );
 }

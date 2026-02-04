@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { courseService } from '../services/firestore';
 import { Course } from '../types';
 import ModalContainer from './ModalContainer';
+import { useToast } from '../contexts/ToastContext';
 
 interface EditCourseModalProps {
   userId: string;
@@ -46,6 +47,7 @@ export default function EditCourseModal({
 }: EditCourseModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const toast = useToast();
 
   const {
     register,
@@ -76,7 +78,7 @@ export default function EditCourseModal({
       onSuccess();
     } catch (error) {
       console.error('Error updating course:', error);
-      alert('Failed to update course. Please try again.');
+      toast.error('Failed to update course. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +91,7 @@ export default function EditCourseModal({
       onDelete();
     } catch (error) {
       console.error('Error deleting course:', error);
-      alert('Failed to delete course. Please try again.');
+      toast.error('Failed to delete course. Please try again.');
     } finally {
       setSubmitting(false);
     }
