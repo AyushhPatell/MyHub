@@ -18,6 +18,7 @@ import {defineSecret} from "firebase-functions/params";
 import * as nodemailer from "nodemailer";
 import {format, startOfDay, differenceInDays, differenceInHours,
   differenceInMinutes} from "date-fns";
+import {formatInTimeZone, fromZonedTime} from "date-fns-tz";
 
 // Initialize Firebase Admin
 admin.initializeApp();
@@ -998,16 +999,22 @@ async function getAssignmentData(
 }
 
 /**
- * Get all assignments for digest
+ * Get all assignments for digest, bucketed by due date in the user's timezone.
  * @param {string} userId - User ID
+ * @param {string} timezone - IANA timezone (e.g. America/Halifax) for bucketing
+ *   and display; defaults to UTC if not provided
  * @return {Promise<Object>} Assignments organized by due date
  */
-async function getAllAssignmentsForDigest(userId: string): Promise<{
+async function getAllAssignmentsForDigest(
+  userId: string,
+  timezone?: string
+): Promise<{
   dueToday: Array<{name: string; dueDate: Date; courseName?: string}>;
   dueThisWeek: Array<{name: string; dueDate: Date; courseName?: string}>;
   overdue: Array<{name: string; dueDate: Date; courseName?: string}>;
   semester: {id: string; name: string};
 }> {
+  const tz = timezone || "UTC";
   const semesterSnapshot = await admin.firestore()
     .collection("users")
     .doc(userId)
@@ -1074,13 +1081,13 @@ async function getAllAssignmentsForDigest(userId: string): Promise<{
   }
 
   const now = new Date();
-  const today = startOfDay(now);
+  const todayDateStr = formatInTimeZone(now, tz, "yyyy-MM-dd");
 
   const dueToday = assignments
     .filter((a) => {
       if (a.completedAt) return false;
-      const dueDate = startOfDay(a.dueDate);
-      return dueDate.getTime() === today.getTime();
+      const dueDateStr = formatInTimeZone(a.dueDate, tz, "yyyy-MM-dd");
+      return dueDateStr === todayDateStr;
     })
     .map((a) => ({
       name: a.name,
@@ -1091,9 +1098,20 @@ async function getAllAssignmentsForDigest(userId: string): Promise<{
   const dueThisWeek = assignments
     .filter((a) => {
       if (a.completedAt) return false;
-      const dueDate = startOfDay(a.dueDate);
-      const daysUntil = differenceInDays(dueDate, today);
-      return daysUntil > 0 && daysUntil <= 7;
+      const dueDateStr = formatInTimeZone(a.dueDate, tz, "yyyy-MM-dd");
+      if (dueDateStr <= todayDateStr) return false;
+      const [y, m, d] = dueDateStr.split("-").map(Number);
+      const [ty, tm, td] = todayDateStr.split("-").map(Number);
+      const dueMidnight = fromZonedTime(
+        new Date(y, m - 1, d, 0, 0, 0),
+        tz
+      );
+      const todayMidnight = fromZonedTime(
+        new Date(ty, tm - 1, td, 0, 0, 0),
+        tz
+      );
+      const daysUntil = differenceInDays(dueMidnight, todayMidnight);
+      return daysUntil >= 1 && daysUntil <= 7;
     })
     .map((a) => ({
       name: a.name,
@@ -1104,8 +1122,8 @@ async function getAllAssignmentsForDigest(userId: string): Promise<{
   const overdue = assignments
     .filter((a) => {
       if (a.completedAt) return false;
-      const dueDate = startOfDay(a.dueDate);
-      return dueDate.getTime() < today.getTime();
+      const dueDateStr = formatInTimeZone(a.dueDate, tz, "yyyy-MM-dd");
+      return dueDateStr < todayDateStr;
     })
     .map((a) => ({
       name: a.name,
@@ -1243,9 +1261,18 @@ export const sendAssignmentReminderEmail = onCall(
         return {success: false, message: "Assignment already completed"};
       }
 
-      const dueDateStr = format(assignment.dueDate, "MMMM d, yyyy");
-      const dueDateTimeStr = format(assignment.dueDate,
-        "MMMM d, yyyy 'at' h:mm a");
+      const userTz: string = typeof preferences.timezone === "string" ?
+        preferences.timezone : "America/Halifax";
+      const dueDateStr = formatInTimeZone(
+        assignment.dueDate,
+        userTz,
+        "MMMM d, yyyy"
+      );
+      const dueDateTimeStr = formatInTimeZone(
+        assignment.dueDate,
+        userTz,
+        "MMMM d, yyyy 'at' h:mm a"
+      );
       let subject = "";
       let message = "";
 
@@ -1316,8 +1343,10 @@ export const sendDailyDigestEmail = onCall(
         return {success: false, message: "Daily digest not enabled"};
       }
 
+      const userTz: string = typeof preferences.timezone === "string" ?
+        preferences.timezone : "America/Halifax";
       const {dueToday, dueThisWeek, overdue, semester} =
-        await getAllAssignmentsForDigest(userId);
+        await getAllAssignmentsForDigest(userId, userTz);
       const now = new Date();
 
       let content = "<h2 style=\"color: #667eea;\">" +
@@ -1330,7 +1359,7 @@ export const sendDailyDigestEmail = onCall(
           `Due Today (${dueToday.length})</h3><ul>`;
         dueToday.forEach((a) => {
           const course = a.courseName || "Unknown Course";
-          const dueTime = format(a.dueDate, "h:mm a");
+          const dueTime = formatInTimeZone(a.dueDate, userTz, "h:mm a");
           content += `<li><strong>${a.name}</strong> - ${course} ` +
             `(${dueTime})</li>`;
         });
@@ -1352,7 +1381,7 @@ export const sendDailyDigestEmail = onCall(
           `Due This Week (${dueThisWeek.length})</h3><ul>`;
         dueThisWeek.forEach((a) => {
           const course = a.courseName || "Unknown Course";
-          const dateStr = format(a.dueDate, "MMM d, h:mm a");
+          const dateStr = formatInTimeZone(a.dueDate, userTz, "MMM d, h:mm a");
           content += `<li><strong>${a.name}</strong> - ${course} ` +
             `(${dateStr})</li>`;
         });
@@ -1366,7 +1395,7 @@ export const sendDailyDigestEmail = onCall(
       }
 
       const subject = "📚 Daily Assignment Digest - " +
-        `${format(now, "MMMM d, yyyy")}`;
+        `${formatInTimeZone(now, userTz, "MMMM d, yyyy")}`;
       const emailHtml = generateEmailTemplate(subject, content);
       await sendEmail(user.email, user.name, subject, emailHtml);
 
@@ -1405,8 +1434,10 @@ export const sendWeeklyDigestEmail = onCall(
         return {success: false, message: "Weekly digest not enabled"};
       }
 
+      const userTz: string = typeof preferences.timezone === "string" ?
+        preferences.timezone : "America/Halifax";
       const {dueThisWeek, overdue, semester} =
-        await getAllAssignmentsForDigest(userId);
+        await getAllAssignmentsForDigest(userId, userTz);
       const now = new Date();
 
       let content = "<h2 style=\"color: #667eea;\">" +
@@ -1429,7 +1460,7 @@ export const sendWeeklyDigestEmail = onCall(
           `Due This Week (${dueThisWeek.length})</h3><ul>`;
         dueThisWeek.forEach((a) => {
           const course = a.courseName || "Unknown Course";
-          const dateStr = format(a.dueDate, "MMM d, h:mm a");
+          const dateStr = formatInTimeZone(a.dueDate, userTz, "MMM d, h:mm a");
           content += `<li><strong>${a.name}</strong> - ${course} ` +
             `(${dateStr})</li>`;
         });
@@ -1442,7 +1473,7 @@ export const sendWeeklyDigestEmail = onCall(
       }
 
       const subject = "📚 Weekly Assignment Digest - Week of " +
-        `${format(now, "MMMM d")}`;
+        `${formatInTimeZone(now, userTz, "MMMM d")}`;
       const emailHtml = generateEmailTemplate(subject, content);
       await sendEmail(user.email, user.name, subject, emailHtml);
 
@@ -1536,21 +1567,22 @@ export const checkDailyDigests = onSchedule(
           continue;
         }
 
-        // Check if already sent today
-        const today = format(now, "yyyy-MM-dd");
+        // Send daily digest: get user and timezone first for "today" check
+        const user = await getUserData(userId);
+        const userTz: string = typeof user.preferences?.timezone === "string" ?
+          user.preferences.timezone : "America/Halifax";
+        const today = formatInTimeZone(now, userTz, "yyyy-MM-dd");
         const lastSentKey = `daily-digest-sent-${userId}`;
         const lastSentDoc = await db.collection("emailTracking")
           .doc(lastSentKey)
           .get();
 
         if (lastSentDoc.exists && lastSentDoc.data()?.date === today) {
-          continue; // Already sent today
+          continue; // Already sent today (in user's timezone)
         }
 
-        // Send daily digest
-        const user = await getUserData(userId);
         const {dueToday, dueThisWeek, overdue, semester} =
-          await getAllAssignmentsForDigest(userId);
+          await getAllAssignmentsForDigest(userId, userTz);
 
         let content = "<h2 style=\"color: #667eea;\">" +
           "Your Daily Assignment Summary</h2>";
@@ -1562,7 +1594,7 @@ export const checkDailyDigests = onSchedule(
             `Due Today (${dueToday.length})</h3><ul>`;
           dueToday.forEach((a) => {
             const course = a.courseName || "Unknown Course";
-            const dueTime = format(a.dueDate, "h:mm a");
+            const dueTime = formatInTimeZone(a.dueDate, userTz, "h:mm a");
             content += `<li><strong>${a.name}</strong> - ${course} ` +
               `(${dueTime})</li>`;
           });
@@ -1584,7 +1616,8 @@ export const checkDailyDigests = onSchedule(
             `Due This Week (${dueThisWeek.length})</h3><ul>`;
           dueThisWeek.forEach((a) => {
             const course = a.courseName || "Unknown Course";
-            const dateStr = format(a.dueDate, "MMM d, h:mm a");
+            const dateStr = formatInTimeZone(
+              a.dueDate, userTz, "MMM d, h:mm a");
             content += `<li><strong>${a.name}</strong> - ${course} ` +
               `(${dateStr})</li>`;
           });
@@ -1598,11 +1631,11 @@ export const checkDailyDigests = onSchedule(
         }
 
         const subject = "📚 Daily Assignment Digest - " +
-          `${format(now, "MMMM d, yyyy")}`;
+          `${formatInTimeZone(now, userTz, "MMMM d, yyyy")}`;
         const emailHtml = generateEmailTemplate(subject, content);
         await sendEmail(user.email, user.name, subject, emailHtml);
 
-        // Mark as sent
+        // Mark as sent (date in user's timezone)
         await db.collection("emailTracking").doc(lastSentKey).set({
           date: today,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -1656,8 +1689,10 @@ export const checkWeeklyDigests = onSchedule(
 
         // Send weekly digest
         const user = await getUserData(userId);
+        const userTz: string = typeof user.preferences?.timezone === "string" ?
+          user.preferences.timezone : "America/Halifax";
         const {dueThisWeek, overdue, semester} =
-          await getAllAssignmentsForDigest(userId);
+          await getAllAssignmentsForDigest(userId, userTz);
 
         let content = "<h2 style=\"color: #667eea;\">" +
           "Your Weekly Assignment Summary</h2>";
@@ -1679,7 +1714,8 @@ export const checkWeeklyDigests = onSchedule(
             `Due This Week (${dueThisWeek.length})</h3><ul>`;
           dueThisWeek.forEach((a) => {
             const course = a.courseName || "Unknown Course";
-            const dateStr = format(a.dueDate, "MMM d, h:mm a");
+            const dateStr = formatInTimeZone(
+              a.dueDate, userTz, "MMM d, h:mm a");
             content += `<li><strong>${a.name}</strong> - ${course} ` +
               `(${dateStr})</li>`;
           });
@@ -1692,7 +1728,7 @@ export const checkWeeklyDigests = onSchedule(
         }
 
         const subject = "📚 Weekly Assignment Digest - Week of " +
-          `${format(now, "MMMM d")}`;
+          `${formatInTimeZone(now, userTz, "MMMM d")}`;
         const emailHtml = generateEmailTemplate(subject, content);
         await sendEmail(user.email, user.name, subject, emailHtml);
 
@@ -1742,6 +1778,8 @@ export const checkAssignmentReminders = onSchedule(
         if (assignments.length === 0) continue;
 
         const user = await getUserData(userId);
+        const userTz: string = typeof user.preferences?.timezone === "string" ?
+          user.preferences.timezone : "America/Halifax";
 
         for (const a of assignments) {
           const dueDateStart = startOfDay(a.dueDate);
@@ -1754,9 +1792,16 @@ export const checkAssignmentReminders = onSchedule(
             .get();
           const lastType = lastReminderDoc.exists ?
             lastReminderDoc.data()?.type : null;
-          const dueDateStr = format(a.dueDate, "MMMM d, yyyy");
-          const dueDateTimeStr = format(a.dueDate,
-            "MMMM d, yyyy 'at' h:mm a");
+          const dueDateStr = formatInTimeZone(
+            a.dueDate,
+            userTz,
+            "MMMM d, yyyy"
+          );
+          const dueDateTimeStr = formatInTimeZone(
+            a.dueDate,
+            userTz,
+            "MMMM d, yyyy 'at' h:mm a"
+          );
           const coursePart = a.courseName ?
             ` for <strong>${a.courseName}</strong>` : "";
 
