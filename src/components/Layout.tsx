@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc } from 'firebase/firestore';
-import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Shield, Plus } from 'lucide-react';
+import { Home, BookOpen, Settings, LogOut, Menu, X, LayoutGrid, ChevronDown, Shield } from 'lucide-react';
 import SearchBar from './SearchBar';
 import NotificationDropdown from './NotificationDropdown';
 import { useKeyboardShortcuts, isMac } from '../hooks/useKeyboardShortcuts';
@@ -133,20 +133,20 @@ export default function Layout({ children }: LayoutProps) {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
       {/* Top Navigation Bar */}
       <nav className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 shadow-sm pt-safe">
-        <div className="w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 sm:h-20">
+        <div className="w-full px-4 sm:px-6 lg:px-8 min-w-0">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-2 min-w-0">
             {/* Left: Logo + Navigation */}
-            <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4 lg:gap-8 min-w-0 flex-shrink-0">
               {/* Logo */}
-              <Link to="/" className="flex items-center gap-2 sm:gap-3 group">
+              <Link to="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0">
                 <div className="w-9 h-9 sm:w-11 sm:h-11 bg-gradient-to-br from-primary-500 via-purple-500 to-pink-500 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                   <LayoutGrid className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
                 <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">MyHub</span>
               </Link>
 
-              {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-1">
+              {/* Desktop Navigation - lg and up only so tablet portrait uses hamburger */}
+              <div className="hidden lg:flex items-center gap-1 flex-shrink-0">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -171,9 +171,9 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             {/* Right: Search + Notifications + User */}
-            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 min-w-0 flex-1 justify-end">
               {/* Search - Now visible on all screen sizes */}
-              <div className="flex items-center">
+              <div className="flex items-center min-w-0 w-full max-w-[180px] sm:max-w-[220px] lg:max-w-[280px]">
                 <SearchBar />
               </div>
 
@@ -237,13 +237,13 @@ export default function Layout({ children }: LayoutProps) {
                 )}
               </div>
 
-              {/* Mobile Menu Button */}
+              {/* Mobile/Tablet Menu Button - shown below lg so tablet portrait gets hamburger */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setMobileMenuOpen(!mobileMenuOpen);
                 }}
-                className="md:hidden p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors relative z-50 touch-manipulation"
+                className="lg:hidden p-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors relative z-50 touch-manipulation flex-shrink-0"
                 style={{ minWidth: '44px', minHeight: '44px' }}
                 aria-label="Toggle menu"
               >
@@ -258,10 +258,10 @@ export default function Layout({ children }: LayoutProps) {
       {mobileMenuOpen && createPortal(
         <>
           <div 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] md:hidden transition-opacity"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] lg:hidden transition-opacity"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <div className="fixed top-0 left-0 right-0 bottom-0 md:hidden z-[110] overflow-y-auto">
+          <div className="fixed top-0 left-0 right-0 bottom-0 lg:hidden z-[110] overflow-y-auto">
             <div className="min-h-full bg-gradient-to-br from-white via-indigo-50/30 to-purple-50/30 dark:from-gray-900 dark:via-indigo-950 dark:to-purple-950">
               {/* Menu Header */}
               <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 px-6 py-5 pt-safe">
@@ -322,20 +322,6 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main Content - Full Width */}
       <main className="w-full">{children}</main>
-
-      {/* Floating Quick Add (mobile only, on Dashboard / Courses / Course detail) */}
-      {user && (location.pathname === '/' || location.pathname === '/courses' || location.pathname.startsWith('/courses/')) && (
-        <div className="fixed bottom-20 right-4 z-30 md:hidden pb-safe">
-          <button
-            type="button"
-            onClick={handleQuickAdd}
-            className="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-r from-primary-500 to-purple-500 text-white shadow-xl hover:scale-105 active:scale-95 transition-transform touch-manipulation"
-            aria-label="Quick Add Assignment"
-          >
-            <Plus className="w-7 h-7" />
-          </button>
-        </div>
-      )}
 
       {/* Keyboard Shortcuts Modal */}
       {showShortcutsModal && (

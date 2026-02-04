@@ -448,28 +448,30 @@ export default function SettingsPage() {
           aria-label="Settings sections"
         >
           <div className="max-w-3xl mx-auto">
-            <div className="glass-card rounded-2xl lg:rounded-3xl px-4 py-3 flex flex-nowrap justify-evenly items-center gap-2 min-w-0">
-              {[
-                { id: 'settings-semester', label: 'Semester', icon: Calendar },
-                { id: 'settings-widgets', label: 'Widgets', icon: Settings },
-                { id: 'settings-appearance', label: 'Appearance', icon: Sun },
-                { id: 'settings-notifications', label: 'Notifications', icon: Bell },
-                { id: 'settings-time', label: 'Time & date', icon: Clock },
-                { id: 'settings-account', label: 'Account', icon: AlertTriangle },
-              ].map(({ id, label, icon: Icon }) => (
-                <a
-                  key={id}
-                  href={`#${id}`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  }}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-colors whitespace-nowrap flex-shrink-0"
-                >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
-                  {label}
-                </a>
-              ))}
+            <div className="glass-card rounded-2xl lg:rounded-3xl px-6 lg:px-8 py-3">
+              <div className="grid grid-cols-6 gap-x-2 gap-y-0 items-center justify-items-center">
+                {[
+                  { id: 'settings-semester', label: 'Semester', icon: Calendar },
+                  { id: 'settings-widgets', label: 'Widgets', icon: Settings },
+                  { id: 'settings-appearance', label: 'Appearance', icon: Sun },
+                  { id: 'settings-notifications', label: 'Notifications', icon: Bell },
+                  { id: 'settings-time', label: 'Time & date', icon: Clock },
+                  { id: 'settings-account', label: 'Account', icon: AlertTriangle },
+                ].map(({ id, label, icon: Icon }) => (
+                  <a
+                    key={id}
+                    href={`#${id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-colors whitespace-nowrap w-full min-w-0"
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {label}
+                  </a>
+                ))}
+              </div>
             </div>
           </div>
         </nav>
