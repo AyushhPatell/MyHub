@@ -443,11 +443,11 @@ export default function SettingsPage() {
         </div>
 
         <nav
-          className="sticky top-16 sm:top-20 z-20 -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 overflow-x-auto scrollbar-hide"
+          className="sticky top-[4.5rem] sm:top-[5.5rem] z-20 -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 mt-2"
           aria-label="Settings sections"
         >
           <div className="max-w-3xl mx-auto">
-            <div className="glass-card rounded-2xl sm:rounded-3xl p-2.5 flex gap-1.5 overflow-x-auto scrollbar-hide min-w-0">
+            <div className="glass-card rounded-2xl sm:rounded-3xl p-2.5 flex flex-wrap gap-2 justify-center sm:justify-start">
               {[
                 { id: 'settings-semester', label: 'Semester', icon: Calendar },
                 { id: 'settings-widgets', label: 'Widgets', icon: Settings },
@@ -463,9 +463,9 @@ export default function SettingsPage() {
                     e.preventDefault();
                     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   }}
-                  className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-colors whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-white/80 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent transition-colors whitespace-nowrap"
                 >
-                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                   {label}
                 </a>
               ))}
@@ -475,7 +475,7 @@ export default function SettingsPage() {
 
         <div className="max-w-3xl mx-auto space-y-6 mb-8">
           {/* Semester Management */}
-          <div id="settings-semester" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
+          <div id="settings-semester" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-36">
             <div className="flex items-center space-x-3 mb-4">
               <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Semester Management</h2>
@@ -543,7 +543,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Dashboard Widgets */}
-          <div id="settings-widgets" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
+          <div id="settings-widgets" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-36">
             <div className="flex items-center space-x-3 mb-4">
               <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard Widgets</h2>
@@ -567,7 +567,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Theme Settings */}
-          <div id="settings-appearance" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
+          <div id="settings-appearance" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-36">
             <div className="flex items-center space-x-3 mb-4">
               {preferences.theme === 'dark' ? (
                 <Moon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
@@ -735,7 +735,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Notifications (Combined) */}
-          <div id="settings-notifications" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
+          <div id="settings-notifications" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-36">
             <div className="flex items-center space-x-3 mb-4">
               <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
@@ -908,7 +908,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Time Settings */}
-          <div id="settings-time" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-24">
+          <div id="settings-time" className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 scroll-mt-36">
             <div className="flex items-center space-x-3 mb-4">
               <Clock className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Time & Date</h2>
@@ -997,7 +997,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Account Deletion */}
-          <div id="settings-account" className="bg-red-50 dark:bg-red-950/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-2 border-red-200 dark:border-red-900/50 scroll-mt-24">
+          <div id="settings-account" className="bg-red-50 dark:bg-red-950/20 backdrop-blur-xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-2 border-red-200 dark:border-red-900/50 scroll-mt-36">
             <div className="flex items-center space-x-3 mb-4">
               <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
               <h2 className="text-xl font-bold text-red-900 dark:text-red-200">Danger Zone</h2>
