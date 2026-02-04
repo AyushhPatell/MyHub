@@ -679,6 +679,7 @@ interface CourseScheduleEditorModalProps {
 }
 
 function CourseScheduleEditorModal({ courses, existingBlocks, courseId, onSave, onClose }: CourseScheduleEditorModalProps) {
+  const toast = useToast();
   const [selectedCourseId, setSelectedCourseId] = useState<string>(courseId || '');
   const [customCourseName, setCustomCourseName] = useState<string>('');
   const [useCustomCourse, setUseCustomCourse] = useState<boolean>(!courseId);

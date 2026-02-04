@@ -576,6 +576,19 @@ export default function CourseDetailPage() {
           }}
         />
       )}
+
+      {confirmDeleteTemplate && (
+        <ConfirmModal
+          open={!!confirmDeleteTemplate}
+          title="Delete template?"
+          message={`Are you sure you want to delete "${confirmDeleteTemplate.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="danger"
+          onConfirm={() => confirmDeleteTemplate && handleDeleteTemplate(confirmDeleteTemplate.id)}
+          onCancel={() => setConfirmDeleteTemplate(null)}
+        />
+      )}
     </div>
   );
 }
