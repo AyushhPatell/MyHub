@@ -9,6 +9,9 @@ import { semesterService, assignmentService, courseService } from '../services/f
 import { getTodayRange, getWeekRange } from '../utils/dateHelpers';
 import { useNavigate } from 'react-router-dom';
 import DashAIIcon from './DashAIIcon';
+import { formatAssistantContent } from '../utils/assistantMessageFormat';
+
+const CHAT_HISTORY_LIMIT = 8;
 
 interface Message {
   id: string;
@@ -127,7 +130,7 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
     if (!user) return;
 
     const chatHistoryRef = collection(db, 'users', user.uid, 'aiChatHistory');
-    const q = query(chatHistoryRef, orderBy('timestamp', 'desc'), limit(50));
+    const q = query(chatHistoryRef, orderBy('timestamp', 'desc'), limit(36));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const loadedMessages = snapshot.docs
@@ -267,53 +270,47 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
     }, 15); // Adjust speed here (lower = faster)
   };
 
-  // Handle quick commands (e.g., /schedule, /assignments)
-  const handleQuickCommand = async (command: string): Promise<boolean> => {
-    if (!user) return false;
+  /**
+   * Resolve slash commands to the exact text sent to the API (no stale React state).
+   */
+  const resolveQuickCommandText = async (
+    raw: string
+  ): Promise<'not-command' | 'help-shown' | 'blocked' | string> => {
+    if (!user) return 'blocked';
+    const cmd = raw.toLowerCase().trim();
 
-    const cmd = command.toLowerCase().trim();
-    
     try {
       const activeSemester = await semesterService.getActiveSemester(user.uid);
       if (!activeSemester) {
         setInput('Set up your semester first');
-        return true;
+        return 'blocked';
       }
 
       if (cmd === '/schedule' || cmd === '/sched') {
-        setInput('What is my schedule today?');
-        return true;
+        return 'What is my schedule today?';
       }
-
       if (cmd === '/assignments' || cmd === '/assign' || cmd === '/hw') {
-        setInput('What assignments are due this week?');
-        return true;
+        return 'What assignments are due this week?';
       }
-
       if (cmd === '/courses' || cmd === '/course') {
-        setInput('What courses am I taking?');
-        return true;
+        return 'What courses am I taking?';
       }
-
       if (cmd === '/today') {
-        setInput('What do I have due today?');
-        return true;
+        return 'What do I have due today?';
       }
-
       if (cmd === '/tomorrow') {
-        setInput('What is my schedule tomorrow?');
-        return true;
+        return 'What is my schedule tomorrow?';
       }
-
       if (cmd === '/help' || cmd === '/?') {
-        const helpMessage = "Quick commands:\n" +
+        const helpMessage =
+          'Quick commands:\n' +
           "/schedule - View today's schedule\n" +
-          "/assignments - View upcoming assignments\n" +
-          "/courses - View your courses\n" +
+          '/assignments - View upcoming assignments\n' +
+          '/courses - View your courses\n' +
           "/today - What's due today\n" +
           "/tomorrow - Tomorrow's schedule\n" +
-          "/help - Show this help";
-        
+          '/help - Show this help';
+
         const helpMsg: Message = {
           id: `help-${Date.now()}`,
           role: 'assistant',
@@ -321,107 +318,69 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, helpMsg]);
-        return true;
+        return 'help-shown';
       }
-
-      return false;
+      return 'not-command';
     } catch (error) {
       console.error('Error handling quick command:', error);
-      return false;
+      return 'blocked';
     }
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || !user || loading) return;
-
-    // Check for quick commands
-    if (input.trim().startsWith('/')) {
-      const handled = await handleQuickCommand(input.trim());
-      if (handled) {
-        // If command was handled, either set new input or return
-        if (input.trim() === '/help' || input.trim() === '/?') {
-          setInput('');
-          return;
-        }
-        // For other commands, wait a moment then send
-        setTimeout(() => {
-          handleSend();
-        }, 100);
-        return;
-      }
-    }
+  const sendMessageWithText = async (rawText: string) => {
+    const text = rawText.trim();
+    if (!text || !user || loading) return;
 
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
       role: 'user',
-      content: input.trim(),
+      content: text,
       timestamp: new Date(),
     };
 
-    // Add user message immediately
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setLoading(true);
     setError(null);
-    // Clear previous quick actions and context cards
     setQuickActions([]);
     setContextCard(null);
 
     try {
-      // Save user message to Firestore
       await addDoc(collection(db, 'users', user.uid, 'aiChatHistory'), {
         role: 'user',
         content: userMessage.content,
         timestamp: Timestamp.now(),
       });
 
-      // Prepare chat history (last 10 messages for context)
-      const recentHistory = messages
-        .slice(-10)
-        .map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+      const recentHistory = messages.slice(-CHAT_HISTORY_LIMIT).map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      }));
 
-      // Call AI service with chat history
       const reply = await sendChatMessage(userMessage.content, recentHistory);
 
-      // Create a temporary ID for the message being typed
-      // This prevents Firestore listener from showing it until typing completes
       const tempMessageId = `typing-${Date.now()}`;
       typingMessageIdRef.current = tempMessageId;
 
-      // Type out the response smoothly, then save to Firestore
-      // This prevents duplicate messages (one from Firestore, one from typing)
       typeMessage(reply, async () => {
-        // Save to Firestore after typing completes
         try {
-          await addDoc(
-            collection(db, 'users', user.uid, 'aiChatHistory'),
-            {
-              role: 'assistant',
-              content: reply,
-              timestamp: Timestamp.now(),
-            }
-          );
-      // Clear the typing message ID so Firestore listener can show it
-      typingMessageIdRef.current = null;
-      
-      // Generate quick actions and context cards based on response
-      generateQuickActionsAndContext(reply, userMessage.content);
+          await addDoc(collection(db, 'users', user.uid, 'aiChatHistory'), {
+            role: 'assistant',
+            content: reply,
+            timestamp: Timestamp.now(),
+          });
+          typingMessageIdRef.current = null;
+          generateQuickActionsAndContext(reply, userMessage.content);
         } catch (saveError) {
           console.error('Error saving AI message to Firestore:', saveError);
           typingMessageIdRef.current = null;
-          // Continue even if save fails - message is already shown
         }
       });
 
-      // Remove temporary user message (it's now in Firestore)
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } catch (err: any) {
       console.error('Error sending message:', err);
-      
-      // Provide user-friendly error messages
+
       let errorMsg = 'Something went wrong. Please try again.';
       if (err.message) {
         errorMsg = err.message;
@@ -430,14 +389,34 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
       } else if (err.code === 'functions/unauthenticated') {
         errorMsg = 'Please refresh the page and try again.';
       }
-      
+
       setError(errorMsg);
-      
-      // Remove temporary message on error
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSend = async () => {
+    if (!input.trim() || !user || loading) return;
+
+    if (input.trim().startsWith('/')) {
+      const resolved = await resolveQuickCommandText(input.trim());
+      if (resolved === 'help-shown') {
+        setInput('');
+        return;
+      }
+      if (resolved === 'blocked') {
+        return;
+      }
+      if (resolved !== 'not-command') {
+        setInput('');
+        await sendMessageWithText(resolved);
+        return;
+      }
+    }
+
+    await sendMessageWithText(input.trim());
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -670,7 +649,11 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide">
+        <div
+          className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-hide"
+          aria-live="polite"
+          aria-relevant="additions"
+        >
           {messages.length === 0 && !loading && (
             <div className="text-center text-gray-500 dark:text-gray-400 py-8 px-4">
               <div className="mb-4">
@@ -728,7 +711,13 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
                 }`}
               >
-                <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                {message.role === 'assistant' ? (
+                  <div className="text-sm break-words assistant-chat-md">
+                    {formatAssistantContent(message.content)}
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                )}
                 <p className={`text-xs mt-1 ${
                   message.role === 'user'
                     ? 'text-indigo-100'

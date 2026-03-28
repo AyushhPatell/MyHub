@@ -42,10 +42,104 @@ setGlobalOptions({
 // Initialize OpenAI client (will be initialized in the function)
 let openai: OpenAI;
 
-// Constants
+// Constants — tuned for token/cost efficiency (OpenAI + Firebase reads)
 const DAILY_RATE_LIMIT = 2000; // Maximum AI calls per day
-const GPT_MODEL = "gpt-3.5-turbo";
-const MAX_TOKENS = 1000;
+/** gpt-4o-mini: lower $/token than gpt-3.5-turbo for typical workloads */
+const GPT_MODEL = "gpt-4o-mini";
+/** Cap assistant reply length to control output token spend */
+const MAX_TOKENS_REPLY = 720;
+/** Hard cap on user message length (characters) */
+const MAX_USER_MESSAGE_CHARS = 4000;
+/** Max characters injected as User Context (saves input tokens) */
+const MAX_CONTEXT_CHARS = 11000;
+/** Fewer history messages = fewer input tokens per call */
+const MAX_CHAT_HISTORY_MESSAGES = 8;
+/** Per history message cap (prevents abuse / runaway context) */
+const MAX_HISTORY_MESSAGE_CHARS = 3500;
+/** Max assignment rows included in context string */
+const MAX_ASSIGNMENTS_IN_CONTEXT = 32;
+/** gpt-4o-mini approximate $/1M tokens (update if OpenAI pricing changes) */
+const GPT4O_MINI_INPUT_PER_M = 0.15;
+const GPT4O_MINI_OUTPUT_PER_M = 0.6;
+
+/**
+ * Truncate context string to limit input tokens to the model.
+ * @param {string} raw Full context from Firestore.
+ * @param {number} maxChars Maximum character length.
+ * @return {string} Truncated context with notice if shortened.
+ */
+function truncateContextString(raw: string, maxChars: number): string {
+  if (raw.length <= maxChars) {
+    return raw;
+  }
+  return raw.slice(0, maxChars) +
+    "\n\n[Context truncated to save tokens. Ask a more specific question.]";
+}
+
+/**
+ * Truncate a single chat history message for token safety.
+ * @param {string} s Message content.
+ * @param {number} maxLen Maximum length in characters.
+ * @return {string} Truncated string with ellipsis if needed.
+ */
+function truncateChatMessageContent(s: string, maxLen: number): string {
+  if (s.length <= maxLen) {
+    return s;
+  }
+  return s.slice(0, maxLen) + "…";
+}
+
+/**
+ * Estimate cost for gpt-4o-mini from usage object.
+ * @param {number} promptTokens Input token count.
+ * @param {number} completionTokens Output token count.
+ * @return {number} Estimated cost in USD.
+ */
+function estimateCostGpt4oMini(
+  promptTokens: number,
+  completionTokens: number
+): number {
+  return (promptTokens / 1e6) * GPT4O_MINI_INPUT_PER_M +
+    (completionTokens / 1e6) * GPT4O_MINI_OUTPUT_PER_M;
+}
+
+/**
+ * Retry OpenAI chat completion on transient errors (saves user frustration;
+ * bounded retries avoid extra spend loops).
+ * @param {Array<{role: string, content: string}>} messages Chat messages.
+ * @param {number} maxTokens Max completion tokens.
+ * @param {number} temperature Sampling temperature.
+ * @param {number} maxAttempts Max retry attempts.
+ * @return {Promise<Object>} OpenAI chat completion response.
+ */
+async function createChatCompletionWithRetry(
+  messages: Array<{role: "system" | "user" | "assistant"; content: string}>,
+  maxTokens: number,
+  temperature: number,
+  maxAttempts = 2
+) {
+  let lastErr: unknown;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await openai.chat.completions.create({
+        model: GPT_MODEL,
+        messages,
+        max_tokens: maxTokens,
+        temperature,
+      });
+    } catch (err: unknown) {
+      lastErr = err;
+      const retryable = err instanceof Error && (
+        /429|503|500|timeout|ECONNRESET/i.test(err.message)
+      );
+      if (!retryable || attempt === maxAttempts) {
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, 400 * attempt));
+    }
+  }
+  throw lastErr;
+}
 
 /**
  * Check if rate limit is exceeded
@@ -461,9 +555,10 @@ async function gatherUserContext(
           dueDate: Date;
           course: string;
         }> = [];
-        for (const courseDoc of coursesSnapshot.docs) {
+
+        const assignmentReads = coursesSnapshot.docs.map((courseDoc) => {
           const courseId = courseDoc.id;
-          const assignmentsSnapshot = await db
+          return db
             .collection("users")
             .doc(userId)
             .collection("semesters")
@@ -472,13 +567,17 @@ async function gatherUserContext(
             .doc(courseId)
             .collection("assignments")
             .where("completedAt", "==", null)
-            .get();
+            .get()
+            .then((assignmentsSnapshot) => ({courseDoc, assignmentsSnapshot}));
+        });
 
+        const assignmentResults = await Promise.all(assignmentReads);
+
+        for (const {courseDoc, assignmentsSnapshot} of assignmentResults) {
           assignmentsSnapshot.forEach((doc) => {
             const data = doc.data();
             const dueDate = data.dueDate?.toDate();
             if (dueDate) {
-              // Compare dates (ignore time)
               const dueDateOnly = new Date(
                 dueDate.getFullYear(),
                 dueDate.getMonth(),
@@ -507,8 +606,10 @@ async function gatherUserContext(
         }
 
         if (assignments.length > 0) {
-          const assignmentsText = assignments
+          const sortedLimited = assignments
             .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+            .slice(0, MAX_ASSIGNMENTS_IN_CONTEXT);
+          const assignmentsText = sortedLimited
             .map((a) => {
               return `${a.name} (${a.course}) - ` +
                 `Due: ${a.dueDate.toLocaleDateString()}`;
@@ -572,6 +673,11 @@ export const chatWithAI = onCall(
         "Message is required and must be a non-empty string."
       );
     }
+    if (message.length > MAX_USER_MESSAGE_CHARS) {
+      throw new Error(
+        "Message is too long. Please shorten it and try again."
+      );
+    }
 
     // Validate chat history format
     if (!Array.isArray(chatHistory)) {
@@ -613,7 +719,11 @@ export const chatWithAI = onCall(
 
       // Gather full user context with today's date and message
       // for smart filtering
-      const userContext = await gatherUserContext(userId, today, message);
+      const userContextRaw = await gatherUserContext(userId, today, message);
+      const userContext = truncateContextString(
+        userContextRaw,
+        MAX_CONTEXT_CHARS
+      );
 
       // Format dates for display
       const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday",
@@ -637,83 +747,20 @@ export const chatWithAI = onCall(
         minute: "2-digit",
       });
 
-      // Create optimized system prompt with personality and natural flow
-      const systemPrompt = "You are DashAI, a warm and helpful personal " +
-        "assistant for MyHub. You're friendly, professional, and genuinely " +
-        "care about helping users manage their academic life and beyond.\n\n" +
-        "YOUR PERSONALITY:\n" +
-        "- Be warm, approachable, and conversational - like a helpful " +
-        "friend who knows your schedule\n" +
-        "- Show enthusiasm when appropriate, but stay professional\n" +
-        "- Use natural language - avoid robotic or overly formal phrases\n" +
-        "- Vary your responses - don't repeat the same phrases\n" +
-        "- Match the user's tone (casual or formal)\n" +
-        "- Be concise but not terse - add personality to your responses\n\n" +
-        "YOUR CAPABILITIES:\n" +
-        "- You can READ and DISPLAY information about the user's schedule, " +
-        "assignments, courses, and calendar events\n" +
-        "- You can ANSWER QUESTIONS about their academic data\n" +
-        "- You can PROVIDE SUGGESTIONS and HELP with planning\n" +
-        "- You CANNOT create, modify, or delete semesters, courses, " +
-        "assignments, or any other data in the system\n" +
-        "- You CANNOT perform actions that modify the database\n" +
-        "- If a user asks you to create or set up something (like a " +
-        "semester), you MUST politely explain that you don't have that " +
-        "capability and suggest they use the app interface instead\n" +
-        "- Be honest and transparent about your limitations\n\n" +
-        "CRITICAL RULES:\n" +
-        "1. ONLY use data from User Context. Never make up information. " +
-        "If you don't know something, say so honestly.\n" +
-        "2. NEVER claim to have created, modified, or set up anything in " +
-        "the system. You can only read and display information.\n" +
-        "3. If a user asks you to create something (semester, course, " +
-        "assignment, etc.), respond like this: 'I don't have the ability " +
-        "to create or modify data in your account. To set up a semester, " +
-        "please go to the Settings page or Courses page in the app. I'm " +
-        "here to help you view and understand your existing schedule and " +
-        "assignments!' Be helpful and suggest where they can do this.\n" +
-        "4. For empty schedules, be positive: 'You have a free day!' or " +
-        "'Your schedule is clear - perfect for catching up!'\n" +
-        "5. Date handling - use Current Date Information below:\n" +
-        "   - 'today' = the current date shown\n" +
-        "   - 'tomorrow' = the next day shown\n" +
-        "   - 'next [day]' = the next occurrence of that weekday\n" +
-        "   - 'in X days' = X days from today\n" +
-        "   - Relative dates are based on Current Date Information\n" +
-        "6. Use conversation history naturally. If the user says 'what " +
-        "about that?' or 'tell me more', refer back to previous messages.\n\n" +
-        `Current Date (${userTimezone}):\n` +
-        `- Today: ${todayStr} (${todayName})\n` +
-        `- Tomorrow: ${tomorrowStr} (${tomorrowName})\n` +
-        `- Current Time: ${currentTime}\n\n` +
-        `User Context:\n${userContext}\n\n` +
-        "CONVERSATION GUIDELINES:\n" +
-        "- NEVER end with questions like 'How can I help you today?' or " +
-        "'What can I do for you?' or 'Feel free to ask!' - these are " +
-        "repetitive and annoying\n" +
-        "- For casual conversation, just respond naturally and end " +
-        "naturally - don't force questions or suggestions\n" +
-        "- Only ask follow-up questions if it genuinely adds value to " +
-        "the conversation\n" +
-        "- Vary your responses - sometimes acknowledge, sometimes " +
-        "continue the topic, sometimes just provide info\n" +
-        "- For casual chat, engage naturally without forcing academic " +
-        "topics or suggestions\n" +
-        "- When listing schedules/assignments, make it easy to scan " +
-        "(use bullet points or clear formatting)\n" +
-        "- Show empathy: 'That's a busy day!' or 'You've got this!'\n" +
-        "- Keep responses under 200 words unless the user asks for " +
-        "detailed information\n" +
-        "- Examples of good responses:\n" +
-        "  * Empty schedule: 'Great news - you have a free day! Perfect " +
-        "for catching up on assignments or taking a break.'\n" +
-        "  * Busy schedule: 'You've got a packed day tomorrow! Here's " +
-        "what's coming up: [list with times]'\n" +
-        "  * Casual chat: Just respond naturally, like a friend. " +
-        "Don't add 'How can I help?' or 'Feel free to ask!' - just " +
-        "end naturally\n" +
-        "  * Follow-ups: 'Based on what we discussed earlier...' or " +
-        "'Remember that assignment we talked about?'";
+      // Compact system prompt (fewer input tokens per request)
+      const systemPrompt =
+        "You are DashAI, MyHub's friendly academic assistant. " +
+        "Tone: warm, concise, natural. Use only facts from User Context; " +
+        "never invent data. You cannot create/edit/delete anything—direct " +
+        "users to the app for changes. For empty days be positive; for " +
+        "lists use short bullets. Match conversation history for " +
+        "follow-ups. Avoid cliché closers ('How can I help?'). " +
+        "Keep answers under ~180 words unless asked for detail.\n\n" +
+        "CRITICAL: Only User Context + Current Date below are " +
+        "ground truth.\n\n" +
+        `Current Date (${userTimezone}): Today ${todayStr} (${todayName}); ` +
+        `Tomorrow ${tomorrowStr} (${tomorrowName}); Time ${currentTime}\n\n` +
+        `User Context:\n${userContext}\n`;
 
       // Build messages array with chat history
       type MessageRole = "system" | "user" | "assistant";
@@ -736,10 +783,13 @@ export const chatWithAI = onCall(
           typeof msg.content === "string" &&
           msg.content.trim().length > 0
         )
-        .slice(-10) // Only last 10 messages
+        .slice(-MAX_CHAT_HISTORY_MESSAGES)
         .map((msg: ChatHistoryItem) => ({
           role: msg.role as "user" | "assistant",
-          content: (msg.content || "").trim(),
+          content: truncateChatMessageContent(
+            (msg.content || "").trim(),
+            MAX_HISTORY_MESSAGE_CHARS
+          ),
         }));
 
       // Add chat history to messages
@@ -748,23 +798,21 @@ export const chatWithAI = onCall(
       // Add current message
       messagesArray.push({role: "user", content: message.trim()});
 
-      // Call OpenAI with full conversation context
-      // Temperature 0.8 for more personality and variety
-      const completion = await openai.chat.completions.create({
-        model: GPT_MODEL,
-        messages: messagesArray,
-        max_tokens: MAX_TOKENS,
-        temperature: 0.8, // Slightly higher for more personality
-      });
+      const completion = await createChatCompletionWithRetry(
+        messagesArray,
+        MAX_TOKENS_REPLY,
+        0.72
+      );
 
       const reply = completion.choices[0]?.message?.content ||
         "I apologize, but I could not generate a response.";
 
-      // Calculate cost (GPT-3.5-turbo pricing: $0.002 per 1K tokens)
-      const tokensUsed = completion.usage?.total_tokens || 0;
-      const cost = (tokensUsed / 1000) * 0.002;
+      const usage = completion.usage;
+      const promptTokens = usage?.prompt_tokens || 0;
+      const completionTokens = usage?.completion_tokens || 0;
+      const tokensUsed = usage?.total_tokens || promptTokens + completionTokens;
+      const cost = estimateCostGpt4oMini(promptTokens, completionTokens);
 
-      // Track cost
       await trackCost(tokensUsed, cost);
 
       return {
