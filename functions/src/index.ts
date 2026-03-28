@@ -34,6 +34,11 @@ const smtpFromName = defineSecret("SMTP_FROM_NAME");
 
 // Set global options for all functions
 setGlobalOptions({
+  region: "us-central1",
+  /**
+   * Gen2 on Cloud Run: public invoker so browser OPTIONS preflight succeeds.
+   */
+  invoker: "public",
   maxInstances: 10,
   secrets: [openaiApiKey, smtpHost, smtpPort, smtpUser,
     smtpPassword, smtpFromEmail, smtpFromName],
@@ -656,6 +661,7 @@ async function gatherUserContext(
 export const chatWithAI = onCall(
   {
     secrets: [openaiApiKey],
+    cors: true,
   },
   async (request) => {
     // Verify authentication
