@@ -9,7 +9,7 @@
  * 3. Deploy: firebase deploy --only functions
  */
 
-import {onCall} from "firebase-functions/v2/https";
+import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {setGlobalOptions} from "firebase-functions/v2";
 import * as admin from "firebase-admin";
@@ -660,7 +660,10 @@ export const chatWithAI = onCall(
   async (request) => {
     // Verify authentication
     if (!request.auth) {
-      throw new Error("User must be authenticated to use AI chat.");
+      throw new HttpsError(
+        "unauthenticated",
+        "User must be authenticated to use AI chat."
+      );
     }
 
     const userId = request.auth.uid;
@@ -669,19 +672,24 @@ export const chatWithAI = onCall(
 
     if (!message || typeof message !== "string" ||
       message.trim().length === 0) {
-      throw new Error(
+      throw new HttpsError(
+        "invalid-argument",
         "Message is required and must be a non-empty string."
       );
     }
     if (message.length > MAX_USER_MESSAGE_CHARS) {
-      throw new Error(
+      throw new HttpsError(
+        "invalid-argument",
         "Message is too long. Please shorten it and try again."
       );
     }
 
     // Validate chat history format
     if (!Array.isArray(chatHistory)) {
-      throw new Error("Chat history must be an array.");
+      throw new HttpsError(
+        "invalid-argument",
+        "Chat history must be an array."
+      );
     }
 
     // Initialize OpenAI client with the secret
@@ -694,7 +702,8 @@ export const chatWithAI = onCall(
     // Check rate limit
     const rateLimit = await checkRateLimit();
     if (!rateLimit.allowed) {
-      throw new Error(
+      throw new HttpsError(
+        "resource-exhausted",
         "I've reached my daily usage limit. The app has a limit to " +
         "keep costs manageable. Please try again tomorrow, or check " +
         "the admin dashboard for more details."
@@ -823,13 +832,19 @@ export const chatWithAI = onCall(
     } catch (error: unknown) {
       console.error("Error in chatWithAI:", error);
 
-      // Provide user-friendly error messages
+      if (error instanceof HttpsError) {
+        throw error;
+      }
+
       let errorMessage = "I'm having trouble processing that right now. " +
         "Please try again in a moment.";
 
       if (error instanceof Error) {
         const errMsg = error.message.toLowerCase();
-        if (errMsg.includes("rate limit") || errMsg.includes("quota")) {
+        if (errMsg === "internal" || errMsg.includes("internal server")) {
+          errorMessage = "I'm having trouble processing that right now. " +
+            "Please try again in a moment.";
+        } else if (errMsg.includes("rate limit") || errMsg.includes("quota")) {
           errorMessage = "I've reached my usage limit for now. " +
             "Please try again later, or check the admin dashboard " +
             "for usage details.";
@@ -846,7 +861,7 @@ export const chatWithAI = onCall(
         }
       }
 
-      throw new Error(errorMessage);
+      throw new HttpsError("internal", errorMessage);
     }
   }
 );

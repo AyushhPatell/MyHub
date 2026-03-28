@@ -46,6 +46,7 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const typingMessageIdRef = useRef<string | null>(null); // Track message being typed
+  const sendingRef = useRef(false); // Prevent double-send before React re-renders
 
   // Load proactive suggestions
   useEffect(() => {
@@ -143,7 +144,14 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
             timestamp: data.timestamp?.toDate() || new Date(),
           };
         })
-        .reverse(); // Reverse to show oldest first
+        .sort((a, b) => {
+          const ta = a.timestamp.getTime();
+          const tb = b.timestamp.getTime();
+          if (ta !== tb) {
+            return ta - tb;
+          }
+          return a.id.localeCompare(b.id);
+        });
 
       // Filter out messages that are currently being typed
       // This prevents duplicate display during typing animation
@@ -329,7 +337,8 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
 
   const sendMessageWithText = async (rawText: string) => {
     const text = rawText.trim();
-    if (!text || !user || loading) return;
+    if (!text || !user || loading || sendingRef.current) return;
+    sendingRef.current = true;
 
     const userMessage: Message = {
       id: `temp-${Date.now()}`,
@@ -394,11 +403,12 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
       setMessages((prev) => prev.filter((m) => m.id !== userMessage.id));
     } finally {
       setLoading(false);
+      sendingRef.current = false;
     }
   };
 
   const handleSend = async () => {
-    if (!input.trim() || !user || loading) return;
+    if (!input.trim() || !user || loading || sendingRef.current) return;
 
     if (input.trim().startsWith('/')) {
       const resolved = await resolveQuickCommandText(input.trim());
