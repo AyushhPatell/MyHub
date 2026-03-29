@@ -57,5 +57,5 @@ src/
 
 ## License
 
-Personal project for Ayush Patel
+Personal project - Ayush Patel.
 
