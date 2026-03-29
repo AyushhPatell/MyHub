@@ -5,7 +5,21 @@ import { semesterService, courseService, assignmentService, recurringTemplateSer
 import { Course, Assignment, RecurringTemplate } from '../types';
 import { formatDate, formatTime, isOverdue, getDaysUntilDue } from '../utils/dateHelpers';
 import { calculatePriority, getPriorityColor } from '../utils/priority';
-import { ArrowLeft, Plus, Check, ExternalLink, Edit, Trash2, Calendar, Repeat, Play, ArrowUpDown } from 'lucide-react';
+import {
+  ArrowLeft,
+  Plus,
+  Check,
+  ExternalLink,
+  Edit,
+  Trash2,
+  Calendar,
+  Repeat,
+  Play,
+  ArrowUpDown,
+  ListChecks,
+  CheckSquare,
+  Square,
+} from 'lucide-react';
 import QuickAddModal from '../components/QuickAddModal';
 import EditAssignmentModal from '../components/EditAssignmentModal';
 import RecurringTemplateModal from '../components/RecurringTemplateModal';
@@ -29,7 +43,42 @@ export default function CourseDetailPage() {
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'dueDate' | 'name' | 'priority'>('dueDate');
   const [confirmDeleteTemplate, setConfirmDeleteTemplate] = useState<RecurringTemplate | null>(null);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkWorking, setBulkWorking] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const toast = useToast();
+
+  const coursePrefsKey = courseId ? `myhub_course_${courseId}_prefs` : null;
+
+  useEffect(() => {
+    if (!coursePrefsKey) return;
+    try {
+      const raw = localStorage.getItem(coursePrefsKey);
+      if (!raw) return;
+      const p = JSON.parse(raw) as {
+        filter?: 'all' | 'upcoming' | 'completed';
+        sortBy?: 'dueDate' | 'name' | 'priority';
+      };
+      if (p.filter === 'all' || p.filter === 'upcoming' || p.filter === 'completed') {
+        setFilter(p.filter);
+      }
+      if (p.sortBy === 'dueDate' || p.sortBy === 'name' || p.sortBy === 'priority') {
+        setSortBy(p.sortBy);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [coursePrefsKey]);
+
+  useEffect(() => {
+    if (!coursePrefsKey) return;
+    localStorage.setItem(
+      coursePrefsKey,
+      JSON.stringify({ filter, sortBy })
+    );
+  }, [coursePrefsKey, filter, sortBy]);
 
   useEffect(() => {
     if (user && courseId) {
@@ -109,6 +158,75 @@ export default function CourseDetailPage() {
       }
     } catch (error) {
       console.error('Error updating assignment:', error);
+    }
+  };
+
+  const toggleBulkSelect = (assignmentId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(assignmentId)) next.delete(assignmentId);
+      else next.add(assignmentId);
+      return next;
+    });
+  };
+
+  const handleBulkMarkComplete = async () => {
+    if (!user || !courseId || !semesterId || selectedIds.size === 0) return;
+    setBulkWorking(true);
+    try {
+      for (const id of selectedIds) {
+        const a = assignments.find((x) => x.id === id);
+        if (a && !a.completedAt) {
+          await assignmentService.markComplete(user.uid, semesterId, courseId, id, true);
+        }
+      }
+      setSelectedIds(new Set());
+      setBulkMode(false);
+      loadData();
+      toast.success('Marked complete.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not update all assignments.');
+    } finally {
+      setBulkWorking(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!user || !courseId || !semesterId || selectedIds.size === 0) return;
+    setBulkWorking(true);
+    try {
+      for (const id of selectedIds) {
+        await assignmentService.deleteAssignment(user.uid, semesterId, courseId, id);
+      }
+      setSelectedIds(new Set());
+      setBulkMode(false);
+      setBulkDeleteOpen(false);
+      loadData();
+      toast.success('Assignments removed.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not delete all assignments.');
+    } finally {
+      setBulkWorking(false);
+    }
+  };
+
+  const handleDeleteOne = async () => {
+    if (!user || !courseId || !semesterId || !assignmentToDelete) return;
+    try {
+      await assignmentService.deleteAssignment(
+        user.uid,
+        semesterId,
+        courseId,
+        assignmentToDelete.id
+      );
+      setAssignmentToDelete(null);
+      loadData();
+      toast.success('Assignment deleted.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to delete assignment.');
     }
   };
 
@@ -352,8 +470,9 @@ export default function CourseDetailPage() {
           <div className="md:hidden mb-3">
             <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Filter Assignments</h3>
           </div>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <button
             onClick={() => setFilter('upcoming')}
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-bold text-xs sm:text-sm transition-all ${
@@ -384,7 +503,56 @@ export default function CourseDetailPage() {
           >
             All ({assignments.length})
           </button>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setBulkMode((v) => !v);
+                setSelectedIds(new Set());
+              }}
+              className={`inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold border transition-all ${
+                bulkMode
+                  ? 'bg-indigo-600 border-indigo-500 text-white shadow-md'
+                  : 'bg-white/70 dark:bg-white/5 border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-white/10'
+              }`}
+            >
+              <ListChecks className="w-4 h-4" />
+              {bulkMode ? 'Cancel' : 'Select'}
+            </button>
           </div>
+          {bulkMode && (
+            <div className="flex flex-wrap items-center gap-2 p-3 rounded-xl bg-indigo-50/90 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-500/30">
+              <span className="text-xs font-semibold text-indigo-900 dark:text-indigo-100">
+                {selectedIds.size} selected
+              </span>
+              <button
+                type="button"
+                disabled={filteredAssignments.length === 0 || bulkWorking}
+                onClick={() => {
+                  setSelectedIds(new Set(filteredAssignments.map((a) => a.id)));
+                }}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-indigo-200 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-200 disabled:opacity-40"
+              >
+                Select visible
+              </button>
+              <button
+                type="button"
+                disabled={selectedIds.size === 0 || bulkWorking}
+                onClick={handleBulkMarkComplete}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-emerald-600 text-white disabled:opacity-40"
+              >
+                Mark done
+              </button>
+              <button
+                type="button"
+                disabled={selectedIds.size === 0 || bulkWorking}
+                onClick={() => setBulkDeleteOpen(true)}
+                className="text-xs font-bold px-3 py-1.5 rounded-lg bg-red-600 text-white disabled:opacity-40"
+              >
+                Delete
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <ArrowUpDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" aria-hidden />
             <label htmlFor="sort-assignments" className="text-xs font-semibold text-gray-600 dark:text-gray-400 whitespace-nowrap">
@@ -431,6 +599,20 @@ export default function CourseDetailPage() {
                 >
                   <div className="p-4">
                     <div className="flex items-start gap-3">
+                      {bulkMode ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleBulkSelect(assignment.id)}
+                          className="w-9 h-9 rounded-xl border-2 border-indigo-300 dark:border-indigo-500/50 flex items-center justify-center flex-shrink-0 mt-0.5 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/20 transition-colors"
+                          aria-pressed={selectedIds.has(assignment.id)}
+                        >
+                          {selectedIds.has(assignment.id) ? (
+                            <CheckSquare className="w-5 h-5" />
+                          ) : (
+                            <Square className="w-5 h-5" />
+                          )}
+                        </button>
+                      ) : (
                       <button
                         onClick={() => handleMarkComplete(assignment.id, !assignment.completedAt)}
                         className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center transition-all cursor-pointer flex-shrink-0 mt-0.5 ${
@@ -441,6 +623,7 @@ export default function CourseDetailPage() {
                       >
                         {assignment.completedAt && <Check size={12} />}
                       </button>
+                      )}
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">
@@ -453,13 +636,26 @@ export default function CourseDetailPage() {
                           >
                             {assignment.name}
                           </h3>
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                           <button
                             onClick={() => setEditingAssignment(assignment)}
-                            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors font-semibold flex-shrink-0 ml-3"
+                            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors font-semibold"
                           >
                             <Edit size={14} />
                             Edit
                           </button>
+                          {!bulkMode && (
+                            <button
+                              type="button"
+                              onClick={() => setAssignmentToDelete(assignment)}
+                              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                              title="Delete assignment"
+                              aria-label="Delete assignment"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                          </div>
                         </div>
 
                           <div className="border-t border-gray-200 dark:border-white/10 pt-2.5 space-y-2">
@@ -589,6 +785,31 @@ export default function CourseDetailPage() {
           onCancel={() => setConfirmDeleteTemplate(null)}
         />
       )}
+
+      {assignmentToDelete && (
+        <ConfirmModal
+          open={!!assignmentToDelete}
+          title="Delete assignment?"
+          message={`Remove "${assignmentToDelete.name}"? This cannot be undone.`}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="danger"
+          onConfirm={handleDeleteOne}
+          onCancel={() => setAssignmentToDelete(null)}
+        />
+      )}
+
+      <ConfirmModal
+        open={bulkDeleteOpen}
+        title="Delete selected assignments?"
+        message={`This will permanently delete ${selectedIds.size} assignment(s).`}
+        confirmLabel="Delete all"
+        cancelLabel="Cancel"
+        variant="danger"
+        loading={bulkWorking}
+        onConfirm={() => void handleBulkDelete()}
+        onCancel={() => setBulkDeleteOpen(false)}
+      />
     </div>
   );
 }

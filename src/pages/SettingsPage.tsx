@@ -3,15 +3,31 @@ import { useAuth } from '../hooks/useAuth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { deleteUser, signOut } from 'firebase/auth';
 import { auth, db } from '../config/firebase';
-import { accountService, semesterService } from '../services/firestore';
+import { accountService, semesterService, courseService, assignmentService } from '../services/firestore';
 import { UserPreferences, Semester } from '../types';
 import { sendTestEmail, isEmailConfigured } from '../services/emailFunctions';
-import { Moon, Sun, Bell, Clock, Settings, Trash2, AlertTriangle, Calendar, Archive, RotateCcw, Plus, MapPin } from 'lucide-react';
+import {
+  Moon,
+  Sun,
+  Bell,
+  Clock,
+  Settings,
+  Trash2,
+  AlertTriangle,
+  Calendar,
+  Archive,
+  RotateCcw,
+  Plus,
+  MapPin,
+  Download,
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ModalContainer from '../components/ModalContainer';
 import SemesterSetupModal from '../components/SemesterSetupModal';
 import { applySmoothThemeTransition } from '../utils/themeTransition';
 import { useToast } from '../contexts/ToastContext';
+import { buildOutlookCalendarIcs, downloadIcsFile } from '../utils/outlookCalendarExport';
+import PwaInstallCard from '../components/PwaInstallCard';
 
 // Compact Scrollable Time Picker Component
 function TimePicker({ value, onChange }: { value: string; onChange: (time: string) => void }) {
@@ -187,6 +203,7 @@ export default function SettingsPage() {
   const [switching, setSwitching] = useState(false);
   const [showSemesterSetup, setShowSemesterSetup] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
+  const [exportingIcs, setExportingIcs] = useState(false);
   const toast = useToast();
 
   useEffect(() => {
@@ -363,6 +380,29 @@ export default function SettingsPage() {
         // Scheduling enabled - preserve current state, scheduler will handle it
         // Don't change theme here
       }
+    }
+  };
+
+  const handleOutlookExport = async () => {
+    if (!user) return;
+    setExportingIcs(true);
+    try {
+      const semester = await semesterService.getActiveSemester(user.uid);
+      if (!semester) {
+        toast.warning('Set up an active semester first.');
+        return;
+      }
+      const courses = await courseService.getCourses(user.uid, semester.id);
+      const assignments = await assignmentService.getAllAssignments(user.uid, semester.id);
+      const ics = buildOutlookCalendarIcs(semester, courses, assignments);
+      const safe = semester.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'semester';
+      downloadIcsFile(ics, `myhub-outlook-${safe}.ics`);
+      toast.success('Downloaded. In Outlook: File → Open → Import/Export → Import an iCalendar.');
+    } catch (e) {
+      console.error(e);
+      toast.error('Could not build calendar file.');
+    } finally {
+      setExportingIcs(false);
     }
   };
 
@@ -567,6 +607,7 @@ export default function SettingsPage() {
                 </button>
               </div>
             </div>
+            <PwaInstallCard />
           </div>
 
           {/* Theme Settings */}
@@ -744,6 +785,47 @@ export default function SettingsPage() {
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Notifications</h2>
             </div>
 
+            <div className="mb-6 overflow-hidden rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-gray-900/40">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="bg-gray-100/90 dark:bg-gray-800/80 border-b border-gray-200 dark:border-gray-700">
+                    <th className="px-4 py-3 font-bold text-gray-800 dark:text-gray-100">Channel</th>
+                    <th className="px-4 py-3 font-bold text-gray-800 dark:text-gray-100">What you get</th>
+                    <th className="px-4 py-3 font-bold text-gray-800 dark:text-gray-100">When</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700/80">
+                  <tr>
+                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white align-top">In-app</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      Bell icon alerts for upcoming deadlines and overdue work.
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 align-top">
+                      While using MyHub
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white align-top">Email reminders</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      Heads-up before assignments are due (3 days, 1 day, 3 hours).
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 align-top">
+                      On the schedule below, when enabled
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white align-top">Digest email</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                      Summary of due today, overdue, and due this week.
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 align-top">
+                      Daily or weekly at the time you pick
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
             <div className="space-y-6">
               {/* In-App Notifications */}
               <div className="pb-4 border-b border-gray-200 dark:border-gray-700">
@@ -863,7 +945,9 @@ export default function SettingsPage() {
                   {!isEmailConfigured() && (
                     <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                       <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                        <strong>⚠️ Email not configured:</strong> Add EmailJS credentials to your <code className="bg-yellow-100 dark:bg-yellow-900/40 px-1 rounded">.env</code> file and rebuild the project. See <strong>DEPLOYMENT_GUIDE.md</strong> for deployment instructions.
+                        <strong>Note:</strong> Test and scheduled emails are sent by Firebase Cloud
+                        Functions using SMTP secrets. If test email fails, verify secrets and deploy
+                        functions (see deployment docs).
                       </p>
                     </div>
                   )}
@@ -875,7 +959,7 @@ export default function SettingsPage() {
                         if (!user) return;
                         if (!isEmailConfigured()) {
                           toast.warning(
-                            'Email service not configured. Add EmailJS credentials to .env and rebuild. See DEPLOYMENT_GUIDE.md.'
+                            'Email is sent via Cloud Functions. Deploy functions and configure SMTP secrets.'
                           );
                           return;
                         }
@@ -887,11 +971,11 @@ export default function SettingsPage() {
                           console.error('Error sending test email:', error);
                           if (error.message?.includes('not configured')) {
                             toast.warning(
-                              'Email service not configured. See EMAIL_SETUP_FREE.md for instructions.'
+                              'Configure SMTP secrets for Firebase Functions and redeploy.'
                             );
                           } else {
                             toast.error(
-                              `Failed to send test email: ${error.message || 'Unknown error'}. Check EmailJS dashboard logs.`
+                              `Failed to send test email: ${error.message || 'Unknown error'}. Check Functions logs.`
                             );
                           }
                         } finally {
@@ -995,6 +1079,28 @@ export default function SettingsPage() {
                     })()}
                   </span>
                 </p>
+              </div>
+
+              <div className="pt-6 mt-6 border-t border-gray-200 dark:border-gray-700">
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                  Export to Microsoft Outlook
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+                  Download an <span className="font-medium text-gray-700 dark:text-gray-300">.ics</span> file
+                  with assignment due times and weekly class meetings for your active semester.
+                  Import it in Outlook (desktop or web) — no Google or Apple Calendar required.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void handleOutlookExport()}
+                  disabled={exportingIcs}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
+                    font-bold text-sm bg-gradient-to-r from-sky-600 to-blue-700 text-white shadow-lg
+                    hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  <Download className="w-5 h-5" />
+                  {exportingIcs ? 'Preparing file…' : 'Download .ics for Outlook'}
+                </button>
               </div>
             </div>
           </div>

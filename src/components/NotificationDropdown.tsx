@@ -6,8 +6,9 @@ import { notificationService } from '../services/firestore';
 import { Notification } from '../types';
 import { formatDate, formatTime } from '../utils/dateHelpers';
 import ConfirmModal from './ConfirmModal';
+import { isThisWeek, isToday, isYesterday } from 'date-fns';
 
-const NOTIFICATION_DISPLAY_LIMIT = 5;
+const NOTIFICATION_DISPLAY_LIMIT = 40;
 
 interface NotificationDropdownProps {
   userId: string;
@@ -167,6 +168,83 @@ export default function NotificationDropdown({
     }
   };
 
+  type GroupKey = 'today' | 'yesterday' | 'thisWeek' | 'earlier';
+  const groupLabel: Record<GroupKey, string> = {
+    today: 'Today',
+    yesterday: 'Yesterday',
+    thisWeek: 'This week',
+    earlier: 'Earlier',
+  };
+
+  const bucket = (d: Date): GroupKey => {
+    if (isToday(d)) return 'today';
+    if (isYesterday(d)) return 'yesterday';
+    if (isThisWeek(d, { weekStartsOn: 1 })) return 'thisWeek';
+    return 'earlier';
+  };
+
+  const groupedOrdered: GroupKey[] = [];
+  const grouped = new Map<GroupKey, Notification[]>();
+  for (const n of displayedNotifications) {
+    const g = bucket(n.createdAt);
+    if (!grouped.has(g)) {
+      groupedOrdered.push(g);
+      grouped.set(g, []);
+    }
+    grouped.get(g)!.push(n);
+  }
+
+  const renderRow = (notification: Notification) => (
+    <li key={notification.id}>
+      <div
+        onClick={() => handleNotificationClick(notification)}
+        className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
+          !notification.isRead ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
+        }`}
+      >
+        <span className="text-base flex-shrink-0 mt-0.5" aria-hidden>
+          {getNotificationIcon(notification.type)}
+        </span>
+        <div className="flex-1 min-w-0">
+          <p
+            className={`text-sm ${
+              !notification.isRead
+                ? 'font-semibold text-gray-900 dark:text-white'
+                : 'text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            {notification.message}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            {formatDate(notification.createdAt)} at {formatTime(notification.createdAt)}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {!notification.isRead && (
+            <button
+              onClick={(e) => handleMarkAsRead(notification.id, e)}
+              className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              title="Mark as read"
+              aria-label="Mark as read"
+              style={{ minWidth: 36, minHeight: 36 }}
+            >
+              <Check className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            </button>
+          )}
+          <button
+            onClick={(e) => handleDeleteOne(notification.id, e)}
+            className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            title="Remove notification"
+            aria-label="Remove notification"
+            style={{ minWidth: 36, minHeight: 36 }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+
   const dropdownContent = isOpen ? (
     <div
       ref={dropdownRef}
@@ -238,58 +316,20 @@ export default function NotificationDropdown({
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 dark:divide-gray-700/80">
-            {displayedNotifications.map((notification) => (
-              <li key={notification.id}>
-                <div
-                  onClick={() => handleNotificationClick(notification)}
-                  className={`flex items-start gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${
-                    !notification.isRead ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''
-                  }`}
-                >
-                  <span className="text-base flex-shrink-0 mt-0.5" aria-hidden>
-                    {getNotificationIcon(notification.type)}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p
-                      className={`text-sm ${
-                        !notification.isRead
-                          ? 'font-semibold text-gray-900 dark:text-white'
-                          : 'text-gray-700 dark:text-gray-300'
-                      }`}
-                    >
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                      {formatDate(notification.createdAt)} at {formatTime(notification.createdAt)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {!notification.isRead && (
-                      <button
-                        onClick={(e) => handleMarkAsRead(notification.id, e)}
-                        className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                        title="Mark as read"
-                        aria-label="Mark as read"
-                        style={{ minWidth: 36, minHeight: 36 }}
-                      >
-                        <Check className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                      </button>
-                    )}
-                    <button
-                      onClick={(e) => handleDeleteOne(notification.id, e)}
-                      className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                      title="Remove notification"
-                      aria-label="Remove notification"
-                      style={{ minWidth: 36, minHeight: 36 }}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+          <div className="divide-y divide-gray-100 dark:divide-gray-700/80">
+            {groupedOrdered.map((key) => (
+              <div key={key}>
+                <div className="sticky top-0 z-10 px-4 py-2 bg-gray-50/95 dark:bg-gray-800/95 backdrop-blur-sm border-b border-gray-100 dark:border-gray-700/80">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {groupLabel[key]}
+                  </p>
                 </div>
-              </li>
+                <ul className="divide-y divide-gray-100 dark:divide-gray-700/80">
+                  {(grouped.get(key) || []).map((notification) => renderRow(notification))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>

@@ -762,20 +762,33 @@ export const chatWithAI = onCall(
         minute: "2-digit",
       });
 
-      // Compact system prompt (fewer input tokens per request)
-      const systemPrompt =
-        "You are DashAI, MyHub's friendly academic assistant. " +
-        "Tone: warm, concise, natural. Use only facts from User Context; " +
-        "never invent data. You cannot create/edit/delete anything—direct " +
-        "users to the app for changes. For empty days be positive; for " +
-        "lists use short bullets. Match conversation history for " +
-        "follow-ups. Avoid cliché closers ('How can I help?'). " +
-        "Keep answers under ~180 words unless asked for detail.\n\n" +
-        "CRITICAL: Only User Context + Current Date below are " +
-        "ground truth.\n\n" +
-        `Current Date (${userTimezone}): Today ${todayStr} (${todayName}); ` +
-        `Tomorrow ${tomorrowStr} (${tomorrowName}); Time ${currentTime}\n\n` +
-        `User Context:\n${userContext}\n`;
+      // System prompt: tone rules reduce generic "support bot" endings.
+      const systemPrompt = [
+        "You are DashAI, MyHub's friendly assistant. Be warm, concise, and",
+        "human. Use only facts from User Context; never invent data. You",
+        "cannot create, edit, or delete anything in MyHub—direct users to",
+        "the app for changes. For lists use short bullets. Match prior turns.",
+        "Keep answers under ~180 words unless the user asks for detail.",
+        "",
+        "ENDING & MOOD (critical): Infer whether the user is focused on",
+        "academics (courses, assignments, schedule, deadlines, exams) or",
+        "sharing feelings, venting, casual chat, personal life, or mood.",
+        "For academic or planning topics: be clear and practical. Do NOT",
+        "end with generic invitations like: \"feel free to share\", \"just",
+        "let me know\", \"anything specific on your mind\", \"if there's",
+        "anything you'd like to discuss\", or similar empty closers.",
+        "For personal or emotional topics: respond with empathy; mirror tone",
+        "appropriately; do not force homework or schedule talk unless they",
+        "ask. Do not sound like customer support. Vary how you close—often",
+        "end without a question.",
+        "",
+        "CRITICAL: Only User Context + Current Date below are ground truth.",
+        "",
+        `Current Date (${userTimezone}): Today ${todayStr} (${todayName});`,
+        `Tomorrow ${tomorrowStr} (${tomorrowName}); Time ${currentTime}`,
+        "",
+        `User Context:\n${userContext}`,
+      ].join(" ");
 
       // Build messages array with chat history
       type MessageRole = "system" | "user" | "assistant";
@@ -898,50 +911,74 @@ function getEmailTransporter(): nodemailer.Transporter {
 }
 
 /**
- * Generate email HTML template (same design as before)
+ * Table-based HTML for broad client support (including Outlook).
  * @param {string} subject - Email subject
- * @param {string} content - Email body content
+ * @param {string} content - Email body content (HTML fragment)
  * @return {string} Complete HTML email template
  */
 function generateEmailTemplate(
   subject: string,
   content: string
 ): string {
-  const bodyStyle = "font-family: -apple-system, BlinkMacSystemFont, " +
-    "'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; " +
-    "line-height: 1.6; color: #333; max-width: 600px; " +
-    "margin: 0 auto; padding: 20px;";
-  const headerStyle = "background: linear-gradient(135deg, " +
-    "#667eea 0%, #764ba2 100%); padding: 30px; " +
-    "text-align: center; border-radius: 10px 10px 0 0;";
-  const contentStyle = "background: #ffffff; padding: 30px; " +
-    "border: 1px solid #e5e7eb; border-top: none; " +
-    "border-radius: 0 0 10px 10px;";
-  const footerStyle = "text-align: center; margin-top: 30px; " +
-    "color: #6b7280; font-size: 12px;";
-
+  const esc = subject.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${subject}</title>
-      </head>
-      <body style="${bodyStyle}">
-        <div style="${headerStyle}">
-          <h1 style="color: white; margin: 0; font-size: 28px;">MyHub</h1>
-        </div>
-        <div style="${contentStyle}">
-          ${content}
-        </div>
-        <div style="${footerStyle}">
-          <p>This email was sent from MyHub. You can manage your " +
-            "email preferences in Settings.</p>
-        </div>
-      </body>
-    </html>
-  `;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>${esc}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0"
+    style="background-color:#f3f4f6;border-collapse:collapse;">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table role="presentation" width="600" cellspacing="0"
+          cellpadding="0"
+          style="max-width:600px;width:100%;border-collapse:collapse;
+          border-radius:16px;overflow:hidden;
+          box-shadow:0 10px 40px rgba(15,23,42,0.08);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 50%,
+              #a855f7 100%);padding:28px 32px;text-align:center;">
+              <p style="margin:0;font-family:'Segoe UI',Arial,sans-serif;
+                font-size:11px;letter-spacing:0.25em;text-transform:uppercase;
+                color:rgba(255,255,255,0.9);">MyHub</p>
+              <h1 style="margin:10px 0 0;font-family:system-ui,sans-serif;
+                font-size:17px;font-weight:600;color:#fff;line-height:1.35;
+                opacity:0.95;">${esc}</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#ffffff;padding:32px 28px;
+              font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,
+              Arial,sans-serif;font-size:15px;line-height:1.65;color:#1f2937;">
+              ${content}
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#f9fafb;padding:20px 28px;
+              border-top:1px solid #e5e7eb;text-align:center;">
+              <p style="margin:0 0 8px;font-family:'Segoe UI',Arial,sans-serif;
+                font-size:12px;color:#6b7280;line-height:1.5;">
+                You are receiving this because email notifications are enabled
+                in MyHub.
+              </p>
+              <p style="margin:0;font-family:'Segoe UI',Arial,sans-serif;
+                font-size:11px;color:#9ca3af;">
+                &copy; MyHub &middot; Academic planner
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 /**

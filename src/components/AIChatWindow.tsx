@@ -10,6 +10,8 @@ import { getTodayRange, getWeekRange } from '../utils/dateHelpers';
 import { useNavigate } from 'react-router-dom';
 import DashAIIcon from './DashAIIcon';
 import { formatAssistantContent } from '../utils/assistantMessageFormat';
+import DashAISuggestionChips from './DashAISuggestionChips';
+import { pickDashAISuggestionChips } from '../utils/dashaiSuggestionChips';
 
 const CHAT_HISTORY_LIMIT = 8;
 
@@ -47,6 +49,9 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const typingMessageIdRef = useRef<string | null>(null); // Track message being typed
   const sendingRef = useRef(false); // Prevent double-send before React re-renders
+  const [replyChips, setReplyChips] = useState(() =>
+    pickDashAISuggestionChips(undefined, undefined)
+  );
 
   // Load proactive suggestions
   useEffect(() => {
@@ -379,6 +384,9 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
             timestamp: Timestamp.now(),
           });
           typingMessageIdRef.current = null;
+          setReplyChips(
+            pickDashAISuggestionChips(userMessage.content, reply)
+          );
           generateQuickActionsAndContext(reply, userMessage.content);
         } catch (saveError) {
           console.error('Error saving AI message to Firestore:', saveError);
@@ -808,7 +816,14 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-1">
+          <DashAISuggestionChips
+            chips={replyChips}
+            disabled={loading || isTyping || !user}
+            onSelect={(prompt) => {
+              void sendMessageWithText(prompt);
+            }}
+          />
           <div className="flex gap-2">
             <input
               ref={inputRef}
