@@ -12,6 +12,25 @@ export default function TryDemoEntryPage() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
 
+  const mapTryDemoError = (e: any): string => {
+    const code = String(e?.code || '');
+    const message = String(e?.message || '');
+
+    if (
+      code === 'auth/admin-restricted-operation' ||
+      code === 'auth/operation-not-allowed' ||
+      message.includes('admin-restricted-operation')
+    ) {
+      return 'Try Demo is temporarily unavailable because Anonymous sign-in is disabled in Firebase Authentication. Please enable Anonymous provider and try again.';
+    }
+
+    if (code === 'auth/network-request-failed') {
+      return 'Network issue while starting demo mode. Check your connection and retry.';
+    }
+
+    return 'Could not start demo mode. Please refresh and try again.';
+  };
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') || 'light';
     const root = document.documentElement;
@@ -27,10 +46,7 @@ export default function TryDemoEntryPage() {
       navigate('/', { replace: true });
     } catch (e: any) {
       console.error(e);
-      setError(
-        e?.message ||
-          'Could not start demo mode. Please refresh and try again.'
-      );
+      setError(mapTryDemoError(e));
       setStarting(false);
     }
   };
