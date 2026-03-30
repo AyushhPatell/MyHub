@@ -2,6 +2,20 @@
 
 A smart, modern personal dashboard for managing your life - starting with academic courses and assignments, with room to grow.
 
+## Preview
+
+<p>
+  <img src="docs/screenshots/1-dashboard.png" alt="MyHub Dashboard" width="900" />
+</p>
+
+<p>
+  <img src="docs/screenshots/2-courses.png" alt="MyHub Courses" width="900" />
+</p>
+
+<p>
+  <img src="docs/screenshots/3-dashai.png" alt="DashAI chat" width="900" />
+</p>
+
 ## Features
 
 - 📚 Course management with color coding
