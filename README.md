@@ -5,15 +5,19 @@ A smart, modern personal dashboard for managing your life - starting with academ
 ## Preview
 
 <p>
-  <img src="docs/screenshots/1-dashboard.png" alt="MyHub Dashboard" width="900" />
+  <img src="docs/screenshots/docs:screenshots:1-dashboard.png" alt="MyHub Fresh Dashboard" width="900" />
 </p>
 
 <p>
-  <img src="docs/screenshots/2-courses.png" alt="MyHub Courses" width="900" />
+  <img src="docs/screenshots/docs:screenshots:1-dashboard2.png" alt="MyHub Dashboard" width="900" />
 </p>
 
 <p>
-  <img src="docs/screenshots/3-dashai.png" alt="DashAI chat" width="900" />
+  <img src="docs/screenshots/docs:screenshots:2-courses.png" alt="MyHub Courses" width="900" />
+</p>
+
+<p>
+  <img src="docs/screenshots/docs:screenshots:3-dashai.png" alt="DashAI chat" width="900" />
 </p>
 
 ## Features
