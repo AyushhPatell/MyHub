@@ -19,6 +19,8 @@ import { useDarkModeSchedule } from './hooks/useDarkModeSchedule';
 import { UserPreferences } from './types';
 import { applySmoothThemeTransition } from './utils/themeTransition';
 import { trackVisit } from './services/visitTracker';
+import TryDemoEntryPage from './TryDemo/TryDemoEntryPage';
+import { bootstrapTryDemoUser } from './TryDemo/bootstrapTryDemoUser';
 // Email scheduling is now handled by Firebase Cloud Functions (backend)
 // No need for frontend scheduler - emails are sent automatically even when app is closed
 
@@ -152,6 +154,7 @@ function App() {
   // Read admin status from Firestore at track time so admin visits count as "My Visits" only.
   useEffect(() => {
     if (!user) return;
+    if (user.isAnonymous) return;
 
     const sessionKey = `visit_tracked_${user.uid}`;
     if (sessionStorage.getItem(sessionKey)) return;
@@ -170,6 +173,13 @@ function App() {
       }
     })();
     return () => { cancelled = true; };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !user.isAnonymous) return;
+    bootstrapTryDemoUser(user).catch((error) => {
+      console.error('Error bootstrapping Try Demo data:', error);
+    });
   }, [user]);
 
   // Email scheduling is handled by Firebase Cloud Functions
@@ -212,6 +222,18 @@ function App() {
                 <Navigate to="/" replace />
               )
             } 
+          />
+          <Route
+            path="/try-demo"
+            element={
+              !user ? (
+                <PageTransition>
+                  <TryDemoEntryPage />
+                </PageTransition>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
           />
           <Route
             path="/"

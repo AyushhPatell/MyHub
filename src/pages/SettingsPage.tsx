@@ -191,6 +191,7 @@ function TimePicker({ value, onChange }: { value: string; onChange: (time: strin
 
 export default function SettingsPage() {
   const { user } = useAuth();
+  const isTryDemo = !!user?.isAnonymous;
   const navigate = useNavigate();
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(true);
@@ -481,6 +482,15 @@ export default function SettingsPage() {
           </h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 font-semibold">Manage your preferences</p>
         </div>
+        {isTryDemo && (
+          <div className="max-w-3xl mx-auto mb-6 rounded-2xl border border-indigo-200 dark:border-indigo-900/50 bg-indigo-50/80 dark:bg-indigo-950/30 p-4">
+            <p className="text-sm font-semibold text-indigo-900 dark:text-indigo-100">
+              You are in Try Demo mode. Some account features (email delivery,
+              account deletion, and permanent customization) are limited.
+              Create an account to unlock the full product.
+            </p>
+          </div>
+        )}
 
         {/* Section nav: laptop only, single line, spread across full width */}
         <nav
@@ -544,10 +554,11 @@ export default function SettingsPage() {
                     </p>
                     <button
                       onClick={() => setShowSemesterSetup(true)}
+                      disabled={isTryDemo}
                       className="mt-3 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors text-sm"
                     >
                       <Plus className="w-4 h-4" />
-                      Start New Semester
+                      {isTryDemo ? 'Not available in Try Demo' : 'Start New Semester'}
                     </button>
                   </div>
                 )}
@@ -567,11 +578,12 @@ export default function SettingsPage() {
                     </p>
                     <button
                       onClick={() => handleSwitchSemester(archivedSemester.id)}
-                      disabled={switching}
+                      disabled={switching || isTryDemo}
                       className="mt-3 flex items-center gap-2 px-4 py-2 bg-gray-600 hover:bg-gray-700 disabled:bg-gray-400 text-white font-semibold rounded-lg transition-colors text-sm"
                     >
                       <RotateCcw className="w-4 h-4" />
-                      {switching ? 'Switching...' : 'Switch to This Semester'}
+                      {isTryDemo ? 'Not available in Try Demo' :
+                        (switching ? 'Switching...' : 'Switch to This Semester')}
                     </button>
                   </div>
                 )}
@@ -982,10 +994,12 @@ export default function SettingsPage() {
                           setTestingEmail(false);
                         }
                       }}
-                      disabled={testingEmail || !isEmailConfigured()}
+                      disabled={testingEmail || !isEmailConfigured() || isTryDemo}
                       className="w-full px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-lg transition-all shadow-lg disabled:cursor-not-allowed"
                     >
-                      {testingEmail ? 'Sending Test Email...' : isEmailConfigured() ? 'Send Test Email' : 'Configure Email First'}
+                      {isTryDemo ? 'Not available in Try Demo' :
+                        (testingEmail ? 'Sending Test Email...' :
+                        (isEmailConfigured() ? 'Send Test Email' : 'Configure Email First'))}
                     </button>
                   </div>
                 </div>
@@ -1118,11 +1132,12 @@ export default function SettingsPage() {
                 </p>
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  disabled={deleting}
+                  disabled={deleting || isTryDemo}
                   className="flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white font-bold rounded-xl transition-colors shadow-lg text-sm sm:text-base w-full sm:w-auto justify-center"
                 >
                   <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                  {deleting ? 'Deleting Account...' : 'Delete Account'}
+                  {isTryDemo ? 'Not available in Try Demo' :
+                    (deleting ? 'Deleting Account...' : 'Delete Account')}
                 </button>
               </div>
             </div>

@@ -134,6 +134,12 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-6 text-center">
+            <Link
+              to="/try-demo"
+              className="inline-flex items-center justify-center w-full mb-4 px-4 py-2.5 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/70 dark:bg-indigo-950/30 text-indigo-700 dark:text-indigo-300 font-semibold hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+            >
+              Try Demo Without Account
+            </Link>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Don't have an account?{' '}
               <Link to="/register" className="text-primary-600 dark:text-primary-400 hover:underline font-medium">

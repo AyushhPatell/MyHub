@@ -1,5 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../config/firebase';
+import { auth, functions } from '../config/firebase';
 
 /**
  * Service for AI Chat functionality
@@ -11,6 +11,7 @@ interface ChatRequest {
     role: 'user' | 'assistant';
     content: string;
   }>;
+  demoMode?: boolean;
 }
 
 interface ChatResponse {
@@ -74,6 +75,7 @@ export async function sendChatMessage(
     const result = await chatWithAI({
       message,
       chatHistory: chatHistory || [],
+      demoMode: !!auth.currentUser?.isAnonymous,
     });
     return result.data.reply;
   } catch (error: unknown) {

@@ -675,6 +675,7 @@ export const chatWithAI = onCall(
     const userId = request.auth.uid;
     const message = request.data.message;
     const chatHistory = request.data.chatHistory || [];
+    const isTryDemo = request.data.demoMode === true;
 
     if (!message || typeof message !== "string" ||
       message.trim().length === 0) {
@@ -763,7 +764,7 @@ export const chatWithAI = onCall(
       });
 
       // System prompt: tone rules reduce generic "support bot" endings.
-      const systemPrompt = [
+      const basePrompt = [
         "You are DashAI, MyHub's friendly assistant. Be warm, concise, and",
         "human. Use only facts from User Context; never invent data. You",
         "cannot create, edit, or delete anything in MyHub—direct users to",
@@ -789,6 +790,16 @@ export const chatWithAI = onCall(
         "",
         `User Context:\n${userContext}`,
       ].join(" ");
+
+      const demoPrompt = isTryDemo ?
+        "You are in Try Demo mode. If users ask for unavailable or " +
+        "restricted features (account management, permanent saves, email " +
+        "delivery, or advanced admin operations), gently explain this is " +
+        "limited in demo and suggest creating an account for full access. " +
+        "Do not overuse this reminder; only mention it when relevant." :
+        "";
+
+      const systemPrompt = `${basePrompt} ${demoPrompt}`.trim();
 
       // Build messages array with chat history
       type MessageRole = "system" | "user" | "assistant";
