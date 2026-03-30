@@ -49,9 +49,22 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
   const chatWindowRef = useRef<HTMLDivElement>(null);
   const typingMessageIdRef = useRef<string | null>(null); // Track message being typed
   const sendingRef = useRef(false); // Prevent double-send before React re-renders
+  const tryDemo = Boolean(user?.isAnonymous);
   const [replyChips, setReplyChips] = useState(() =>
-    pickDashAISuggestionChips(undefined, undefined)
+    pickDashAISuggestionChips(undefined, undefined, { tryDemo: false })
   );
+
+  useEffect(() => {
+    setReplyChips((prev) => {
+      const next = pickDashAISuggestionChips(undefined, undefined, {
+        tryDemo,
+      });
+      return next.length === prev.length &&
+        next.every((c, i) => c.id === prev[i]?.id)
+        ? prev
+        : next;
+    });
+  }, [tryDemo]);
 
   // Load proactive suggestions
   useEffect(() => {
@@ -385,7 +398,9 @@ export default function AIChatWindow({ onClose }: AIChatWindowProps) {
           });
           typingMessageIdRef.current = null;
           setReplyChips(
-            pickDashAISuggestionChips(userMessage.content, reply)
+            pickDashAISuggestionChips(userMessage.content, reply, {
+              tryDemo,
+            })
           );
           generateQuickActionsAndContext(reply, userMessage.content);
         } catch (saveError) {

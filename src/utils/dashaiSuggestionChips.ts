@@ -35,13 +35,28 @@ const MIXED_CHIPS: DashAISuggestionChip[] = [
   ...DEFAULT_ACADEMIC.slice(0, 2),
 ];
 
+export interface PickDashAISuggestionChipsOptions {
+  /** Try Demo: hide overdue prompt (AI context can disagree with the dashboard). */
+  tryDemo?: boolean;
+}
+
+function stripOverdueChipForTryDemo(
+  chips: DashAISuggestionChip[],
+  tryDemo: boolean
+): DashAISuggestionChip[] {
+  if (!tryDemo) return chips;
+  return chips.filter((c) => c.id !== 'overdue');
+}
+
 /**
  * Picks chips based on the latest user message and (optionally) assistant reply.
  */
 export function pickDashAISuggestionChips(
   lastUserText: string | undefined,
-  lastAssistantText: string | undefined
+  lastAssistantText: string | undefined,
+  options?: PickDashAISuggestionChipsOptions
 ): DashAISuggestionChip[] {
+  const tryDemo = options?.tryDemo === true;
   const u = (lastUserText || '').trim();
   const a = (lastAssistantText || '').trim();
 
@@ -49,17 +64,17 @@ export function pickDashAISuggestionChips(
   const userAcademic = ACADEMIC_RE.test(u);
   const assistantMood = MOOD_RE.test(a);
 
+  let chips: DashAISuggestionChip[];
+
   if (userMood && !userAcademic) {
-    return SUPPORT_CHIPS;
+    chips = SUPPORT_CHIPS;
+  } else if (userMood && userAcademic) {
+    chips = MIXED_CHIPS;
+  } else if (assistantMood && !userAcademic && u.length > 0) {
+    chips = [...SUPPORT_CHIPS.slice(0, 2), ...DEFAULT_ACADEMIC.slice(0, 2)];
+  } else {
+    chips = DEFAULT_ACADEMIC;
   }
 
-  if (userMood && userAcademic) {
-    return MIXED_CHIPS;
-  }
-
-  if (assistantMood && !userAcademic && u.length > 0) {
-    return [...SUPPORT_CHIPS.slice(0, 2), ...DEFAULT_ACADEMIC.slice(0, 2)];
-  }
-
-  return DEFAULT_ACADEMIC;
+  return stripOverdueChipForTryDemo(chips, tryDemo);
 }
