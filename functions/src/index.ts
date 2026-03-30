@@ -306,7 +306,7 @@ async function gatherUserContext(
     );
     const needsSchedule = messageLower.match(schedulePattern);
     const needsAssignments = messageLower.match(
-      /\b(assignment|homework|due|deadline|task|project)\b/
+      /\b(assignment|homework|due|deadline|task|project|overdue)\b/
     );
     const needsCalendar = messageLower.match(
       /\b(event|calendar|appointment|meeting|reminder)\b/
@@ -555,7 +555,12 @@ async function gatherUserContext(
         const nextWeekForAssignments = new Date(todayForAssignments);
         nextWeekForAssignments.setDate(nextWeekForAssignments.getDate() + 7);
 
-        const assignments: Array<{
+        const upcomingAssignments: Array<{
+          name: string;
+          dueDate: Date;
+          course: string;
+        }> = [];
+        const overdueAssignments: Array<{
           name: string;
           dueDate: Date;
           course: string;
@@ -599,19 +604,52 @@ async function gatherUserContext(
                 nextWeekForAssignments.getDate()
               );
 
-              if (dueDateOnly >= todayOnly && dueDateOnly <= nextWeekOnly) {
-                assignments.push({
-                  name: data.name,
-                  dueDate: dueDate,
-                  course: courseDoc.data().courseName,
-                });
+              const row = {
+                name: data.name,
+                dueDate: dueDate,
+                course: courseDoc.data().courseName,
+              };
+
+              // Match dashboard: overdue = due before start of today (incomplete)
+              if (dueDateOnly < todayOnly) {
+                overdueAssignments.push(row);
+              } else if (
+                dueDateOnly >= todayOnly &&
+                dueDateOnly <= nextWeekOnly
+              ) {
+                upcomingAssignments.push(row);
               }
             }
           });
         }
 
-        if (assignments.length > 0) {
-          const sortedLimited = assignments
+        if (overdueAssignments.length > 0) {
+          const sortedOverdue = overdueAssignments
+            .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+            .slice(0, MAX_ASSIGNMENTS_IN_CONTEXT);
+          const overdueText = sortedOverdue
+            .map((a) => {
+              return `${a.name} (${a.course}) - ` +
+                `Due: ${a.dueDate.toLocaleDateString()}`;
+            })
+            .join("\n");
+          contextParts.push(
+            `Overdue Assignments (incomplete; due before today):\n` +
+            overdueText
+          );
+          contextParts.push(
+            `Overdue count: ${overdueAssignments.length} (must mention ` +
+            `these if the user asks about overdue or missed work).`
+          );
+        } else if (needsAssignments) {
+          contextParts.push(
+            "Overdue Assignments: none (no incomplete assignments before " +
+            "today)."
+          );
+        }
+
+        if (upcomingAssignments.length > 0) {
+          const sortedLimited = upcomingAssignments
             .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
             .slice(0, MAX_ASSIGNMENTS_IN_CONTEXT);
           const assignmentsText = sortedLimited
@@ -627,7 +665,7 @@ async function gatherUserContext(
           // Also include today's assignments if today is provided
           if (today) {
             const todayDateStr = today.toISOString().split("T")[0];
-            const todayAssignments = assignments.filter((a) => {
+            const todayAssignments = upcomingAssignments.filter((a) => {
               const dueDateStr = a.dueDate.toISOString().split("T")[0];
               return dueDateStr === todayDateStr;
             });
@@ -784,6 +822,9 @@ export const chatWithAI = onCall(
         "end without a question.",
         "",
         "CRITICAL: Only User Context + Current Date below are ground truth.",
+        "If User Context lists Overdue Assignments, you must report them",
+        "when the user asks about overdue, late, or missed work—never say",
+        "there are none while that section lists items.",
         "",
         `Current Date (${userTimezone}): Today ${todayStr} (${todayName});`,
         `Tomorrow ${tomorrowStr} (${tomorrowName}); Time ${currentTime}`,

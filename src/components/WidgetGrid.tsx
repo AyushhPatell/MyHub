@@ -18,6 +18,8 @@ interface WidgetGridProps {
   onStatClick?: (type: 'today' | 'week' | 'overdue') => void;
   onCalendarDateClick?: (date: Date, assignments: Assignment[]) => void;
   initialEditMode?: boolean;
+  /** Anonymous Try Demo: first-time dashboard uses stats/weather row + notes/calendar/schedule row. */
+  tryDemoDefault?: boolean;
 }
 
 const defaultWidgets: WidgetConfig[] = [
@@ -27,7 +29,16 @@ const defaultWidgets: WidgetConfig[] = [
   { id: 'notes', type: 'notes', size: 'medium', position: 3, visible: true },
 ];
 
-export default function WidgetGrid({ userId, assignments, courses, onStatClick, onCalendarDateClick, initialEditMode = false }: WidgetGridProps) {
+/** Try Demo: stats + weather on top row; notes, calendar, schedule below (matches guided layout). */
+const tryDemoDefaultWidgets: WidgetConfig[] = [
+  { id: 'stats', type: 'stats', size: 'medium', position: 0, visible: true },
+  { id: 'weather', type: 'weather', size: 'small', position: 1, visible: true },
+  { id: 'notes', type: 'notes', size: 'small', position: 2, visible: true },
+  { id: 'calendar', type: 'calendar', size: 'small', position: 3, visible: true },
+  { id: 'schedule', type: 'schedule', size: 'small', position: 4, visible: true },
+];
+
+export default function WidgetGrid({ userId, assignments, courses, onStatClick, onCalendarDateClick, initialEditMode = false, tryDemoDefault = false }: WidgetGridProps) {
   const [layout, setLayout] = useState<DashboardLayout | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(initialEditMode);
@@ -37,18 +48,19 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick, 
 
   useEffect(() => {
     loadLayout();
-  }, [userId]);
+  }, [userId, tryDemoDefault]);
 
   const loadLayout = async () => {
     try {
       setLoading(true);
       const savedLayout = await widgetService.getDashboardLayout(userId);
+      const initialWidgets = tryDemoDefault ? tryDemoDefaultWidgets : defaultWidgets;
       if (savedLayout) {
         setLayout(savedLayout);
       } else {
         const defaultLayout: DashboardLayout = {
           userId,
-          widgets: defaultWidgets,
+          widgets: initialWidgets,
           updatedAt: new Date(),
         };
         await widgetService.saveDashboardLayout(userId, defaultLayout);
@@ -56,9 +68,10 @@ export default function WidgetGrid({ userId, assignments, courses, onStatClick, 
       }
     } catch (error) {
       console.error('Error loading widget layout:', error);
+      const initialWidgets = tryDemoDefault ? tryDemoDefaultWidgets : defaultWidgets;
       const defaultLayout: DashboardLayout = {
         userId,
-        widgets: defaultWidgets,
+        widgets: initialWidgets,
         updatedAt: new Date(),
       };
       setLayout(defaultLayout);

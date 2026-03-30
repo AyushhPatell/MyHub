@@ -246,6 +246,7 @@ export default function DashboardPage() {
             onStatClick={handleStatClick}
             onCalendarDateClick={handleCalendarDateClick}
             initialEditMode={initialEditMode}
+            tryDemoDefault={user.isAnonymous}
           />
         )}
       </div>
