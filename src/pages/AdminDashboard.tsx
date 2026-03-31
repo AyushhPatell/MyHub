@@ -40,6 +40,7 @@ export default function AdminDashboard() {
   const [todayCost, setTodayCost] = useState(0);
   const [totalUserVisits, setTotalUserVisits] = useState(0);
   const [totalAdminVisits, setTotalAdminVisits] = useState(0);
+  const [totalDemoUserVisits, setTotalDemoUserVisits] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -180,6 +181,7 @@ export default function AdminDashboard() {
       console.log('[AdminDashboard] Visit stats:', visitStats);
       setTotalUserVisits(visitStats.totalUserVisits);
       setTotalAdminVisits(visitStats.totalAdminVisits);
+      setTotalDemoUserVisits(visitStats.totalDemoUserVisits);
     } catch (error) {
       console.error('[AdminDashboard] Error loading dashboard data:', error);
     } finally {
@@ -337,6 +339,23 @@ export default function AdminDashboard() {
               </div>
               <div className="p-3 bg-pink-100 dark:bg-pink-900/20 rounded-full">
                 <User className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+              </div>
+            </div>
+          </div>
+
+          {/* Demo User Visits */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Demo User Visits
+                </p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                  {formatNumber(totalDemoUserVisits)}
+                </p>
+              </div>
+              <div className="p-3 bg-violet-100 dark:bg-violet-900/20 rounded-full">
+                <Users className="w-6 h-6 text-violet-600 dark:text-violet-400" />
               </div>
             </div>
           </div>

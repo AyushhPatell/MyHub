@@ -18,7 +18,7 @@ import AdminRoute from './components/AdminRoute';
 import { useDarkModeSchedule } from './hooks/useDarkModeSchedule';
 import { UserPreferences } from './types';
 import { applySmoothThemeTransition } from './utils/themeTransition';
-import { trackVisit } from './services/visitTracker';
+import { trackVisit, trackDemoVisit } from './services/visitTracker';
 import TryDemoEntryPage from './TryDemo/TryDemoEntryPage';
 import { bootstrapTryDemoUser } from './TryDemo/bootstrapTryDemoUser';
 // Email scheduling is now handled by Firebase Cloud Functions (backend)
@@ -172,6 +172,28 @@ function App() {
         if (!cancelled) console.error('Error tracking visit:', error);
       }
     })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Track Try Demo visit once per session for anonymous users.
+  useEffect(() => {
+    if (!user || !user.isAnonymous) return;
+
+    const sessionKey = `demo_visit_tracked_${user.uid}`;
+    if (sessionStorage.getItem(sessionKey)) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        await trackDemoVisit(user.uid);
+        if (!cancelled) {
+          sessionStorage.setItem(sessionKey, 'true');
+        }
+      } catch (error) {
+        if (!cancelled) console.error('Error tracking demo visit:', error);
+      }
+    })();
+
     return () => { cancelled = true; };
   }, [user]);
 

@@ -43,11 +43,41 @@ export async function trackVisit(_userId: string, isAdmin: boolean): Promise<voi
 }
 
 /**
+ * Track a Try Demo (anonymous) visit to the application.
+ * @param _userId - Anonymous user ID (kept for potential future use)
+ */
+export async function trackDemoVisit(_userId: string): Promise<void> {
+  try {
+    const visitsRef = doc(db, 'appUsage', 'visits');
+    const visitsDoc = await getDoc(visitsRef);
+
+    if (!visitsDoc.exists()) {
+      await setDoc(visitsRef, {
+        totalUserVisits: 0,
+        totalAdminVisits: 0,
+        totalDemoUserVisits: 1,
+        lastUpdated: serverTimestamp(),
+      });
+      return;
+    }
+
+    await setDoc(visitsRef, {
+      totalDemoUserVisits: increment(1),
+      lastUpdated: serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    console.error('[visitTracker] Error tracking demo visit:', error);
+    // Don't throw - visit tracking shouldn't break the app
+  }
+}
+
+/**
  * Get visit statistics
  */
 export async function getVisitStats(): Promise<{
   totalUserVisits: number;
   totalAdminVisits: number;
+  totalDemoUserVisits: number;
 }> {
   try {
     const visitsRef = doc(db, 'appUsage', 'visits');
@@ -58,18 +88,21 @@ export async function getVisitStats(): Promise<{
       return {
         totalUserVisits: Number(data.totalUserVisits) || 0,
         totalAdminVisits: Number(data.totalAdminVisits) || 0,
+        totalDemoUserVisits: Number(data.totalDemoUserVisits) || 0,
       };
     }
 
     return {
       totalUserVisits: 0,
       totalAdminVisits: 0,
+      totalDemoUserVisits: 0,
     };
   } catch (error) {
     console.error('[visitTracker] Error getting visit stats:', error);
     return {
       totalUserVisits: 0,
       totalAdminVisits: 0,
+      totalDemoUserVisits: 0,
     };
   }
 }
