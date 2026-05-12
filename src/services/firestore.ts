@@ -28,6 +28,13 @@ const convertTimestamp = (data: any) => {
   return converted;
 };
 
+/** Firestore rejects `undefined` on any field — strip before writes. */
+function omitUndefinedFields<T extends Record<string, unknown>>(obj: T): T {
+  return Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined)
+  ) as T;
+}
+
 // Semester operations
 export const semesterService = {
   async getActiveSemester(userId: string): Promise<Semester | null> {
@@ -182,11 +189,15 @@ export const courseService = {
     semesterId: string,
     course: Omit<Course, 'id' | 'semesterId' | 'createdAt'>
   ): Promise<string> {
-    const docRef = await addDoc(collection(db, 'users', userId, 'semesters', semesterId, 'courses'), {
+    const payload = omitUndefinedFields({
       ...course,
       semesterId,
       createdAt: Timestamp.now(),
-    });
+    } as Record<string, unknown>);
+    const docRef = await addDoc(
+      collection(db, 'users', userId, 'semesters', semesterId, 'courses'),
+      payload
+    );
     return docRef.id;
   },
 
@@ -198,7 +209,11 @@ export const courseService = {
     courseId: string,
     updates: Partial<Course>
   ): Promise<void> {
-    await updateDoc(doc(db, 'users', userId, 'semesters', semesterId, 'courses', courseId), updates);
+    const payload = omitUndefinedFields({ ...updates } as Record<string, unknown>);
+    await updateDoc(
+      doc(db, 'users', userId, 'semesters', semesterId, 'courses', courseId),
+      payload
+    );
   },
 
   // Will be used for deleting courses
